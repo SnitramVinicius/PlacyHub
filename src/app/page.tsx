@@ -1,103 +1,105 @@
-import Image from "next/image";
+"use client";
+import Navbar from "@/components/navbar";
+import { Heart } from "lucide-react";
+import Link from "next/link";
+
+interface Espaco {
+  id: string;
+  imagem: string;
+  nome: string;
+  preco: string;
+  duracao: string;
+  avaliacao: number;
+}
+
+const espacosIndicados: Espaco[] = [
+  { id:"1", imagem: "/1.jpg", nome: "Salão de Festas Salagadum Buffet", preco: "R$ 500,00", duracao: "5 horas de festa", avaliacao: 4.0 },
+  { id:"2", imagem: "/2.jpg", nome: "Espaço Alegria Kids", preco: "R$ 480,00", duracao: "5 horas", avaliacao: 4.5 },
+  { id:"3", imagem: "/3.jpg", nome: "Chácara Recanto Feliz", preco: "R$ 650,00", duracao: "6 horas", avaliacao: 4.8 },
+  { id:"4", imagem: "/4.jpeg", nome: "Espaço Estrela", preco: "R$ 700,00", duracao: "6 horas", avaliacao: 4.7 },
+  { id:"5", imagem: "/5.jpeg", nome: "Buffet Infantil Encanto", preco: "R$ 520,00", duracao: "5 horas", avaliacao: 4.6 },
+  { id:"6", imagem: "/1.jpg", nome: "Salão Premium", preco: "R$ 600,00", duracao: "5 horas", avaliacao: 4.3 },
+];
+
+const espacosDestaque = [...espacosIndicados];
+const espacosDisponiveis = [...espacosIndicados];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const renderSection = (titulo: string, lista: Espaco[]) => (
+    <>
+      <div className="flex justify-center">
+        <h1 className="font-bold text-2xl mt-10 mb-10">{titulo}</h1>
+      </div>
+      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 px-6 md:px-10 lg:px-10 justify-items-center">
+        {lista.map((espaco) => (
+          <Link key={espaco.id} href={`/espaco/${espaco.id}`}>
+            <div className="bg-white w-full max-w-[300px] rounded-sm shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition">
+              <div className="relative">
+                <img
+                  src={espaco.imagem}
+                  alt={espaco.nome}
+                  className="w-full h-[160px] object-cover"
+                />
+                <button className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-2 shadow-sm transition">
+                  <Heart size={20} className="text-[#02aeee]" />
+                </button>
+              </div>
+              <div className="p-3">
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold text-[14px]">{espaco.nome}</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-700 text-sm">⭐</span>
+                    <p className="text-gray-700 text-sm font-medium">
+                      {espaco.avaliacao}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-sm mt-1">
+                  {espaco.preco} • {espaco.duracao}
+                </p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </section>
+    </>
+  );
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <>
+      <Navbar />
+      {renderSection("Indicações da PlacyHub", espacosIndicados)}
+      {renderSection("Espaços em destaque", espacosDestaque)}
+      {renderSection("Espaços disponíveis para este fim de semana", espacosDisponiveis)}
+
+      <section>
+        <div className="bg-[#e5e5e5] w-full h-[500px] flex justify-between items-center px-10 md:px-20 lg:px-32">
+          <div>
+            <h1 className="font-bold">Anunciantes</h1>
+            <h1>Cadastre seu espaço</h1>
+            <h1>Como funciona o PlacyHub</h1>
+            <h1>Planos e comissões</h1>
+            <h1>Suporte para locador</h1>
+          </div>
+          <div>
+            <h1 className="font-bold">Sobre o PlacyHub</h1>
+            <h1>Nossa história</h1>
+            <h1>Termos de uso</h1>
+            <h1>Política de privacidade</h1>
+          </div>
+          <div>
+            <h1 className="font-bold">Extras</h1>
+            <h1>Redes sociais</h1>
+            <h1>Termos de uso</h1>
+            <h1>Formas de pagamentos aceitos</h1>
+          </div>
+          <div>
+            <h1 className="font-bold">Atendimento</h1>
+            <h1>Fale conosco</h1>
+            <h1>Políticas de cancelamento</h1>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+    </>
   );
 }
