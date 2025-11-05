@@ -65,9 +65,9 @@ export default function LoginPage() {
                 <p className="text-sm text-[#a7acad] mb-3">
                   Para quem busca o local perfeito para sua festa ou evento.
                 </p>
-                <button className="bg-[#02b0f0] text-white py-2 px-4 rounded-lg hover:bg-[#0292cb] transition">
+                <a href="/cadastro/locatario" className="bg-[#02b0f0] text-white py-2 px-4 rounded-lg hover:bg-[#0292cb] transition">
                   Continuar como Locatário
-                </button>
+                </a>
               </div>
 
               <div className="bg-[#ecf7fb] border border-[#02b0f0] rounded-xl p-4">
@@ -77,9 +77,9 @@ export default function LoginPage() {
                 <p className="text-sm text-[#a7acad] mb-3">
                   Para quem tem um salão, sítio ou espaço e deseja rentabilizá-lo.
                 </p>
-                <button className="bg-[#02b0f0] text-white py-2 px-4 rounded-lg hover:bg-[#0292cb] transition">
+                <a href="/anfitriao/cadastro" className="bg-[#02b0f0] text-white py-2 px-4 rounded-lg hover:bg-[#0292cb] transition">
                   Continuar como Anfitrião
-                </button>
+                </a>
               </div>
             </div>
           </div>

@@ -131,10 +131,10 @@ export default function Navbar() {
         <div className="flex justify-between w-full max-w-screen-xl px-12">
           <div className="w-32 h-10 shrink-0"></div>
           <div className="flex-1 flex justify-center text-sm">
-            <p>
+            {/* <p>
               O <strong>PlacyHub</strong> conecta você aos melhores espaços de
               festa em <strong>Campo Grande</strong>
-            </p>
+            </p> */}
           </div>
           <div className="w-56 h-10 shrink-0"></div>
         </div>
@@ -295,6 +295,7 @@ export default function Navbar() {
             <a href="#" className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm">Histórico de locação</a>
             <a href="#" className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm">Localizações de espaços</a>
             <a href="#" className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm">Configuração de conta</a>
+            <a href="/login" className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm">Entrar ou Cadastrar</a>
             <a href="#" className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm">Sair da conta</a>
           </div>
         )}
