@@ -131,8 +131,7 @@ export default async function EspacoPage({ params }: { params: Promise<{ id: str
     className="flex ml-auto px-4 py-2  rounded-lg text-sm font-medium" // <- ADICIONAR ml-auto
   >
     {/* <ChevronLeft size={18} className="text-[#02aeee] fill-[#02aeee]" /> */}
-    Voltar
-    
+    ← Voltar
   </Link>
 </div>
  <h1 className="text-3xl font-bold mt-6 mb-10">{espaco.nome}</h1>

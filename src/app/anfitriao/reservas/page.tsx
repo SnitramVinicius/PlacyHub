@@ -20,6 +20,29 @@ export default function ReservasAnfitriao() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todas");
 
+  // 🔹 Simulação de espaços cadastrados
+useEffect(() => {
+  const espacosExemplo = [
+    {
+      id: "espaco-001",
+      nome_espaco: "Chácara do Sol",
+      tipo_reserva: "manual", // precisa de aceite do anfitrião
+    },
+    {
+      id: "espaco-002",
+      nome_espaco: "Salão do Lago",
+      tipo_reserva: "automatica", // confirma sozinha
+    },
+    {
+      id: "espaco-004",
+      nome_espaco: "Campo das Flores",
+      tipo_reserva: "manual",
+    },
+  ];
+
+  localStorage.setItem("espacos", JSON.stringify(espacosExemplo));
+}, []);
+
   // 🔹 Dados de exemplo
   useEffect(() => {
     const reservasExemplo = [
@@ -56,6 +79,8 @@ export default function ReservasAnfitriao() {
         valor: 650,
         status: "pendente",
       },
+
+      
     ];
 
     localStorage.setItem("reservas", JSON.stringify(reservasExemplo));
@@ -68,21 +93,26 @@ export default function ReservasAnfitriao() {
 
     const hoje = new Date();
 
-    const reservasAtualizadas = reservasSalvas.map((r: Reserva) => {
-      const espaco = espacosSalvos.find((e: any) => e.id === r.espacoId);
-      const dataFim = new Date(r.dataFim);
-      if (r.status === "confirmada" && dataFim < hoje) {
-        return {
-          ...r,
-          status: "finalizada",
-          espacoNome: espaco ? espaco.nome_espaco : "Espaço removido",
-        };
-      }
-      return {
-        ...r,
-        espacoNome: espaco ? espaco.nome_espaco : "Espaço removido",
-      };
-    });
+const reservasAtualizadas = reservasSalvas.map((r: Reserva) => {
+  const espaco = espacosSalvos.find((e: any) => e.id === r.espacoId);
+  const dataFim = new Date(r.dataFim);
+  const tipoReserva = espaco?.tipo_reserva || "manual"; // padrão: manual
+
+  // 🔹 Se o espaço for automático e ainda estiver pendente → confirma automaticamente
+  if (tipoReserva === "automatica" && r.status === "pendente") {
+    r.status = "confirmada";
+  }
+
+  // 🔹 Se a reserva confirmada já passou → marca como finalizada
+  if (r.status === "confirmada" && dataFim < hoje) {
+    r.status = "finalizada";
+  }
+
+  return {
+    ...r,
+    espacoNome: espaco ? espaco.nome_espaco : "Espaço removido",
+  };
+});
 
     localStorage.setItem("reservas", JSON.stringify(reservasAtualizadas));
     setReservas(reservasAtualizadas);
@@ -113,7 +143,7 @@ export default function ReservasAnfitriao() {
       <div className="min-h-screen bg-gray-50 py-10 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-            📅 Minhas Reservas
+           Minhas Reservas
           </h2>
           <p className="text-gray-500 mb-8">
             Veja e gerencie as reservas feitas nos seus espaços cadastrados.

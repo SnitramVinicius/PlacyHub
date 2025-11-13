@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <>
     
-    <Navbar/>
+    {/* <Navbar/> */}
   
       <div className="flex w-full mb-10">
   {/* Outros itens de navegação se houver */}

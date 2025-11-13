@@ -2,30 +2,20 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Home, Building2, CalendarDays, Wallet, User, BarChart3 } from "lucide-react";
+import { Home, Heart, CalendarDays, User } from "lucide-react";
 import clsx from "clsx";
 
 const links = [
-  { name: "Painel", href: "/anfitriao", icon: Home },
-  { name: "Espaços", href: "/anfitriao/espacos", icon: Building2 },
-  { name: "Reservas", href: "/anfitriao/reservas", icon: CalendarDays },
-  { name: "Financeiro", href: "/anfitriao/financeiro", icon: Wallet },
-  { name: "Perfil", href: "/anfitriao/perfil", icon: User },
+  { name: "Início", href: "/", icon: Home },
+  { name: "Meu Perfil", href: "/locatario/perfil", icon: User },
+  { name: "Minhas Reservas", href: "/locatario/reservas", icon: CalendarDays },
+  { name: "Favoritos", href: "/locatario/favoritos", icon: Heart },
+  
 ];
 
-export default function AnfitriaoLayout({ children }: { children: React.ReactNode }) {
+export default function UsuarioLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-
-  // 🔹 Lista de rotas que NÃO devem mostrar a sidebar
-  const rotasSemSidebar = ["/anfitriao/cadastro",
-  "/anfitriao/espacos/novo", "/anfitriao/planos"];
-
-  const semSidebar = rotasSemSidebar.includes(pathname);
-
-  if (semSidebar) {
-    return <>{children}</>;
-  }
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -38,7 +28,6 @@ export default function AnfitriaoLayout({ children }: { children: React.ReactNod
             {links.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
-
               return (
                 <Link
                   key={link.name}
@@ -58,12 +47,6 @@ export default function AnfitriaoLayout({ children }: { children: React.ReactNod
           </nav>
         </div>
 
-        <button
-          onClick={() => router.push("/")}
-          className="text-sm text-gray-500 hover:text-sky-600 transition mt-8"
-        >
-          ← Voltar ao site
-        </button>
       </aside>
 
       {/* Conteúdo principal */}

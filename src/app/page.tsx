@@ -67,7 +67,7 @@ export default function Home() {
 
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
       {renderSection("Indicações da PlacyHub", espacosIndicados)}
       {renderSection("Espaços em destaque", espacosDestaque)}
       {renderSection("Espaços disponíveis para este fim de semana", espacosDisponiveis)}
