@@ -2,7 +2,7 @@
 
 import { useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Edit3, Lock, CreditCard, Settings, LogOut, Save } from "lucide-react";
+import { Camera, Edit3, Lock, CreditCard, Settings, LogOut, Save, Heart } from "lucide-react";
 import { Toaster, toast } from "sonner";
 
 export default function PerfilUsuario() {
@@ -15,7 +15,6 @@ export default function PerfilUsuario() {
   const [foto, setFoto] = useState<string | null>(null);
   const [editando, setEditando] = useState(false);
 
-  // 🔥 Estado para abrir o modal
   const [confirmarLogout, setConfirmarLogout] = useState(false);
 
   const handleFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -31,10 +30,8 @@ export default function PerfilUsuario() {
   };
 
   const handleLogout = () => {
-    // ⚠️ Aqui você coloca sua lógica de logout real (remover token, limpar storage etc)
     localStorage.clear();
     sessionStorage.clear();
-
     router.push("/login");
   };
 
@@ -144,7 +141,7 @@ export default function PerfilUsuario() {
         </div>
       </div>
 
-      {/* Segurança e Pagamentos */}
+      {/* Cards: Segurança, Pagamentos, Preferências */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
           <Lock className="text-sky-500 mb-2" size={32} />
@@ -173,10 +170,7 @@ export default function PerfilUsuario() {
             Gerenciar
           </button>
         </div>
-      </div>
 
-      {/* Preferências e Logout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
           <Settings className="text-sky-500 mb-2" size={32} />
           <h3 className="font-semibold mb-1">Preferências</h3>
@@ -191,6 +185,22 @@ export default function PerfilUsuario() {
           </button>
         </div>
 
+        {/* Favoritos */}
+        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
+          <Heart className="text-sky-500 mb-2" size={32} />
+          <h3 className="font-semibold mb-1">Favoritos</h3>
+          <p className="text-gray-500 text-sm mb-3">
+            Veja todos os espaços que você favoritou.
+          </p>
+          <button
+            onClick={() => router.push("/favoritos")}
+            className="text-sky-500 hover:text-sky-600 font-medium"
+          >
+            Acessar
+          </button>
+        </div>
+
+        {/* Logout */}
         <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
           <LogOut className="text-red-500 mb-2" size={32} />
           <h3 className="font-semibold mb-1 text-red-600">Sair da Conta</h3>
@@ -204,16 +214,10 @@ export default function PerfilUsuario() {
         </div>
       </div>
 
-      {/* 🔥 MODAL DE CONFIRMAÇÃO — estilo Airbnb com animação */}
+      {/* Modal de confirmação logout */}
       {confirmarLogout && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-
-          <div
-            className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm animate-[fadeIn_0.2s_ease,scaleUp_0.2s_ease]"
-            style={{
-              animation: "fadeIn 0.2s ease, scaleUp 0.2s ease",
-            }}
-          >
+          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm animate-[fadeIn_0.2s_ease,scaleUp_0.2s_ease]">
             <h3 className="font-semibold text-lg mb-2 text-center">Sair da conta?</h3>
             <p className="text-gray-600 text-sm text-center mb-6">
               Tem certeza de que deseja sair do PlacyHub?
@@ -226,13 +230,12 @@ export default function PerfilUsuario() {
               >
                 Cancelar
               </button>
-
-<button
-  onClick={handleLogout}
-  className="px-4 py-2 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition w-[48%]"
->
-  Sair
-</button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition w-[48%]"
+              >
+                Sair
+              </button>
             </div>
           </div>
         </div>

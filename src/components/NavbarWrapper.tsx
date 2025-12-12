@@ -26,7 +26,7 @@ export default function NavbarWrapper() {
     "/locatario/reservas",
     "/locatario/seguranca",
     "/anfitriao/espacos",
-    "/anfitriao",
+    "/app/suporte-locador",
   ];
 
   if (noNavbarPaths.some((path) => pathname.startsWith(path))) {

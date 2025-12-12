@@ -4,9 +4,12 @@ import { FaFacebook } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Toaster, toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth(); // Função do contexto
+
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
@@ -18,18 +21,38 @@ export default function LoginPage() {
       return;
     }
 
-    // Simulação de login
     setTimeout(() => {
-      router.push("/"); // redireciona para a home
+      // Nome temporário: tudo antes do @
+      const nomeTemporario = email.split("@")[0];
+
+      // Deixa a primeira letra maiúscula
+      const nomeFormatado =
+        nomeTemporario.charAt(0).toUpperCase() + nomeTemporario.slice(1);
+
+      // Dados provisórios do usuário
+      const userData = {
+        id: "temp-" + Date.now(),
+        name: nomeFormatado, // <-- nome padronizado
+        email: email,
+      };
+
+      // Salva no contexto
+      login(userData);
+
+      router.push("/");
     }, 800);
   };
 
   const handleLoginGoogle = () => {
-    toast("Login com Google não implementado ainda 😅", { description: "Simulação apenas" });
+    toast("Login com Google não implementado ainda 😅", {
+      description: "Simulação apenas",
+    });
   };
 
   const handleLoginFacebook = () => {
-    toast("Login com Facebook não implementado ainda 😅", { description: "Simulação apenas" });
+    toast("Login com Facebook não implementado ainda 😅", {
+      description: "Simulação apenas",
+    });
   };
 
   return (
@@ -38,7 +61,7 @@ export default function LoginPage() {
 
       <section className="flex justify-center items-center min-h-screen px-4">
         <div className="bg-white shadow-md rounded-2xl p-10 w-full max-w-4xl flex flex-col md:flex-row justify-between gap-10">
-          
+
           {/* Coluna da esquerda */}
           <div className="flex-1 flex flex-col justify-center">
             <h1 className="text-2xl font-bold text-gray-800 mb-6">
@@ -61,6 +84,7 @@ export default function LoginPage() {
                 onChange={(e) => setSenha(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-[#02b0f0]"
               />
+
               <a
                 href="/esqueci-senha"
                 className="text-sm text-[#02b0f0] hover:underline text-right"

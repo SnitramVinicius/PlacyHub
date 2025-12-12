@@ -4,9 +4,10 @@ import { useState } from "react";
 import { ArrowLeft, Globe, Moon, Sun, Bell, MessageCircle, Mail, Edit3 } from "lucide-react";
 import Link from "next/link";
 import { toast, Toaster } from "sonner";
+import { useTema } from "@/context/TemaContext";
 
 export default function PreferenciasGerais() {
-  const [tema, setTema] = useState<"claro" | "escuro" | "auto">("auto");
+  const { tema, setTema } = useTema(); // usar tema global
   const [idioma, setIdioma] = useState("pt-BR");
   const [notificacoes, setNotificacoes] = useState([
     {
@@ -34,7 +35,7 @@ export default function PreferenciasGerais() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
       <Toaster position="top-right" richColors />
 
       {/* Cabeçalho */}
@@ -51,7 +52,7 @@ export default function PreferenciasGerais() {
       </div>
 
       {/* Tema */}
-      <div className="bg-white rounded-2xl shadow p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 mb-6">
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Moon size={20} /> Tema
         </h2>
@@ -59,7 +60,7 @@ export default function PreferenciasGerais() {
           <button
             onClick={() => setTema("claro")}
             className={`px-4 py-2 rounded-xl border ${
-              tema === "claro" ? "bg-sky-500 text-white" : "hover:bg-gray-50"
+              tema === "claro" ? "bg-sky-500 text-white" : "hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
             <Sun size={16} className="inline mr-1" /> Claro
@@ -67,7 +68,7 @@ export default function PreferenciasGerais() {
           <button
             onClick={() => setTema("escuro")}
             className={`px-4 py-2 rounded-xl border ${
-              tema === "escuro" ? "bg-sky-500 text-white" : "hover:bg-gray-50"
+              tema === "escuro" ? "bg-sky-500 text-white" : "hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
             🌙 Escuro
@@ -76,34 +77,37 @@ export default function PreferenciasGerais() {
       </div>
 
       {/* Idioma */}
-      <div className="bg-white rounded-2xl shadow p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 mb-6">
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Globe size={20} /> Idioma
         </h2>
-        <select
-          value={idioma}
-          onChange={(e) => setIdioma(e.target.value)}
-          className="border rounded-xl px-4 py-2 w-full max-w-sm focus:ring-2 focus:ring-sky-400 outline-none"
-        >
-          <option value="pt-BR">Português (Brasil)</option>
-          <option value="en-US">Inglês (EUA)</option>
-          <option value="es-ES">Espanhol</option>
-        </select>
+       <select
+  value={idioma}
+  onChange={(e) => setIdioma(e.target.value as "pt-BR" | "en-US" | "es-ES")}
+  className="border rounded-xl px-4 py-2 w-full max-w-sm focus:ring-2 focus:ring-sky-400 outline-none dark:bg-gray-700 dark:text-gray-100"
+>
+  <option value="pt-BR">Português (Brasil)</option>
+  <option value="en-US">Inglês (EUA)</option>
+  <option value="es-ES">Espanhol</option>
+</select>
       </div>
 
       {/* Notificações */}
-      <div className="bg-white rounded-2xl shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Bell size={20} /> Notificações
         </h2>
 
         <div className="space-y-4">
           {notificacoes.map((n) => (
-            <div key={n.id} className="border-b border-gray-100 pb-3 flex justify-between items-center">
+            <div
+              key={n.id}
+              className="border-b border-gray-100 dark:border-gray-700 pb-3 flex justify-between items-center"
+            >
               <div>
                 <h3 className="font-semibold">{n.titulo}</h3>
-                <p className="text-gray-500 text-sm">{n.descricao}</p>
-                <div className="flex gap-3 mt-2 text-sm text-gray-600">
+                <p className="text-gray-500 dark:text-gray-300 text-sm">{n.descricao}</p>
+                <div className="flex gap-3 mt-2 text-sm text-gray-600 dark:text-gray-400">
                   {n.canais.includes("Email") && (
                     <span className="flex items-center gap-1">
                       <Mail size={14} /> Email
@@ -116,12 +120,12 @@ export default function PreferenciasGerais() {
                   )}
                 </div>
               </div>
-             <Link
-  href={`/locatario/preferencias/notificacoes/${n.id}`}
-  className="text-sky-500 hover:text-sky-600 flex items-center gap-1"
->
-  <Edit3 size={16} /> Editar
-</Link>
+              <Link
+                href={`/locatario/preferencias/notificacoes/${n.id}`}
+                className="text-sky-500 hover:text-sky-600 flex items-center gap-1"
+              >
+                <Edit3 size={16} /> Editar
+              </Link>
             </div>
           ))}
         </div>
@@ -138,7 +142,7 @@ export default function PreferenciasGerais() {
       </div>
 
       {/* Rodapé */}
-      <div className="mt-6 text-center text-sm text-gray-500">
+      <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
         <p>As comunicações entre anfitriões e locatários são feitas diretamente por WhatsApp ou e-mail.</p>
       </div>
     </div>

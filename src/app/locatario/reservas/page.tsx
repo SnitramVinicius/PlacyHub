@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CalendarDays, Clock, MapPin, Star, XCircle } from "lucide-react";
+import { ESPACOS } from "@/data/espacos"; // PARA PEGAR NOME, IMAGEM E LOCAL
 
 interface Reserva {
   id: string;
@@ -18,47 +19,39 @@ export default function ReservasPage() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
 
   useEffect(() => {
-    // Simulação de reservas vindas do backend ou localStorage
-    const dadosFake: Reserva[] = [
-      {
-        id: "1",
-        espaco: "Salão Primavera",
-        imagem: "/espaco1.jpg",
-        data: "20/11/2025",
-        hora: "18:00 - 23:00",
-        local: "Campo Grande - MS",
-        valor: 450,
-        status: "Confirmada",
-      },
-      {
-        id: "2",
-        espaco: "Chácara Sol Nascente",
-        imagem: "/espaco2.jpg",
-        data: "05/11/2025",
-        hora: "14:00 - 22:00",
-        local: "Terenos - MS",
-        valor: 850,
-        status: "Finalizada",
-      },
-      {
-        id: "3",
-        espaco: "Espaço Garden",
-        imagem: "/espaco3.jpg",
-        data: "28/11/2025",
-        hora: "09:00 - 17:00",
-        local: "Campo Grande - MS",
-        valor: 600,
-        status: "Pendente",
-      },
-    ];
-    setReservas(dadosFake);
+    async function carregarReservas() {
+      try {
+        const res = await fetch("/reservas.json");
+        const json = await res.json();
+
+        // Converter o json do webhook para o formato da interface
+        const convertido: Reserva[] = json.map((r: any) => {
+          const espacoInfo = ESPACOS.find((e) => e.id === r.espacoId);
+
+          return {
+            id: r.id,
+            espaco: espacoInfo?.nome || "Espaço não encontrado",
+            imagem: espacoInfo?.imagem || "/default.jpg",
+            data: new Date(r.dataReserva).toLocaleDateString("pt-BR"),
+            hora: "—", // pode atualizar depois
+            local: `${espacoInfo?.cidade} - ${espacoInfo?.bairro}`,
+            valor: r.valor || 0,
+            status: r.status === "pago" ? "Confirmada" : "Pendente",
+          };
+        });
+
+        setReservas(convertido);
+      } catch (err) {
+        console.error("Erro ao carregar reservas:", err);
+      }
+    }
+
+    carregarReservas();
   }, []);
 
   function handleCancelarReserva(id: string) {
     setReservas((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, status: "Cancelada" } : r
-      )
+      prev.map((r) => (r.id === id ? { ...r, status: "Cancelada" } : r))
     );
   }
 
@@ -88,14 +81,17 @@ export default function ReservasPage() {
                 <h2 className="text-lg font-semibold text-gray-800">
                   {reserva.espaco}
                 </h2>
+
                 <div className="flex items-center text-gray-500 text-sm gap-2">
                   <CalendarDays size={16} />
                   {reserva.data}
                 </div>
+
                 <div className="flex items-center text-gray-500 text-sm gap-2">
                   <Clock size={16} />
                   {reserva.hora}
                 </div>
+
                 <div className="flex items-center text-gray-500 text-sm gap-2">
                   <MapPin size={16} />
                   {reserva.local}
@@ -122,7 +118,6 @@ export default function ReservasPage() {
                   {reserva.status}
                 </p>
 
-                {/* Botões */}
                 <div className="flex gap-2 mt-4">
                   {reserva.status === "Pendente" && (
                     <button
@@ -132,6 +127,7 @@ export default function ReservasPage() {
                       <XCircle size={16} /> Cancelar
                     </button>
                   )}
+
                   {reserva.status === "Finalizada" && (
                     <button
                       onClick={() => handleAvaliar(reserva.id)}
