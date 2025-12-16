@@ -141,10 +141,6 @@ export default function PreferenciasGerais() {
         </button>
       </div>
 
-      {/* Rodapé */}
-      <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        <p>As comunicações entre anfitriões e locatários são feitas diretamente por WhatsApp ou e-mail.</p>
-      </div>
     </div>
   );
 }

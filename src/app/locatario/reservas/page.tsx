@@ -2,21 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { CalendarDays, Clock, MapPin, Star, XCircle } from "lucide-react";
-import { ESPACOS } from "@/data/espacos"; // PARA PEGAR NOME, IMAGEM E LOCAL
+import { ESPACOS } from "@/data/espacos";
+import AvaliacaoModal from "@/components/AvaliacaoModal";
+import { toast } from "sonner";
 
 interface Reserva {
   id: string;
   espaco: string;
   imagem: string;
-  data: string;
+  data: string;            // data formatada (exibição)
+  dataOriginal: string;    // data real (comparação)
   hora: string;
   local: string;
   valor: number;
   status: "Confirmada" | "Pendente" | "Cancelada" | "Finalizada";
+  avaliada?: boolean;
 }
 
 export default function ReservasPage() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [avaliacaoAberta, setAvaliacaoAberta] = useState(false);
+const [reservaSelecionada, setReservaSelecionada] =
+  useState<Reserva | null>(null);
 
   useEffect(() => {
     async function carregarReservas() {
@@ -24,21 +31,58 @@ export default function ReservasPage() {
         const res = await fetch("/reservas.json");
         const json = await res.json();
 
-        // Converter o json do webhook para o formato da interface
-        const convertido: Reserva[] = json.map((r: any) => {
-          const espacoInfo = ESPACOS.find((e) => e.id === r.espacoId);
+        const hoje = new Date();
+const convertido: Reserva[] = json.map((r: any, index: number) => {
+  const espacoInfo = ESPACOS.find((e) => e.id === r.espacoId);
 
-          return {
-            id: r.id,
-            espaco: espacoInfo?.nome || "Espaço não encontrado",
-            imagem: espacoInfo?.imagem || "/default.jpg",
-            data: new Date(r.dataReserva).toLocaleDateString("pt-BR"),
-            hora: "—", // pode atualizar depois
-            local: `${espacoInfo?.cidade} - ${espacoInfo?.bairro}`,
-            valor: r.valor || 0,
-            status: r.status === "pago" ? "Confirmada" : "Pendente",
-          };
-        });
+  const dataEventoStr =
+    r.dataEvento || r.dataReserva || r.data || null;
+
+  const dataEvento = dataEventoStr
+    ? new Date(dataEventoStr)
+    : null;
+
+  const valorPago =
+    r.valorPago ?? r.valor ?? r.preco ?? 0;
+
+  const hoje = new Date();
+
+  let status: Reserva["status"] = "Pendente";
+
+  if (Number(valorPago) > 0) {
+    status =
+      dataEvento && dataEvento < hoje
+        ? "Finalizada"
+        : "Confirmada";
+  }
+
+  return {
+    id: r.id || `res-${index}`,
+
+    espaco: espacoInfo?.nome || "Espaço não encontrado",
+    imagem: espacoInfo?.imagem || "/default.jpg",
+
+    data: dataEvento
+      ? dataEvento.toLocaleDateString("pt-BR")
+      : "—",
+
+    dataOriginal: dataEventoStr ?? "",
+
+    hora:
+      r.horaInicio && r.horaFim
+        ? `${r.horaInicio} às ${r.horaFim}`
+        : "—",
+
+    local: espacoInfo
+      ? `${espacoInfo.cidade}, ${espacoInfo.estado} - ${espacoInfo.bairro}`
+      : "—",
+
+    valor: Number(valorPago),
+
+    status,
+    avaliada: Boolean(r.avaliada),
+  };
+});
 
         setReservas(convertido);
       } catch (err) {
@@ -51,13 +95,16 @@ export default function ReservasPage() {
 
   function handleCancelarReserva(id: string) {
     setReservas((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "Cancelada" } : r))
+      prev.map((r) =>
+        r.id === id ? { ...r, status: "Cancelada" } : r
+      )
     );
   }
 
-  function handleAvaliar(id: string) {
-    alert(`Abrir modal de avaliação para reserva ${id}`);
-  }
+ function handleAvaliar(reserva: Reserva) {
+  setReservaSelecionada(reserva);
+  setAvaliacaoAberta(true);
+}
 
   return (
     <div className="p-6">
@@ -77,6 +124,7 @@ export default function ReservasPage() {
                 alt={reserva.espaco}
                 className="w-full h-40 object-cover"
               />
+
               <div className="p-4 space-y-2">
                 <h2 className="text-lg font-semibold text-gray-800">
                   {reserva.espaco}
@@ -128,13 +176,19 @@ export default function ReservasPage() {
                     </button>
                   )}
 
-                  {reserva.status === "Finalizada" && (
-                    <button
-                      onClick={() => handleAvaliar(reserva.id)}
-                      className="flex items-center gap-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
-                    >
-                      <Star size={16} /> Avaliar
-                    </button>
+              {reserva.status === "Finalizada" && !reserva.avaliada && (
+  <button
+    onClick={() => handleAvaliar(reserva)}
+    className="flex items-center gap-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
+  >
+    <Star size={16} /> Avaliar
+  </button>
+)}
+
+                  {reserva.avaliada && (
+                    <span className="text-sm text-green-600 font-semibold">
+                      Avaliação enviada ✔
+                    </span>
                   )}
                 </div>
               </div>
@@ -142,6 +196,37 @@ export default function ReservasPage() {
           ))}
         </div>
       )}
+      <AvaliacaoModal
+  isOpen={avaliacaoAberta}
+  nomeEspaco={reservaSelecionada?.espaco || ""}
+  onClose={() => {
+    setAvaliacaoAberta(false);
+    setReservaSelecionada(null);
+  }}
+  onSubmit={(nota, comentario) => {
+    setReservas((prev) =>
+      prev.map((r) =>
+        r.id === reservaSelecionada?.id
+          ? { ...r, avaliada: true }
+          : r
+      )
+    );
+
+    console.log("Avaliação enviada:", {
+      reservaId: reservaSelecionada?.id,
+      nota,
+      comentario,
+    });
+
+    setAvaliacaoAberta(false);
+    setReservaSelecionada(null);
+    toast.success("Avaliação enviada", {
+  description: "Obrigado por compartilhar sua experiência",
+});
+
+  }}
+/>
+
     </div>
   );
 }

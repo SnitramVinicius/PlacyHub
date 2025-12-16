@@ -158,20 +158,6 @@ export default function PerfilUsuario() {
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
-          <CreditCard className="text-sky-500 mb-2" size={32} />
-          <h3 className="font-semibold mb-1">Pagamentos</h3>
-          <p className="text-gray-500 text-sm mb-3">
-            Adicione, remova ou atualize seus métodos de pagamento.
-          </p>
-          <button
-            onClick={() => router.push("/locatario/pagamentos")}
-            className="text-sky-500 hover:text-sky-600 font-medium"
-          >
-            Gerenciar
-          </button>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
           <Settings className="text-sky-500 mb-2" size={32} />
           <h3 className="font-semibold mb-1">Preferências</h3>
           <p className="text-gray-500 text-sm mb-3">

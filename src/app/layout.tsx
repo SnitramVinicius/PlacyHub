@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import NavbarWrapper from "@/components/NavbarWrapper";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { FavoritosProvider } from "@/context/FavoritosContext";
 import { TemaProvider } from "@/context/TemaContext";
 

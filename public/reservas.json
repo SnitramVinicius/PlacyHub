@@ -1,35 +1,31 @@
 [
   {
-    "received_at": "2025-12-11T22:09:58.564Z",
-    "webhook": {
-      "action": "payment.updated",
-      "api_version": "v1",
-      "data": {
-        "id": "123456"
-      },
-      "date_created": "2021-11-01T02:02:02Z",
-      "id": "123456",
-      "live_mode": false,
-      "type": "payment",
-      "user_id": 202575505
-    }
+    "id": "res-001",
+    "espacoId": "cg-02",
+    "dataEvento": "2025-11-09",
+    "horaInicio": "18:00",
+    "horaFim": "23:00",
+    "valorPago": 450,
+    "status": "finalizada",
+    "avaliacaoEnviada": true
   },
   {
-    "received_at": "2025-12-11T22:17:09.600Z",
-    "webhook": {
-      "action": "payment.updated",
-      "api_version": "v1",
-      "data": {
-        "id": "123456"
-      },
-      "date_created": "2021-11-01T02:02:02Z",
-      "id": "123456",
-      "live_mode": false,
-      "type": "payment",
-      "user_id": 202575505
-    }
+    "id": "res-002",
+    "espacoId": "cg-01",
+    "dataEvento": "2025-11-30",
+    "horaInicio": "16:00",
+    "horaFim": "00:00",
+    "valorPago": 650,
+    "status": "finalizada",
+    "avaliacaoEnviada": false
   },
   {
-    "id": "123456"
+    "id": "res-003",
+    "espacoId": "sp-04",
+    "dataEvento": "2026-01-19",
+    "horaInicio": "15:00",
+    "horaFim": "22:00",
+    "valorPago": 1800,
+    "status": "pendente"
   }
 ]
