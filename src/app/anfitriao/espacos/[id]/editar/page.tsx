@@ -350,6 +350,5 @@ export default function EditarEspaco() {
           </form>
         </div>
       </div>
-    </>
   );
 }
