@@ -18,14 +18,14 @@ export default function AnfitriaoLayout({ children }: { children: React.ReactNod
   const router = useRouter();
 
   // 🔹 Lista de rotas que NÃO devem mostrar a sidebar
-  const rotasSemSidebar = ["/anfitriao/cadastro",
-  "/anfitriao/espacos/novo", "/anfitriao/planos"];
+  // const rotasSemSidebar = ["/anfitriao/cadastro",
+  // "/anfitriao/espacos/novo", "/anfitriao/planos"];
 
-  const semSidebar = rotasSemSidebar.includes(pathname);
+  // const semSidebar = rotasSemSidebar.includes(pathname);
 
-  if (semSidebar) {
-    return <>{children}</>;
-  }
+  // if (semSidebar) {
+  //   return <>{children}</>;
+  // }
 
   return (
     <div className="min-h-screen flex bg-gray-50">

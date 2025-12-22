@@ -15,7 +15,7 @@ type ActivePanel = "city" | "date" | null;
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, isAnfitriao } = useAuth();
 
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -252,12 +252,14 @@ export default function Navbar() {
 
         {/* MENU DIREITO */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowBenefitsModal(true)}
-            className="text-sm pr-1 hover:text-gray-600 transition-colors"
-          >
-            Tem um espaço para alugar?
-          </button>
+{!isAnfitriao && (
+  <button
+    onClick={() => setShowBenefitsModal(true)}
+    className="text-sm pr-1 hover:text-gray-600 transition-colors"
+  >
+    Tem um espaço para alugar?
+  </button>
+)}
 
           {user ? (
             <>
@@ -305,13 +307,7 @@ export default function Navbar() {
                 Favoritos
               </Link>
 
-              <Link
-                href="/locatario/perfil"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
-              >
-                Perfil
-              </Link>
+              
 
               <Link
                 href="/locatario/reservas"
@@ -321,14 +317,18 @@ export default function Navbar() {
                 Minhas Reservas
               </Link>
 
-              <Link
-                href="/configuracoes"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
-              >
-                Configurações
-              </Link>
+{isAnfitriao && <div className="my-1 border-t border-gray-100" />}
+              {isAnfitriao && (
+  <Link
+    href="./anfitriao"
+    onClick={() => setIsOpen(false)}
+    className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
+  >
+    Painel do Anfitrião
+  </Link>
+)}
 
+              
               <div className="my-1 border-t border-gray-100" />
 
               <button
@@ -379,12 +379,22 @@ export default function Navbar() {
               <li>✔ Suporte completo.</li>
             </ul>
 
-            <button
-              onClick={() => setShowBenefitsModal(false)}
-              className="mt-6 block w-full text-center bg-[#02b0f0] text-white py-2 rounded-xl hover:bg-[#0292cb] transition font-medium"
-            >
-              Quero cadastrar meu espaço
-            </button>
+ <button
+  onClick={() => {
+    setShowBenefitsModal(false);
+
+    if (!user) {
+      // Redireciona para login com o parâmetro de redirect para voltar após login
+      router.push("/login?redirect=/virar-anfitriao");
+    } else {
+      // Se já estiver logado, vai diretamente para a página
+      router.push("/virar-anfitriao");
+    }
+  }}
+  className="mt-6 block w-full text-center bg-[#02b0f0] text-white py-2 rounded-xl hover:bg-[#0292cb] transition font-medium"
+>
+  Quero cadastrar meu espaço
+</button>
           </div>
         </div>
       )}

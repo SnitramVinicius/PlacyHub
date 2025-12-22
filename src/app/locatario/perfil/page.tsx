@@ -1,21 +1,47 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Edit3, Lock, CreditCard, Settings, LogOut, Save, Heart } from "lucide-react";
+import {
+  Camera,
+  Edit3,
+  Lock,
+  Settings,
+  LogOut,
+  Save,
+  Heart
+} from "lucide-react";
 import { Toaster, toast } from "sonner";
+
+interface Usuario {
+  nome: string;
+  email: string;
+  telefone?: string;
+  cidade?: string;
+  estado?: string;
+  dataNascimento?: string;
+  roles: string[];
+}
 
 export default function PerfilUsuario() {
   const router = useRouter();
 
-  const [nome, setNome] = useState("Vinicius Martins");
-  const [email, setEmail] = useState("vinicius@email.com");
-  const [telefone, setTelefone] = useState("(67) 99999-9999");
-  const [nascimento, setNascimento] = useState("1999-01-01");
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [foto, setFoto] = useState<string | null>(null);
   const [editando, setEditando] = useState(false);
-
   const [confirmarLogout, setConfirmarLogout] = useState(false);
+
+  // 🔹 Carregar dados do localStorage
+  useEffect(() => {
+    const dados = localStorage.getItem("usuario");
+
+    if (!dados) {
+      router.push("/login");
+      return;
+    }
+
+    setUsuario(JSON.parse(dados));
+  }, [router]);
 
   const handleFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -25,6 +51,9 @@ export default function PerfilUsuario() {
   };
 
   const handleSalvar = () => {
+    if (!usuario) return;
+
+    localStorage.setItem("usuario", JSON.stringify(usuario));
     setEditando(false);
     toast.success("Informações atualizadas com sucesso!");
   };
@@ -35,13 +64,15 @@ export default function PerfilUsuario() {
     router.push("/login");
   };
 
+  if (!usuario) return null;
+
   return (
     <div className="p-6 relative">
       <Toaster position="top-right" richColors />
 
       <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
 
-      {/* Cabeçalho com foto */}
+      {/* Cabeçalho */}
       <div className="bg-white p-6 rounded-2xl shadow mb-6 flex flex-col md:flex-row items-center md:items-start gap-6">
         <div className="relative">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
@@ -58,9 +89,9 @@ export default function PerfilUsuario() {
         </div>
 
         <div className="flex-1 text-center md:text-left">
-          <h2 className="text-xl font-semibold">{nome}</h2>
-          <p className="text-gray-600">{email}</p>
-          <p className="text-gray-500 text-sm">Membro desde abril de 2025</p>
+          <h2 className="text-xl font-semibold">{usuario.nome}</h2>
+          <p className="text-gray-600">{usuario.email}</p>
+          <p className="text-gray-500 text-sm">Membro do PlacyHub</p>
         </div>
       </div>
 
@@ -87,138 +118,88 @@ export default function PerfilUsuario() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-700">Nome completo</label>
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              disabled={!editando}
-              className={`w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none ${
-                !editando ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+          <Input
+            label="Nome completo"
+            value={usuario.nome}
+            disabled={!editando}
+            onChange={(v) => setUsuario({ ...usuario, nome: v })}
+          />
 
-          <div>
-            <label className="block text-sm text-gray-700">E-mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={!editando}
-              className={`w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none ${
-                !editando ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+          <Input
+            label="E-mail"
+            value={usuario.email}
+            disabled={!editando}
+            onChange={(v) => setUsuario({ ...usuario, email: v })}
+          />
 
-          <div>
-            <label className="block text-sm text-gray-700">Telefone</label>
-            <input
-              type="tel"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              disabled={!editando}
-              className={`w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none ${
-                !editando ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+          <Input
+            label="Telefone"
+            value={usuario.telefone || ""}
+            disabled={!editando}
+            onChange={(v) => setUsuario({ ...usuario, telefone: v })}
+          />
 
-          <div>
-            <label className="block text-sm text-gray-700">Data de Nascimento</label>
-            <input
-              type="date"
-              value={nascimento}
-              onChange={(e) => setNascimento(e.target.value)}
-              disabled={!editando}
-              className={`w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none ${
-                !editando ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
-            />
-          </div>
+          <Input
+            label="Data de Nascimento"
+            type="date"
+            value={usuario.dataNascimento || ""}
+            disabled={!editando}
+            onChange={(v) => setUsuario({ ...usuario, dataNascimento: v })}
+          />
         </div>
       </div>
 
-      {/* Cards: Segurança, Pagamentos, Preferências */}
+      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
-          <Lock className="text-sky-500 mb-2" size={32} />
-          <h3 className="font-semibold mb-1">Segurança</h3>
-          <p className="text-gray-500 text-sm mb-3">
-            Altere sua senha ou veja dispositivos conectados.
-          </p>
-          <button
-            onClick={() => router.push("/locatario/seguranca")}
-            className="text-sky-500 hover:text-sky-600 font-medium"
-          >
-            Gerenciar
-          </button>
-        </div>
+        <Card
+          icon={<Lock size={32} className="text-sky-500" />}
+          title="Segurança"
+          text="Altere sua senha ou veja dispositivos conectados."
+          onClick={() => router.push("/locatario/seguranca")}
+        />
 
-        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
-          <Settings className="text-sky-500 mb-2" size={32} />
-          <h3 className="font-semibold mb-1">Preferências</h3>
-          <p className="text-gray-500 text-sm mb-3">
-            Idioma, tema e notificações.
-          </p>
-          <button
-            onClick={() => router.push("/locatario/preferencias")}
-            className="text-sky-500 hover:text-sky-600 font-medium"
-          >
-            Configurar
-          </button>
-        </div>
+        <Card
+          icon={<Settings size={32} className="text-sky-500" />}
+          title="Preferências"
+          text="Idioma, tema e notificações."
+          onClick={() => router.push("/locatario/preferencias")}
+        />
 
-        {/* Favoritos */}
-        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
-          <Heart className="text-sky-500 mb-2" size={32} />
-          <h3 className="font-semibold mb-1">Favoritos</h3>
-          <p className="text-gray-500 text-sm mb-3">
-            Veja todos os espaços que você favoritou.
-          </p>
-          <button
-            onClick={() => router.push("/favoritos")}
-            className="text-sky-500 hover:text-sky-600 font-medium"
-          >
-            Acessar
-          </button>
-        </div>
+        <Card
+          icon={<Heart size={32} className="text-sky-500" />}
+          title="Favoritos"
+          text="Veja todos os espaços que você favoritou."
+          onClick={() => router.push("/favoritos")}
+        />
 
-        {/* Logout */}
-        <div className="bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition">
-          <LogOut className="text-red-500 mb-2" size={32} />
-          <h3 className="font-semibold mb-1 text-red-600">Sair da Conta</h3>
-          <p className="text-gray-500 text-sm mb-3">Desconecte-se da sua conta com segurança.</p>
-          <button
-            onClick={() => setConfirmarLogout(true)}
-            className="text-red-500 hover:text-red-600 font-medium"
-          >
-            Sair
-          </button>
-        </div>
+        <Card
+          icon={<LogOut size={32} className="text-red-500" />}
+          title="Sair da Conta"
+          text="Desconecte-se da sua conta com segurança."
+          danger
+          onClick={() => setConfirmarLogout(true)}
+        />
       </div>
 
-      {/* Modal de confirmação logout */}
+      {/* Modal Logout */}
       {confirmarLogout && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm animate-[fadeIn_0.2s_ease,scaleUp_0.2s_ease]">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
             <h3 className="font-semibold text-lg mb-2 text-center">Sair da conta?</h3>
             <p className="text-gray-600 text-sm text-center mb-6">
-              Tem certeza de que deseja sair do PlacyHub?
+              Tem certeza que deseja sair?
             </p>
 
-            <div className="flex items-center justify-between">
+            <div className="flex gap-3">
               <button
                 onClick={() => setConfirmarLogout(false)}
-                className="px-4 py-2 rounded-xl border hover:bg-gray-100 transition w-[48%]"
+                className="w-1/2 border rounded-xl py-2"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition w-[48%]"
+                className="w-1/2 bg-sky-500 text-white rounded-xl py-2"
               >
                 Sair
               </button>
@@ -226,6 +207,45 @@ export default function PerfilUsuario() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* 🔹 Componentes auxiliares */
+function Input({
+  label,
+  value,
+  onChange,
+  disabled,
+  type = "text"
+}: any) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-700">{label}</label>
+      <input
+        type={type}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full border rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      />
+    </div>
+  );
+}
+
+function Card({ icon, title, text, onClick, danger }: any) {
+  return (
+    <div
+      className={`bg-white p-6 rounded-2xl shadow flex flex-col items-center text-center hover:shadow-md transition cursor-pointer ${
+        danger ? "text-red-600" : ""
+      }`}
+      onClick={onClick}
+    >
+      {icon}
+      <h3 className="font-semibold mt-2 mb-1">{title}</h3>
+      <p className="text-gray-500 text-sm">{text}</p>
     </div>
   );
 }
