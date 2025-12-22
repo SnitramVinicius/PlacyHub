@@ -2,64 +2,112 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Navbar from "@/components/navbar";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+/* ================= TIPAGENS ================= */
+
+interface Servico {
+  id: number;
+  nome: string;
+  preco: string;
+}
+
+interface Espaco {
+  id: string;
+  nome_espaco: string;
+  tipo_espaco: string;
+  descricao: string;
+  capacidade: number;
+  area: number;
+  valor: number;
+  tipo_cobranca: string;
+  tipo_reserva: string;
+  endereco: string;
+  disponivel: string;
+  fotos?: File[];
+  servicos?: Servico[];
+  regras?: string[];
+  facilidades?: string[];
+}
+
+/* ================= COMPONENTE ================= */
+
 export default function EditarEspaco() {
-  const { id } = useParams(); 
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const [espaco, setEspaco] = useState(null);
-  const [fotos, setFotos] = useState([]);
+  const [espaco, setEspaco] = useState<Espaco | null>(null);
+  const [fotos, setFotos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ Estados que estavam faltando
   const [mostrarServicos, setMostrarServicos] = useState(false);
-  const [servicos, setServicos] = useState([]);
-  const [regras, setRegras] = useState([]);
-  const [facilidades, setFacilidades] = useState([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [regras, setRegras] = useState<string[]>([]);
+  const [facilidades, setFacilidades] = useState<string[]>([]);
 
-  // Funções auxiliares
+  /* ================= SERVIÇOS ================= */
+
   const adicionarServico = () => {
-    setServicos([...servicos, { id: Date.now(), nome: "", preco: "" }]);
+    setServicos((prev) => [
+      ...prev,
+      { id: Date.now(), nome: "", preco: "" },
+    ]);
   };
 
-  const atualizarServico = (id, campo, valor) => {
-    setServicos(servicos.map(s => s.id === id ? { ...s, [campo]: valor } : s));
+  const atualizarServico = (
+    id: number,
+    campo: keyof Servico,
+    valor: string
+  ) => {
+    setServicos((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [campo]: valor } : s))
+    );
   };
 
-  const removerServico = (id) => {
-    setServicos(servicos.filter(s => s.id !== id));
+  const removerServico = (id: number) => {
+    setServicos((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const adicionarRegra = () => setRegras([...regras, ""]);
-  const atualizarRegra = (i, valor) => {
-    const novas = [...regras];
-    novas[i] = valor;
-    setRegras(novas);
-  };
-  const removerRegra = (i) => setRegras(regras.filter((_, index) => index !== i));
+  /* ================= REGRAS ================= */
 
-  const adicionarFacilidade = () => setFacilidades([...facilidades, ""]);
-  const atualizarFacilidade = (i, valor) => {
-    const novas = [...facilidades];
-    novas[i] = valor;
-    setFacilidades(novas);
-  };
-  const removerFacilidade = (i) => setFacilidades(facilidades.filter((_, index) => index !== i));
+  const adicionarRegra = () => setRegras((prev) => [...prev, ""]);
 
-  // Busca o espaço existente
+  const atualizarRegra = (i: number, valor: string) => {
+    setRegras((prev) => prev.map((r, idx) => (idx === i ? valor : r)));
+  };
+
+  const removerRegra = (i: number) => {
+    setRegras((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  /* ================= FACILIDADES ================= */
+
+  const adicionarFacilidade = () =>
+    setFacilidades((prev) => [...prev, ""]);
+
+  const atualizarFacilidade = (i: number, valor: string) => {
+    setFacilidades((prev) => prev.map((f, idx) => (idx === i ? valor : f)));
+  };
+
+  const removerFacilidade = (i: number) => {
+    setFacilidades((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
+  /* ================= BUSCA DO ESPAÇO ================= */
+
   useEffect(() => {
-    const dadosSalvos = JSON.parse(localStorage.getItem("espacos")) || [];
-    const espacoEncontrado = dadosSalvos.find((e) => e.id === id);
-    if (espacoEncontrado) {
-      setEspaco(espacoEncontrado);
-      // Caso o espaço já tenha serviços, regras ou facilidades salvos
-      setServicos(espacoEncontrado.servicos || []);
-      setRegras(espacoEncontrado.regras || []);
-      setFacilidades(espacoEncontrado.facilidades || []);
+    const dadosSalvos: Espaco[] =
+      JSON.parse(localStorage.getItem("espacos") || "[]");
+
+    const encontrado = dadosSalvos.find((e) => e.id === id);
+
+    if (encontrado) {
+      setEspaco(encontrado);
+      setServicos(encontrado.servicos || []);
+      setRegras(encontrado.regras || []);
+      setFacilidades(encontrado.facilidades || []);
     }
   }, [id]);
 
@@ -71,8 +119,13 @@ export default function EditarEspaco() {
     );
   }
 
-  const handleFotoChange = (event) => {
+  /* ================= FOTOS ================= */
+
+  const handleFotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files) return;
+
     const selectedFiles = Array.from(event.target.files);
+
     if (selectedFiles.length > 5) {
       setMessage("⚠️ Apenas as 5 primeiras imagens foram mantidas.");
       setFotos(selectedFiles.slice(0, 5));
@@ -81,25 +134,37 @@ export default function EditarEspaco() {
     }
   };
 
-  const handleSubmit = async (event) => {
+  /* ================= SUBMIT ================= */
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setMessage("");
 
-    const formData = new FormData(event.target);
-    const updatedData = {};
-    formData.forEach((value, key) => (updatedData[key] = value));
+    const formData = new FormData(event.currentTarget);
+    const updatedData: any = {};
+
+    formData.forEach((value, key) => {
+      updatedData[key] = value;
+    });
+
     updatedData.id = id;
     updatedData.fotos = fotos.length > 0 ? fotos : espaco.fotos;
     updatedData.servicos = servicos;
     updatedData.regras = regras;
     updatedData.facilidades = facilidades;
 
-    const todos = JSON.parse(localStorage.getItem("espacos")) || [];
-    const atualizados = todos.map((e) => (e.id === id ? updatedData : e));
+    const todos: Espaco[] =
+      JSON.parse(localStorage.getItem("espacos") || "[]");
+
+    const atualizados = todos.map((e) =>
+      e.id === id ? updatedData : e
+    );
+
     localStorage.setItem("espacos", JSON.stringify(atualizados));
 
     await new Promise((r) => setTimeout(r, 1000));
+
     setLoading(false);
     setMessage("✅ Alterações salvas com sucesso!");
 
@@ -108,16 +173,17 @@ export default function EditarEspaco() {
     }, 1500);
   };
 
+  /* ================= JSX ================= */
+
   return (
-    <>
-      <div className="min-h-screen flex flex-col items-center justify-center py-10">
-        <div className="w-full max-w-4xl p-8 rounded-2xl shadow-xl bg-white border border-gray-100">
-          <Link
-                      href="/anfitriao/espacos"
-                      className="text-sky-500 hover:text-sky-600 flex items-center gap-1"
-                    >
-                      <ArrowLeft size={18} /> Voltar
-                    </Link>
+    <div className="min-h-screen flex flex-col items-center justify-center py-10">
+      <div className="w-full max-w-4xl p-8 rounded-2xl shadow-xl bg-white border">
+        <Link
+          href="/anfitriao/espacos"
+          className="text-sky-500 hover:text-sky-600 flex items-center gap-1"
+        >
+          <ArrowLeft size={18} /> Voltar
+        </Link>
           <h2 className="text-2xl font-semibold text-gray-800 mb-1">
             Editar Espaço
           </h2>
