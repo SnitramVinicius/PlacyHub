@@ -10,10 +10,10 @@ export const POST = async (req: NextRequest) => {
     const {
       total,
       espacoId,
-      dataReserva,   // <- adicione isso no frontend
-      hora,          // <- se quiser
-      plano,         // opcional
-      qtdPessoas,    // opcional
+      dataReserva,
+      hora,
+      plano,
+      qtdPessoas,
     } = await req.json();
 
     if (!total || isNaN(Number(total))) {
@@ -28,26 +28,26 @@ export const POST = async (req: NextRequest) => {
     const body = {
       items: [
         {
-          title: `Reserva espaço ${espacoId}`,
+          id: espacoId || "reserva_espaco",
+          title: "Reserva de Espaço",
           quantity: 1,
           unit_price: Number(total),
         },
       ],
 
-      // 🔥 ESSENCIAL: agora o webhook vai receber os dados completos da reserva!
       metadata: {
         espacoId,
         dataReserva,
         hora,
         plano,
         qtdPessoas,
-        valor: total,
+        valor: Number(total),
       },
 
       back_urls: {
-        success: "http://localhost:3000/pagamento/finalizado?status=success",
-        failure: "http://localhost:3000/pagamento/finalizado?status=failure",
-        pending: "http://localhost:3000/pagamento/finalizado?status=pending",
+        success: `${process.env.NEXT_PUBLIC_BASE_URL}/pagamento/finalizado?status=success`,
+        failure: `${process.env.NEXT_PUBLIC_BASE_URL}/pagamento/finalizado?status=failure`,
+        pending: `${process.env.NEXT_PUBLIC_BASE_URL}/pagamento/finalizado?status=pending`,
       },
     };
 
