@@ -1,3 +1,5 @@
+/* ======================= TELA PRINCIPAL PAINEL DO ANFITRIAO ======================= */
+
 export default function PainelAnfitriao() {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8">

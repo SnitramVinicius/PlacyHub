@@ -1,8 +1,12 @@
 "use client";
+/* ======================= 
 
+TELA DE CADASTRO DE NOVOS ESPAÇOS
+
+ ======================= */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import Navbar2 from "@/components/navbar2";
 
 export default function NovoEspaco() {
@@ -33,7 +37,7 @@ export default function NovoEspaco() {
   const handleFotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     if (selectedFiles.length > 5) {
-      toast.warning("⚠️ Apenas as 5 primeiras imagens foram mantidas.");
+      toast.warning("Apenas as 5 primeiras imagens foram mantidas.");
       setFotos(selectedFiles.slice(0, 5));
     } else {
       setFotos(selectedFiles);
@@ -180,7 +184,6 @@ export default function NovoEspaco() {
 
   return (
     <>
-      <Toaster position="top-right" richColors />
 
       <div className="min-h-screen flex flex-col items-center justify-center bg-white py-10">
         <div className="w-full max-w-4xl p-8 rounded-2xl shadow-xl bg-white border border-gray-100">

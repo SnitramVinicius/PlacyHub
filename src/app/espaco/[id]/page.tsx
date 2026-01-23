@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Star, X, Heart } from "lucide-react";
 import dynamic from "next/dynamic";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import { ESPACOS } from "@/data/espacos";
 import { useAuth } from "@/context/AuthContext";
 import { useFavoritos } from "@/context/FavoritosContext";
@@ -451,6 +451,21 @@ const handleConfirmarReserva = async () => {
                 </p>
               </div>
             </div>
+            
+{/* AVISO DE VISTORIA */}
+<div className="border border-yellow-300 bg-yellow-50 rounded-xl p-4 text-sm text-yellow-900">
+  <p className="font-semibold mb-1">
+    Vistoria do espaço
+  </p>
+  <p className="leading-relaxed">
+    Todos os espaços passam por uma vistoria <strong>antes</strong> e
+    <strong> após</strong> cada locação.
+    <br />
+    Caso sejam constatadas avarias, danos ou uso inadequado do espaço e de seus
+    itens, o locatário poderá ser <strong>responsabilizado pelos custos de
+    reparo ou reposição</strong>, conforme análise das evidências registradas.
+  </p>
+</div>
 
             {/* Botão confirmar */}
           <button

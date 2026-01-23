@@ -4,7 +4,7 @@ import { useSearchParams, useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Mail, MessageCircle } from "lucide-react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 const NOTIFICACOES_PADRAO = {
   1: {
@@ -40,7 +40,6 @@ export default function EditarNotificacao() {
 
   return (
     <div className="p-6">
-      <Toaster position="top-right" richColors />
 
       {/* Cabeçalho */}
       <Link

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowLeft, Globe, Moon, Sun, Bell, MessageCircle, Mail, Edit3 } from "lucide-react";
 import Link from "next/link";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { useTema } from "@/context/TemaContext";
 
 export default function PreferenciasGerais() {
@@ -36,7 +36,6 @@ export default function PreferenciasGerais() {
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
-      <Toaster position="top-right" richColors />
 
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">

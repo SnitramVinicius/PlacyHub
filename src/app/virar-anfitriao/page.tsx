@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 interface Estado {
   sigla: string;
@@ -36,27 +36,25 @@ export default function VirarAnfitriao() {
   const [draft, setDraft] = useState<Step1Data | null>(null);
 
   /* ========================== PROTEÇÃO =========================== */
-  useEffect(() => {
-    if (user === null) {
-      router.replace("/login");
-    }
+useEffect(() => {
+  if (!user) return;
 
-    // Se já for anfitrião, não deixa acessar
-    if (isAnfitriao) {
-      router.replace("/anfitriao/dashboard");
-    }
-  }, [user, isAnfitriao, router]);
+  // só redireciona se NÃO estiver no meio do fluxo
+  if (isAnfitriao && step === 1) {
+    router.replace("/anfitriao");
+  }
+}, [user, isAnfitriao, step, router]);
 
   /* ========================== RESTAURA STEP 1 =========================== */
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
+useEffect(() => {
+  const raw = localStorage.getItem(STORAGE_KEY);
 
-    if (raw) {
-      const parsed: Step1Data = JSON.parse(raw);
-      setDraft(parsed);
-      setStep(2);
-    }
-  }, []);
+  if (raw) {
+    const parsed: Step1Data = JSON.parse(raw);
+    setDraft(parsed);
+    // 🚫 NÃO muda o step aqui
+  }
+}, []);
 
   /* ========================== ESTADOS (IBGE) =========================== */
   useEffect(() => {
@@ -147,15 +145,18 @@ export default function VirarAnfitriao() {
       );
 
       // ✅ FORMA CORRETA (atualiza token + contexto)
-      await virarAnfitriao();
+     try {
+  await virarAnfitriao(cpf);
 
-      // ⚠️ LIMPEZA TEMPORÁRIA
-      localStorage.removeItem(STORAGE_KEY);
-toast.success("Agora você é um anfitrião 🎉");
+  localStorage.removeItem(STORAGE_KEY);
 
-// vai para a HOME PRINCIPAL logado
-router.replace("/");
-router.refresh(); // 🔥 força o Next a reler o cookie novo
+  toast.success("Agora você é um anfitrião");
+
+router.replace("/anfitriao");
+} catch (err: any) {
+  toast.error(err.message || "Erro ao virar anfitrião");
+}
+
     }
   };
 
@@ -163,8 +164,6 @@ router.refresh(); // 🔥 força o Next a reler o cookie novo
 
   return (
     <>
-      <Toaster position="top-right" richColors />
-
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-full max-w-2xl p-8 rounded-2xl shadow-md bg-white">
           <h2 className="text-2xl font-semibold mb-6">

@@ -1,277 +1,765 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarDays, Phone, User, Search, RotateCcw } from "lucide-react";
+/* ======================= CALENDARIO AGENDA DO ANFITRIAO
+CALENDARIO PARA ANFITRIAO ACOMPANHAR SEUS AGENDAMENTOS DE ESPAÇOS
+ ======================= */
 
+import { useState, useEffect } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Lock,
+  LockKeyhole,
+  Unlock,
+  Eye,
+  X,
+  Ban,
+  ListChecks,
+} from "lucide-react";
+
+import AuditoriaModal from "@/components/AuditoriaModal";
+import type { Auditoria } from "@/components/AuditoriaModal";
+/* =======================
+   TIPOS
+======================= */
 interface Reserva {
   id: string;
-  espacoId: string;
-  nomeCliente: string;
-  telefoneCliente: string;
+  espacoId: string | "ALL";
+  espacoNome: string;
+  nomeCliente?: string;
+  telefone?: string;
+  convidados?: number;
+  valor?: number;
+  pagamentoStatus?: "pago" | "pendente";
+  horario?: string;
   dataInicio: string;
   dataFim: string;
-  valor: number;
-  status: string; // "pendente" | "confirmada" | "cancelada" | "finalizada"
-  espacoNome?: string;
+  status: "confirmada" | "bloqueada" | "finalizada";
+  auditoriaPre?: Auditoria;
+   auditoriaPos?: Auditoria;
 }
 
 export default function ReservasAnfitriao() {
+  const [tipoAuditoria, setTipoAuditoria] = useState<"pre" | "pos">("pre");
+
+const [auditoriaAberta, setAuditoriaAberta] = useState(false);
+
+  const [reservaAuditoria, setReservaAuditoria] = useState<Reserva | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todas");
+  const [mesAtual, setMesAtual] = useState(new Date());
+  const [reservasDia, setReservasDia] = useState<Reserva[] | null>(null);
+  const [reservaDetalhe, setReservaDetalhe] = useState<Reserva | null>(null);
+  const [reservaParaDesbloquear, setReservaParaDesbloquear] = useState<Reserva | null>(null);
 
-  // 🔹 Simulação de espaços cadastrados
-useEffect(() => {
-  const espacosExemplo = [
-    {
-      id: "espaco-001",
-      nome_espaco: "Chácara do Sol",
-      tipo_reserva: "manual", // precisa de aceite do anfitrião
-    },
-    {
-      id: "espaco-002",
-      nome_espaco: "Salão do Lago",
-      tipo_reserva: "automatica", // confirma sozinha
-    },
-    {
-      id: "espaco-004",
-      nome_espaco: "Campo das Flores",
-      tipo_reserva: "manual",
-    },
-  ];
+  const [cancelamentoAberto, setCancelamentoAberto] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [reservaParaCancelar, setReservaParaCancelar] = useState<Reserva | null>(null);
 
-  localStorage.setItem("espacos", JSON.stringify(espacosExemplo));
-}, []);
 
-  // 🔹 Dados de exemplo
-  useEffect(() => {
-    const reservasExemplo = [
-      {
-        id: "1",
-        espacoId: "espaco-001",
-        nomeEspaco: "Chácara do Sol",
-        nomeCliente: "João da Silva",
-        telefoneCliente: "(67) 99999-9999",
-        dataInicio: "2025-10-10",
-        dataFim: "2025-10-11",
-        valor: 500,
-        status: "confirmada",
-      },
-      {
-        id: "2",
-        espacoId: "espaco-002",
-        nomeEspaco: "Salão do Lago",
-        nomeCliente: "Maria Oliveira",
-        telefoneCliente: "(67) 98888-8888",
-        dataInicio: "2025-11-15",
-        dataFim: "2025-11-16",
-        valor: 750,
-        status: "pendente",
-      },
-      {
-        id: "4",
-        espacoId: "espaco-004",
-        nomeEspaco: "Campo das Flores",
-        nomeCliente: "Pedro Souza",
-        telefoneCliente: "(67) 97777-7777",
-        dataInicio: "2025-12-02",
-        dataFim: "2025-12-03",
-        valor: 650,
-        status: "pendente",
-      },
-
-      
-    ];
-
-    localStorage.setItem("reservas", JSON.stringify(reservasExemplo));
-  }, []);
-
-  // 🔹 Carregar e atualizar reservas (inclui finalizadas)
-  useEffect(() => {
-    const reservasSalvas = JSON.parse(localStorage.getItem("reservas") || "[]");
-    const espacosSalvos = JSON.parse(localStorage.getItem("espacos") || "[]");
-
-    const hoje = new Date();
-
-const reservasAtualizadas = reservasSalvas.map((r: Reserva) => {
-  const espaco = espacosSalvos.find((e: any) => e.id === r.espacoId);
-  const dataFim = new Date(r.dataFim);
-  const tipoReserva = espaco?.tipo_reserva || "manual"; // padrão: manual
-
-  // 🔹 Se o espaço for automático e ainda estiver pendente → confirma automaticamente
-  if (tipoReserva === "automatica" && r.status === "pendente") {
-    r.status = "confirmada";
-  }
-
-  // 🔹 Se a reserva confirmada já passou → marca como finalizada
-  if (r.status === "confirmada" && dataFim < hoje) {
-    r.status = "finalizada";
-  }
-
-  return {
-    ...r,
-    espacoNome: espaco ? espaco.nome_espaco : "Espaço removido",
-  };
-});
-
-    localStorage.setItem("reservas", JSON.stringify(reservasAtualizadas));
-    setReservas(reservasAtualizadas);
-  }, []);
-
-  // 🔹 Atualizar status da reserva
-  const atualizarStatusReserva = (id: string, novoStatus: string) => {
-    const reservasSalvas = JSON.parse(localStorage.getItem("reservas") || "[]");
-    const reservasAtualizadas = reservasSalvas.map((r: any) =>
-      r.id === id ? { ...r, status: novoStatus } : r
-    );
-    localStorage.setItem("reservas", JSON.stringify(reservasAtualizadas));
-    setReservas(reservasAtualizadas);
-  };
-
-  // 🔹 Filtro e busca
-  const reservasFiltradas = reservas.filter((reserva) => {
-    const nomeMatch = reserva.nomeCliente
-      .toLowerCase()
-      .includes(busca.toLowerCase());
-    const statusMatch =
-      filtroStatus === "todas" || reserva.status === filtroStatus;
-    return nomeMatch && statusMatch;
+  const [diaBloqueio, setDiaBloqueio] = useState<string | null>(null);
+  const [periodoBloqueio, setPeriodoBloqueio] = useState({
+    inicio: "",
+    fim: "",
   });
 
+const algumModalAberto =
+  auditoriaAberta ||
+  !!reservaDetalhe ||
+  !!reservasDia ||
+  !!diaBloqueio ||
+  !!reservaParaDesbloquear ||
+  cancelamentoAberto;
+useEffect(() => {
+  if (algumModalAberto) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+
+  return () => {
+    document.body.style.overflow = "";
+  };
+}, [algumModalAberto]);
+  /* =======================
+     DATA DE HOJE
+  ======================= */
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  /* =======================
+     ESPAÇOS
+  ======================= */
+  const espacos = [
+    { id: "1", nome: "Chácara do Sol" },
+    { id: "3", nome: "Campo das Flores" },
+  ];
+  function formatarData(data: string) {
+    return new Date(data).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  /* =======================
+     MOCK
+  ======================= */
+ function simularReservas() {
+  const hojeReal = new Date();
+
+  const isMesAtual =
+    hojeReal.getFullYear() === ano &&
+    hojeReal.getMonth() === mes;
+
+  // Dia com DUAS reservas
+  const diaDuplo = isMesAtual ? hojeReal.getDate() : 10;
+
+  // Dia com UMA reserva (dia seguinte)
+  const diaSimples = diaDuplo + 2;
+
+  const dataDupla = new Date(ano, mes, diaDuplo)
+    .toISOString()
+    .split("T")[0];
+
+  const dataSimples = new Date(ano, mes, diaSimples)
+    .toISOString()
+    .split("T")[0];
+
+  setReservas([
+    // =====================
+    // DIA COM 2 RESERVAS
+    // =====================
+    {
+      id: crypto.randomUUID(),
+      espacoId: "1",
+      espacoNome: "Chácara do Sol",
+      nomeCliente: "Ana Pereira",
+      telefone: "(67) 98888-1111",
+      convidados: 60,
+      valor: 1800,
+      pagamentoStatus: "pago",
+      horario: "09:00 às 17:00",
+      dataInicio: dataDupla,
+      dataFim: dataDupla,
+      status: "confirmada",
+    },
+    {
+      id: crypto.randomUUID(),
+      espacoId: "3",
+      espacoNome: "Campo das Flores",
+      nomeCliente: "Pedro Santos",
+      telefone: "(67) 99999-8888",
+      convidados: 80,
+      valor: 2500,
+      pagamentoStatus: "pendente",
+      horario: "18:00 às 02:00",
+      dataInicio: dataDupla,
+      dataFim: dataDupla,
+      status: "confirmada",
+    },
+
+    // =====================
+    // DIA COM 1 RESERVA
+    // =====================
+    {
+      id: crypto.randomUUID(),
+      espacoId: "1",
+      espacoNome: "Chácara do Sol",
+      nomeCliente: "Mariana Costa",
+      telefone: "(67) 97777-3333",
+      convidados: 40,
+      valor: 1500,
+      pagamentoStatus: "pago",
+      horario: "12:00 às 20:00",
+      dataInicio: dataSimples,
+      dataFim: dataSimples,
+      status: "confirmada",
+    },
+  ]);
+}
+
+  function formatarData(data: string) {
+    return new Date(data).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  const ano = mesAtual.getFullYear();
+  const mes = mesAtual.getMonth();
+  const totalDias = new Date(ano, mes + 1, 0).getDate();
+  const dias = Array.from(
+    { length: totalDias },
+    (_, i) => new Date(ano, mes, i + 1)
+  );
+
+  /* =======================
+     BLOQUEIO
+  ======================= */
+  function confirmarBloqueio(espacoId: string) {
+    if (!periodoBloqueio.inicio || !periodoBloqueio.fim) return;
+
+    setReservas((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        espacoId,
+        espacoNome:
+          espacoId === "ALL"
+            ? "Todos os espaços"
+            : espacos.find((e) => e.id === espacoId)?.nome ||
+              "Espaço não identificado",
+        dataInicio: periodoBloqueio.inicio,
+        dataFim: periodoBloqueio.fim,
+        status: "bloqueada",
+      },
+    ]);
+
+    setDiaBloqueio(null);
+  }
+
+  function desbloquearDia(id: string) {
+    setReservas((prev) => prev.filter((r) => r.id !== id));
+  }
+
   return (
-    <>
-      <div className="min-h-screen bg-gray-50 py-10 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-           Minhas Reservas
+    <div className="min-h-screen bg-zinc-50 p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+
+        {/* HEADER */}
+        <header className="flex items-center justify-between">
+          <h2 className="text-2xl font-medium tracking-tight">
+            Calendário de Reservas
           </h2>
-          <p className="text-gray-500 mb-8">
-            Veja e gerencie as reservas feitas nos seus espaços cadastrados.
-          </p>
 
-          {/* 🔹 Filtros e busca */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-            <div className="relative w-full md:w-1/2">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Buscar por nome do cliente..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none"
-              />
-            </div>
+          <button
+            onClick={simularReservas}
+            className="text-sm px-4 py-2 rounded-md border bg-white hover:bg-zinc-100 transition"
+          >
+            Simular reservas
+          </button>
+        </header>
 
-            <select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-              className="w-full md:w-48 border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
-            >
-              <option value="todas">Todas</option>
-              <option value="pendente">Pendentes</option>
-              <option value="confirmada">Confirmadas</option>
-              <option value="cancelada">Canceladas</option>
-              <option value="finalizada">Finalizadas</option>
-            </select>
-          </div>
+        {/* CONTROLE DE MÊS */}
+        <div className="flex items-center gap-4">
+          <button onClick={() => setMesAtual(new Date(ano, mes - 1, 1))}>
+            <ChevronLeft />
+          </button>
 
-          {/* 🔹 Lista de reservas */}
-          {reservasFiltradas.length === 0 ? (
-            <div className="bg-white p-8 rounded-2xl shadow text-center text-gray-500">
-              Nenhuma reserva encontrada.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {reservasFiltradas.map((reserva) => (
+          <span className="font-medium capitalize">
+            {mesAtual.toLocaleDateString("pt-BR", {
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+
+          <button onClick={() => setMesAtual(new Date(ano, mes + 1, 1))}>
+            <ChevronRight />
+          </button>
+        </div>
+
+        {/* LISTA DE DIAS */}
+        <div className="space-y-3">
+          {dias.map((dia) => {
+            const dataStr = dia.toISOString().split("T")[0];
+
+            const dataDia = new Date(dia);
+            dataDia.setHours(0, 0, 0, 0);
+            const isPassado = dataDia < hoje;
+
+            const reservasDoDia = reservas.filter(
+              (r) => r.dataInicio <= dataStr && r.dataFim >= dataStr
+            );
+
+            const bloqueado = reservasDoDia.find(
+              (r) => r.status === "bloqueada"
+            );
+
+            return (
+              <div key={dataStr} className="grid grid-cols-[64px_1fr] gap-4">
+                {/* DATA */}
+                <div className="flex flex-col items-center justify-center rounded-lg bg-white border shadow-sm py-2">
+                  <span className="text-lg font-semibold">{dia.getDate()}</span>
+                  <span className="text-xs uppercase text-zinc-500">
+                    {dia.toLocaleDateString("pt-BR", { weekday: "short" })}
+                  </span>
+                </div>
+
+                {/* CARD */}
                 <div
-                  key={reserva.id}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition p-5 flex flex-col justify-between"
+                  className={`bg-white border rounded-lg px-5 py-4 flex justify-between items-center shadow-sm
+                    ${isPassado ? "opacity-60 cursor-not-allowed" : ""}
+                  `}
                 >
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {reserva.espacoNome}
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-3">ID: {reserva.id}</p>
+                  <div className="text-sm text-zinc-700">
+                    {isPassado && (
+                      <span className="text-zinc-400 text-sm">
+                        Data encerrada
+                      </span>
+                    )}
 
-                    <div className="space-y-1 text-sm text-gray-700">
-                      <p className="flex items-center gap-2">
-                        <User size={16} /> {reserva.nomeCliente}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <Phone size={16} /> {reserva.telefoneCliente}
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <CalendarDays size={16} />{" "}
-                        {new Date(reserva.dataInicio).toLocaleDateString()} até{" "}
-                        {new Date(reserva.dataFim).toLocaleDateString()}
-                      </p>
-                      <p>
-                        💰 <b>Valor:</b> R$ {reserva.valor.toFixed(2)}
-                      </p>
-                    </div>
+                    {!isPassado && reservasDoDia.length === 0 && "Disponível"}
 
-                    {/* 🔘 Botões de ação */}
-                    <div className="flex items-center gap-3 mt-4">
-                      {reserva.status === "pendente" && (
-                        <>
-                          <button
-                            onClick={() =>
-                              atualizarStatusReserva(reserva.id, "confirmada")
-                            }
-                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
-                          >
-                            Confirmar
-                          </button>
-                          <button
-                            onClick={() =>
-                              atualizarStatusReserva(reserva.id, "cancelada")
-                            }
-                            className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      )}
+                    {!isPassado && bloqueado && (
+                      <div className="flex items-center gap-2 text-red-600 font-medium">
+                        <Ban size={14} />
+                        {bloqueado.espacoId === "ALL"
+                          ? "Bloqueio geral"
+                          : bloqueado.espacoNome}
+                      </div>
+                    )}
 
-                      {reserva.status === "confirmada" && (
-                        <span className="text-green-600 font-medium">
-                          ✅ Confirmada
-                        </span>
-                      )}
+                    {!bloqueado && reservasDoDia.length > 0 && !isPassado && (
+                      <strong>
+                        {reservasDoDia.length} reserva
+                        {reservasDoDia.length > 1 && "s"}
+                      </strong>
+                    )}
+                  </div>
 
-                      {reserva.status === "cancelada" && (
-                        <>
-                          <span className="text-red-600 font-medium">
-                            ❌ Cancelada
-                          </span>
-                          <button
-                            onClick={() =>
-                              atualizarStatusReserva(reserva.id, "pendente")
-                            }
-                            className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                          >
-                            <RotateCcw size={14} />
-                            Reverter
-                          </button>
-                        </>
-                      )}
+                  <div className="flex gap-2">
+                    {!isPassado && reservasDoDia.length === 0 && (
+                      <button
+                        onClick={() => {
+                          setDiaBloqueio(dataStr);
+                          setPeriodoBloqueio({
+                            inicio: dataStr,
+                            fim: dataStr,
+                          });
+                        }}
+                        className="text-xs px-3 py-1 rounded border hover:bg-zinc-100"
+                      >
+                        <Lock size={14} className="inline mr-1" />
+                        Bloquear
+                      </button>
+                    )}
 
-                      {reserva.status === "finalizada" && (
-                        <span className="text-gray-600 font-medium">
-                          🕓 Finalizada
-                        </span>
-                      )}
-                    </div>
+                    {!isPassado && bloqueado && (
+                      <button
+                        onClick={() => setReservaParaDesbloquear(bloqueado)}
+                        className="text-xs px-3 py-1 rounded border hover:bg-zinc-100"
+                      >
+                        <Unlock size={14} className="inline mr-1" />
+                        Desbloquear
+                      </button>
+                    )}
+
+                    {!isPassado && !bloqueado && reservasDoDia.length > 0 && (
+                      <button
+                        onClick={() =>
+                          reservasDoDia.length === 1
+                            ? setReservaDetalhe(reservasDoDia[0])
+                            : setReservasDia(reservasDoDia)
+                        }
+                        className="text-xs border rounded px-3 py-1 hover:bg-zinc-100"
+                      >
+                        <Eye size={14} className="inline mr-1" />
+                        Ver
+                      </button>
+                    )}
+                    
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })}
         </div>
       </div>
-    </>
+
+      {/* MODAL DE BLOQUEIO */}
+      {diaBloqueio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-base font-semibold">Bloquear período</h3>
+              <button onClick={() => setDiaBloqueio(null)}>
+                <X />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  value={periodoBloqueio.inicio}
+                  onChange={(e) =>
+                    setPeriodoBloqueio((p) => ({
+                      ...p,
+                      inicio: e.target.value,
+                    }))
+                  }
+                  className="rounded-lg border px-3 py-2 text-sm"
+                />
+
+                <input
+                  type="date"
+                  min={periodoBloqueio.inicio}
+                  value={periodoBloqueio.fim}
+                  onChange={(e) =>
+                    setPeriodoBloqueio((p) => ({
+                      ...p,
+                      fim: e.target.value,
+                    }))
+                  }
+                  className="rounded-lg border px-3 py-2 text-sm"
+                />
+              </div>
+
+              <button
+                onClick={() => confirmarBloqueio("ALL")}
+                className="w-full rounded-xl border py-3 flex items-center justify-center gap-2"
+              >
+                <LockKeyhole size={16} />
+                Bloquear todos os espaços
+              </button>
+
+              {espacos.map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => confirmarBloqueio(e.id)}
+                  className="w-full rounded-xl border py-3 flex items-center justify-center gap-2"
+                >
+                  <Lock size={16} />
+                  {e.nome}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+ {/* MODAL LISTA DO DIA */}
+{reservasDia && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-zinc-50 rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+      
+      {/* Header */}
+      <div className="px-6 py-4 border-b bg-white">
+        <h3 className="text-base font-semibold tracking-tight">
+          Reservas do dia
+        </h3>
+        <p className="text-xs text-zinc-500">
+          {reservasDia.length} reservas encontradas
+        </p>
+      </div>
+
+      {/* Conteúdo */}
+      <div className="p-4 space-y-3">
+        {reservasDia.map((reserva) => (
+          <div
+            key={reserva.id}
+            className="flex items-center justify-between rounded-xl bg-white px-4 py-3 hover:shadow-sm transition"
+          >
+            <div>
+              <p className="text-sm font-medium">
+                {reserva.espacoNome}
+              </p>
+              <p className="text-xs text-zinc-500">
+                {reserva.nomeCliente}
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setReservasDia(null);
+                setReservaDetalhe(reserva);
+              }}
+              className="text-xs font-medium text-zinc-600 hover:text-black transition"
+            >
+              Ver
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-3 border-t bg-white">
+        <button
+          onClick={() => setReservasDia(null)}
+          className="w-full text-sm text-zinc-500 hover:text-black transition"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+      {/* MODAL DETALHES */}
+{reservaDetalhe && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-zinc-50 rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+
+      {/* Header */}
+      <div className="px-6 py-4 border-b bg-white space-y-1">
+        <h3 className="text-lg font-semibold tracking-tight">
+          {reservaDetalhe.espacoNome}
+        </h3>
+        <p className="text-xs text-zinc-500">
+          Reserva confirmada
+        </p>
+      </div>
+
+      {/* Conteúdo */}
+      <div className="p-6 space-y-4 text-sm text-zinc-700">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-zinc-400">Cliente</p>
+            <p className="font-medium">{reservaDetalhe.nomeCliente}</p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-400">Telefone</p>
+            <p>{reservaDetalhe.telefone}</p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-400">Convidados</p>
+            <p>{reservaDetalhe.convidados}</p>
+          </div>
+
+<div>
+  <p className="text-xs text-zinc-400">Data do evento</p>
+  <p className="font-medium">
+    {formatarData(reservaDetalhe.dataInicio)}
+  </p>
+</div>
+
+          <div>
+            <p className="text-xs text-zinc-400">Horário</p>
+            <p>{reservaDetalhe.horario}</p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-400">Valor</p>
+            <p className="font-medium">
+              R$ {reservaDetalhe.valor}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-400">Pagamento</p>
+            <span
+              className={`inline-block text-xs px-2 py-1 rounded-full ${
+                reservaDetalhe.pagamentoStatus === "pago"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"
+              }`}
+            >
+              {reservaDetalhe.pagamentoStatus}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Ações */}
+      <div className="px-6 pb-6 space-y-2">
+        <a
+          href={`https://wa.me/55${reservaDetalhe.telefone?.replace(/\D/g, "")}`}
+          target="_blank"
+          className="block w-full text-center rounded-xl border py-2 text-sm hover:bg-zinc-100 transition"
+        >
+          💬 Chamar no WhatsApp
+        </a>
+
+{reservaDetalhe.status === "confirmada" && (
+<button
+  onClick={() => {
+    setTipoAuditoria("pre");
+    setReservaAuditoria(reservaDetalhe);
+    setAuditoriaAberta(true);
+  }}
+  className="w-full text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-700 py-2 rounded-xl font-semibold"
+>
+  <ListChecks size={14} className="inline mr-1" />
+  {reservaDetalhe.auditoriaPre
+    ? "Ver Pré-Vistoria"
+    : "Vistoria Pré-Locação"}
+</button>
+)}
+
+        <button
+onClick={() => {
+  setReservaParaCancelar(reservaDetalhe);
+  setCancelamentoAberto(true);
+  setReservaDetalhe(null);
+}}
+  className="w-full text-xs text-zinc-500 hover:text-red-600 transition"
+>
+  Solicitar cancelamento
+</button>
+
+        <button
+          onClick={() => setReservaDetalhe(null)}
+          className="w-full text-sm text-zinc-500 hover:text-black transition pt-2"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* MODAL DESBLOQUEIO */}
+      {reservaParaDesbloquear && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+            <div className="px-6 py-4 border-b flex justify-between">
+              <h3 className="font-semibold">Remover bloqueio</h3>
+              <button onClick={() => setReservaParaDesbloquear(null)}>
+                <X />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm">
+                Deseja remover o bloqueio de{" "}
+                <strong>
+                  {reservaParaDesbloquear.espacoId === "ALL"
+                    ? "todos os espaços"
+                    : reservaParaDesbloquear.espacoNome}
+                </strong>
+                ?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setReservaParaDesbloquear(null)}
+                  className="flex-1 rounded-xl border py-2"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  onClick={() => {
+                    desbloquearDia(reservaParaDesbloquear.id);
+                    setReservaParaDesbloquear(null);
+                  }}
+                  className="flex-1 rounded-xl bg-red-600 text-white py-2"
+                >
+                  Desbloquear
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SOLICITAÇÃO DE CANCELAMENTO */}
+{cancelamentoAberto && reservaParaCancelar && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+
+      {/* HEADER */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <h3 className="text-base font-semibold">
+          Solicitar cancelamento
+        </h3>
+        <button
+          onClick={() => {
+            setCancelamentoAberto(false);
+            setMotivoCancelamento("");
+          }}
+          className="text-zinc-400 hover:text-zinc-600"
+        >
+          <X />
+        </button>
+      </div>
+
+      {/* BODY */}
+      <div className="px-6 py-5 space-y-4 text-sm text-zinc-700">
+
+        <div className="rounded-lg bg-zinc-50 px-4 py-3">
+          <p className="text-xs text-zinc-400">Reserva</p>
+         <p className="font-medium">{reservaParaCancelar.espacoNome}</p>
+<p className="text-xs text-zinc-500">
+  {reservaParaCancelar.nomeCliente}
+</p>
+        </div>
+
+        <div>
+          <label className="text-xs text-zinc-500">
+            Motivo do cancelamento
+          </label>
+          <textarea
+            value={motivoCancelamento}
+            onChange={(e) => setMotivoCancelamento(e.target.value)}
+            rows={4}
+            placeholder="Descreva o motivo do cancelamento"
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm resize-none"
+          />
+          <p className="text-[11px] text-zinc-400 mt-1">
+            Mínimo de 10 caracteres úteis
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            if (motivoCancelamento.trim().length < 10) return;
+
+            // 🔔 aqui futuramente envia para admin/suporte
+          console.log("Solicitação de cancelamento:", {
+  reservaId: reservaParaCancelar.id,
+  motivo: motivoCancelamento,
+});
+
+            setCancelamentoAberto(false);
+            setMotivoCancelamento("");
+          }}
+          disabled={motivoCancelamento.trim().length < 10}
+          className={`w-full rounded-xl py-3 font-semibold transition
+            ${
+              motivoCancelamento.trim().length < 10
+                ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                : "bg-sky-500 text-white hover:bg-sky-600"
+            }`}
+        >
+          Enviar solicitação
+        </button>
+      </div>
+    </div>
+  </div>
+  
+)}
+
+{/* MODAL DE AUDITORIA */}
+{auditoriaAberta && reservaAuditoria && (
+  <AuditoriaModal
+    reserva={reservaAuditoria}
+    hoje={new Date()}
+    tipo={tipoAuditoria}
+    auditoriaPre={reservaAuditoria.auditoriaPre} // 🔥 ESSENCIAL PARA O PÓS
+    onClose={() => {
+      setAuditoriaAberta(false);
+      setReservaAuditoria(null);
+    }}
+    onSalvar={(auditoria) => {
+      setReservas((prev) =>
+        prev.map((r) => {
+          if (r.id !== reservaAuditoria.id) return r;
+
+          return tipoAuditoria === "pre"
+            ? { ...r, auditoriaPre: auditoria }
+            : { ...r, auditoriaPos: auditoria };
+        })
+      );
+
+      setReservaDetalhe((prev) =>
+        prev && prev.id === reservaAuditoria.id
+          ? tipoAuditoria === "pre"
+            ? { ...prev, auditoriaPre: auditoria }
+            : { ...prev, auditoriaPos: auditoria }
+          : prev
+      );
+
+      setAuditoriaAberta(false);
+      setReservaAuditoria(null);
+    }}
+  />
+)}
+
+    </div>
   );
 }

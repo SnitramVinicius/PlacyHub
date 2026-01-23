@@ -1,5 +1,10 @@
 "use client";
 
+/* ======================= 
+TELA DE EDIÇÃO DE ESPAÇO
+ATUALIZAR INFORMAÇÕES DO ESPAÇO
+ ======================= */
+
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -166,7 +171,7 @@ export default function EditarEspaco() {
     await new Promise((r) => setTimeout(r, 1000));
 
     setLoading(false);
-    setMessage("✅ Alterações salvas com sucesso!");
+    setMessage(" Alterações salvas com sucesso!");
 
     setTimeout(() => {
       router.push("/anfitriao/espacos");

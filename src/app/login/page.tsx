@@ -4,7 +4,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation"; // ✅ useSearchParams
 import { useState } from "react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
@@ -45,17 +45,15 @@ export default function LoginPage() {
   };
 
   const handleLoginGoogle = () => {
-    toast("Login com Google ainda não implementado 😅");
+    toast("Login com Google ainda não implementado");
   };
 
   const handleLoginFacebook = () => {
-    toast("Login com Facebook ainda não implementado 😅");
+    toast("Login com Facebook ainda não implementado");
   };
 
   return (
     <>
-      <Toaster position="top-right" richColors />
-
       <section className="flex justify-center items-center min-h-screen px-4">
         <div className="bg-white shadow-md rounded-2xl p-10 w-full max-w-md">
 

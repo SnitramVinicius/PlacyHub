@@ -1,3 +1,5 @@
+//-------------- login fake/temporário, só para testar autenticação e permissões.-------------------------//
+
 import { NextResponse } from "next/server";
 import { signToken } from "@/lib/auth";
 

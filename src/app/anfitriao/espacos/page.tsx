@@ -1,4 +1,9 @@
 "use client";
+
+/* ======================= TELA DE "MEUS ESPAÇOS"
+ TODOS OS ESPAÇOS DO ANFITRIAO
+ ======================= */
+
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";

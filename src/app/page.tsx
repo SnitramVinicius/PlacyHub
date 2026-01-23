@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavoritos } from "@/context/FavoritosContext";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import { ESPACOS, Espaco } from "@/data/espacos";
 
 // =========================

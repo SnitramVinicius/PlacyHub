@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 
 interface EstadoIBGE {
   id: number;
@@ -116,7 +116,6 @@ login({
 
   return (
     <>
-      <Toaster position="top-right" richColors />
 
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-gray-100 p-8">

@@ -1,32 +1,65 @@
 "use client";
 
+/* ======================= MENU LATERAL PAINEL DO ANFITRIAO ======================= */
+
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Home, Building2, CalendarDays, Wallet, User, BarChart3 } from "lucide-react";
+import {
+  Home,
+  Building2,
+  CalendarDays,
+  CalendarCheck,
+  Wallet,
+  User,
+} from "lucide-react";
 import clsx from "clsx";
+import { useAuth } from "@/context/AuthContext";
 
 const links = [
   { name: "Painel", href: "/anfitriao", icon: Home },
   { name: "Espaços", href: "/anfitriao/espacos", icon: Building2 },
-  { name: "Reservas", href: "/anfitriao/reservas", icon: CalendarDays },
+  { name: "Reservas", href: "/anfitriao/reservas", icon:  CalendarDays },
+  { name: "Histórico de Reservas", href: "/anfitriao/historico", icon: CalendarCheck },
   { name: "Financeiro", href: "/anfitriao/financeiro", icon: Wallet },
-  { name: "Perfil", href: "/anfitriao/perfil", icon: User },
+  { name: "Perfil", href: "/locatario/perfil", icon: User },
 ];
 
-export default function AnfitriaoLayout({ children }: { children: React.ReactNode }) {
+export default function AnfitriaoLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, loading, isAnfitriao } = useAuth();
 
-  // 🔹 Lista de rotas que NÃO devem mostrar a sidebar
-  // const rotasSemSidebar = ["/anfitriao/cadastro",
-  // "/anfitriao/espacos/novo", "/anfitriao/planos"];
+  /* ===================== PROTEÇÃO CENTRAL ===================== */
+useEffect(() => {
+  if (loading) return; // ⛔ espera carregar do localStorage
 
-  // const semSidebar = rotasSemSidebar.includes(pathname);
+  if (!user) {
+    router.replace("/login");
+    return;
+  }
 
-  // if (semSidebar) {
-  //   return <>{children}</>;
-  // }
+  if (!isAnfitriao) {
+    router.replace("/");
+  }
+}, [loading, user, isAnfitriao, router]);
 
+  /* ===================== LOADING STATE ===================== */
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Carregando painel do anfitrião...
+      </div>
+    );
+  }
+
+  if (!user || !isAnfitriao) return null;
+
+  /* ===================== LAYOUT ===================== */
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
@@ -37,7 +70,7 @@ export default function AnfitriaoLayout({ children }: { children: React.ReactNod
           <nav className="space-y-1">
             {links.map((link) => {
               const Icon = link.icon;
-              const isActive = pathname === link.href;
+              const isActive = pathname.startsWith(link.href);
 
               return (
                 <Link
@@ -66,7 +99,7 @@ export default function AnfitriaoLayout({ children }: { children: React.ReactNod
         </button>
       </aside>
 
-      {/* Conteúdo principal */}
+      {/* Conteúdo */}
       <main className="flex-1 p-8">{children}</main>
     </div>
   );

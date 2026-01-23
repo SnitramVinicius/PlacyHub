@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 registerLocale("pt-BR", ptBR);
 
@@ -235,7 +236,10 @@ export default function Navbar() {
             {/* BOTÃO BUSCAR */}
             <button
               onClick={() => {
-                if (!cityQuery) return alert("Selecione uma cidade");
+               if (!cityQuery) {
+  toast.warning("Selecione uma cidade para continuar");
+  return;
+}
                 const start = startDate ? startDate.toISOString().split("T")[0] : "";
                 const end = endDate ? endDate.toISOString().split("T")[0] : "";
                 setActivePanel(null);

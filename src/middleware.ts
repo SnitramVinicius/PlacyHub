@@ -3,6 +3,11 @@ import type { NextRequest } from "next/server";
 import { verifyTokenEdge } from "./lib/auth-edge";
 
 export async function middleware(req: NextRequest) {
+  // 🔓 LIBERA TUDO EM DEV
+  if (process.env.NODE_ENV !== "production") {
+    return NextResponse.next();
+  }
+
   const token = req.cookies.get("placyhub_token")?.value;
 
   if (req.nextUrl.pathname.startsWith("/anfitriao")) {

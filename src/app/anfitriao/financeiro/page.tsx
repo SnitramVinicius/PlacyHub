@@ -1,5 +1,9 @@
 "use client";
 
+/* ======================= TELA DE FINANCEIRO
+INFORMAÇÕES DETALHAS DO FINANCEIROS DOS ESPAÇOS.
+ ======================= */
+
 import { useState } from "react";
 import { financeiroData } from "@/lib/mock/financeiroData";
 import FinanceiroTable from "@/components/FinanceiroTable";

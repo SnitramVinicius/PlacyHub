@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar2 from "@/components/navbar2";
+import { toast } from "sonner";
 
 export default function RecuperarSenha() {
   const [email, setEmail] = useState("");
@@ -18,7 +19,7 @@ export default function RecuperarSenha() {
   }, [tempoRestante]);
 
   const handleEnviarLink = () => {
-    if (!email) return alert("Digite seu e-mail");
+    if (!email) return toast.error("Digite seu e-mail");
 
     // Aqui você chamaria a API de envio de link
     setLinkEnviado(true);
