@@ -1,10 +1,55 @@
 // src/data/espacos.ts
 
+export interface BuffetPacoteValor {
+  convidados: number;
+  preco: number;
+}
+
+export interface BuffetPacote {
+  nome: string;
+  descricao: string;
+  duracao: string;
+  itensInclusos: string[];
+  valores: BuffetPacoteValor[];
+}
+
+export interface BuffetTipoFesta {
+  nome: string;
+  pacotes: BuffetPacote[];
+}
+
+export interface Buffet {
+  descricao: string;
+  tiposFesta: BuffetTipoFesta[];
+}
+
+export interface PrecoDiaSemana {
+  dia: string; // "segunda", "terca", etc
+  valor: number;
+}
+
+export interface DataEspecial {
+  dia: number;
+  mes: number;
+  valor: number;
+}
+
+export interface PeriodoEspecifico {
+  dataInicio: string; // yyyy-mm-dd
+  dataFim: string;
+  valor: number;
+}
+
+export interface Disponibilidade {
+  tipo: "sempre" | "dias_especificos";
+  dias?: string[];
+}
 export interface Espaco {
   id: string;
   imagem: string; // imagem principal (string, caminho)
   imagens?: string[]; // galeria de imagens
   nome: string;
+ descricao?: string;
   preco: number;
   cidade: string;
   bairro: string;
@@ -23,6 +68,23 @@ export interface Espaco {
 
   latitude: number;
   longitude: number;
+
+   buffet?: Buffet;
+
+
+  usaPrecoDiaSemana?: boolean;
+  precosDiaSemana?: PrecoDiaSemana[];
+
+  usaDatasEspeciais?: boolean;
+  datasEspeciais?: DataEspecial[];
+
+  usaPeriodos?: boolean;
+  periodos?: PeriodoEspecifico[];
+
+  tipoReserva?: "automatica" | "manual";
+
+  disponibilidade?: Disponibilidade;
+
 }
 
 // Observação: as coordenadas abaixo são aproximações por bairro e cidade,
@@ -30,16 +92,286 @@ export interface Espaco {
 
 export const ESPACOS: Espaco[] = [
   // ---------- CAMPO GRANDE - MS (8)
+{
+  id: "cg-teste-01",
+imagem: "/espacos/1.jpg",
+imagens: [
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/3.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg"
+],
+
+  nome: "Chácara Paraíso Eventos",
+  descricao:
+    "A Chácara Paraíso Eventos é um espaço amplo e arborizado ideal para aniversários, confraternizações, casamentos e eventos corporativos. O local conta com piscina, área gourmet completa, palco para apresentações e amplo estacionamento. Perfeito para quem busca privacidade e contato com a natureza sem sair da cidade.",
+
+  preco: 600,
+
+  cidade: "Campo Grande, MS",
+  bairro: "Chácara dos Poderes",
+
+  avaliacao: 4.8,
+  popularidade: 640,
+
+  tipo: "Chácara",
+
+  capacidade: 180,
+  area: 2200,
+
+  horasInclusas: 8,
+  duracao: "8 horas",
+
+  facilidades: [
+    "Piscina",
+    "Churrasqueira",
+    "Área gourmet completa",
+    "Palco para música ao vivo",
+    "Estacionamento para 40 carros",
+    "Wi-Fi",
+    "Área verde",
+    "Iluminação decorativa"
+  ],
+
+  servicosAdicionais: [
+    "Decoração de festas",
+    "DJ profissional",
+    "Sistema de som",
+    "Segurança",
+    "Equipe de limpeza",
+    "Mesas e cadeiras extras",
+    "Gerador de energia"
+  ],
+
+  regras: [
+    "Som permitido até 00h",
+    "Proibido som automotivo",
+    "Animais apenas na área externa",
+    "Obrigatório recolher lixo ao final do evento",
+    "Caução de R$500 para possíveis danos",
+    "Fogos de artifício apenas com autorização"
+  ],
+
+  latitude: -20.481200,
+  longitude: -54.650000,
+
+  // -------- PREÇO DIFERENTE POR DIA DA SEMANA
+  precosDiaSemana: [
+    { dia: "segunda", valor: 450 },
+    { dia: "terca", valor: 450 },
+    { dia: "quarta", valor: 450 },
+    { dia: "quinta", valor: 500 },
+    { dia: "sexta", valor: 700 },
+    { dia: "sabado", valor: 1200 },
+    { dia: "domingo", valor: 900 }
+  ],
+
+  // -------- DATAS ESPECIAIS
+  datasEspeciais: [
+    {
+      dia: 25,
+      mes: 12,
+      
+      valor: 1500
+    },
+    {
+      dia: 31,
+      mes: 12,
+    
+      valor: 2000
+    },
+    {
+      dia: 12,
+      mes: 10,
+    
+      valor: 1100
+    }
+  ],
+
+  // -------- PERÍODOS ESPECÍFICOS
+periodos: [
+  {
+    dataInicio: "2026-11-15",
+    dataFim: "2026-12-20",
+    valor: 1300
+  },
+  {
+    dataInicio: "2026-07-01",
+    dataFim: "2026-07-31",
+    valor: 900
+  }
+],
+
+  // -------- TIPO DE RESERVA
+ tipoReserva: "automatica",
+
+},
+
+{
+  id: "cg-buffet-01",
+ imagem: "/espacos/5.jpeg",
+imagens: [
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/3.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
+],
+  nome: "Chácara do Sol",
+  preco: 4250,
+  cidade: "Campo Grande, MS",
+  bairro: "Rua Perciliana Barbosa Ferreira",
+  avaliacao: 4.9,
+  popularidade: 1500,
+  tipo: "Casa de festas",
+
+  capacidade: 150,
+  area: 2000,
+  horasInclusas: 4,
+  duracao: "4 horas",
+
+  facilidades: [
+    "Ar-condicionado",
+    "Brinquedos diversos",
+    "Som e iluminação profissional",
+  ],
+
+  regras: [
+    "Proibido som externo após 22h",
+    "Não é permitido levar bebidas externas",
+    "Horário máximo de encerramento às 02h",
+    "Contrato e sinal obrigatórios para reserva"
+  ],
+
+  latitude: -20.469800,
+  longitude: -54.615000,
+
+buffet: {
+  descricao: "Buffet completo com cardápio personalizado, decoração temática e equipe especializada para eventos infantis e adultos.",
+  tiposFesta: [
+    {
+      nome: "Festa Infantil",
+      pacotes: [
+        {
+          nome: "Pacote 1",
+          descricao: "Opção 1 - Buffet completo com decoração temática.",
+          duracao: "4 horas",
+          itensInclusos: [
+            "Decoração completa",
+            "Cachorro quente",
+            "Batata frita",
+            "Macarrão à bolonhesa",
+            "Salgados fritos e assados",
+            "Bolo",
+            "Mini churros",
+            "Sucos",
+            "Refrigerantes",
+            "Água"
+          ],
+          valores: [
+            { convidados: 50, preco: 4250 },
+            { convidados: 60, preco: 4800 },
+            { convidados: 80, preco: 6400 },
+            { convidados: 100, preco: 7450 },
+            { convidados: 120, preco: 8800 },
+            { convidados: 150, preco: 10450 }
+          ]
+        },
+        {
+          nome: "Pacote 2",
+          descricao: "Opção 2 - Buffet completo com complementos especiais.",
+          duracao: "4 horas",
+          itensInclusos: [
+            "Decoração completa",
+            "Cachorro quente",
+            "Batata frita",
+            "Macarrão à bolonhesa",
+            "Salgados fritos e assados",
+            "Bolo",
+            "Mini churros",
+            "Sucos",
+            "Refrigerantes",
+            "Água",
+            "Sorvete",
+            "Algodão doce",
+            "Gelinho",
+            "Crepes",
+            "Amendoim"
+          ],
+          valores: [
+            { convidados: 50, preco: 4500 },
+            { convidados: 60, preco: 5100 },
+            { convidados: 80, preco: 6800 },
+            { convidados: 100, preco: 7950 },
+            { convidados: 120, preco: 9400 },
+            { convidados: 150, preco: 10950 }
+          ]
+        }
+      ]
+    },
+    {
+      nome: "15 anos e aniversários",
+      pacotes: [
+        {
+          nome: "Ouro 1 - Coquetel",
+          descricao: "Pacote completo para festas de 15 anos.",
+          duracao: "4 horas",
+          itensInclusos: [
+            "Decoração completa",
+            "Coquetel",
+            "Salgados variados",
+            "Doces",
+            "Bebidas",
+            "Equipe profissional"
+          ],
+          valores: [
+            { convidados: 60, preco: 11900 },
+            { convidados: 70, preco: 13100 },
+            { convidados: 80, preco: 14150 },
+            { convidados: 90, preco: 15350 },
+            { convidados: 100, preco: 16100 },
+            { convidados: 120, preco: 18200 }
+          ]
+        },
+        {
+          nome: "Ouro 2 - Massas",
+          descricao: "Pacote com jantar completo de massas.",
+          duracao: "4 horas",
+          itensInclusos: [
+            "Decoração completa",
+            "Jantar de massas",
+            "Salgados",
+            "Doces",
+            "Bebidas",
+            "Equipe profissional"
+          ],
+          valores: [
+            { convidados: 60, preco: 12200 },
+            { convidados: 70, preco: 13450 },
+            { convidados: 80, preco: 14550 },
+            { convidados: 90, preco: 15800 },
+            { convidados: 100, preco: 16600 },
+            { convidados: 120, preco: 18800 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+},
+
   {
     id: "cg-01",
-    imagem: "/1.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  imagem: "/espacos/1.jpg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Chácara Recanto do Lago",
     preco: 650,
@@ -60,14 +392,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "cg-02",
-    imagem: "/2.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/2.jpg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Espaço Premium Monte Castelo",
     preco: 450,
@@ -90,12 +422,12 @@ export const ESPACOS: Espaco[] = [
     id: "cg-03",
     imagem: "/3.jpg",
     imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  "espacos/3.jpg",
+  "espacos/1.jpg",
+  "espacos/2.jpg",
+  "espacos/4.jpeg",
+  "espacos/5.jpeg",
+  "espacos/6.jpg",
 ],
     nome: "Salão Família Fest",
     preco: 280,
@@ -118,12 +450,12 @@ export const ESPACOS: Espaco[] = [
     id: "cg-04",
     imagem: "/4.jpeg",
    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  "espacos/3.jpg",
+  "espacos/1.jpg",
+  "espacos/2.jpg",
+  "espacos/4.jpeg",
+  "espacos/5.jpeg",
+  "espacos/6.jpg",
 ],
     nome: "Espaço Jardim dos Estados",
     preco: 520,
@@ -146,12 +478,12 @@ export const ESPACOS: Espaco[] = [
     id: "cg-05",
     imagem: "/5.jpeg",
     imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  "espacos/3.jpg",
+  "espacos/1.jpg",
+  "espacos/2.jpg",
+  "espacos/4.jpeg",
+  "espacos/5.jpeg",
+  "espacos/6.jpg",
 ],
     nome: "Chácara Vale Encantado",
     preco: 700,
@@ -174,12 +506,12 @@ export const ESPACOS: Espaco[] = [
     id: "cg-06",
     imagem: "/6.jpg",
     imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  "espacos/3.jpg",
+  "espacos/1.jpg",
+  "espacos/2.jpg",
+  "espacos/4.jpeg",
+  "espacos/5.jpeg",
+  "espacos/6.jpg",
 ],
     nome: "Salão Imperial Festas",
     preco: 390,
@@ -200,14 +532,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "cg-07",
-    imagem: "/1.jpg",
+    imagem: "espacos/1.jpg",
     imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  "espacos/3.jpg",
+  "espacos/1.jpg",
+  "espacos/2.jpg",
+  "espacos/4.jpeg",
+  "espacos/5.jpeg",
+  "espacos/6.jpg",
 ],
     nome: "Espaço Crystal Garden",
     preco: 310,
@@ -228,14 +560,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "cg-08",
-    imagem: "/2.jpg",
+    imagem: "/espacos/2.jpg",
     imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  "espacos/3.jpg",
+  "espacos/1.jpg",
+  "espacos/2.jpg",
+  "espacos/4.jpeg",
+  "espacos/5.jpeg",
+  "espacos/6.jpg",
 ],
     nome: "Chácara Primavera Azul",
     preco: 800,
@@ -258,14 +590,14 @@ export const ESPACOS: Espaco[] = [
   // ---------- SÃO PAULO - SP (8)
   {
     id: "sp-01",
-    imagem: "/3.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/3.jpg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Espaço Alto da Lapa",
     preco: 1500,
@@ -286,14 +618,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "sp-02",
-    imagem: "/4.jpeg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/4.jpeg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Salão Jardins Palace",
     preco: 900,
@@ -314,14 +646,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "sp-03",
-    imagem: "/5.jpeg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/5.jpeg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Espaço Paulista Hall",
     preco: 750,
@@ -342,14 +674,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "sp-04",
-    imagem: "/6.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+  imagem: "/espacos/6.jpg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Rooftop Sky SP",
     preco: 1800,
@@ -370,14 +702,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "sp-05",
-    imagem: "/1.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/1.jpg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Chácara Morumbi Premium",
     preco: 2000,
@@ -398,14 +730,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "sp-06",
-    imagem: "/2.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/2.jpg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Espaço Vila Olímpia",
     preco: 1100,
@@ -426,14 +758,14 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "sp-07",
-    imagem: "/3.jpg",
-    imagens: [
-  "/3.jpg",
-  "/1.jpg",
-  "/2.jpg",
-  "/4.jpeg",
-  "/5.jpeg",
-  "/6.jpg",
+imagem: "/espacos/4.jpeg",
+imagens: [
+  "/espacos/3.jpg",
+  "/espacos/1.jpg",
+  "/espacos/2.jpg",
+  "/espacos/4.jpeg",
+  "/espacos/5.jpeg",
+  "/espacos/6.jpg"
 ],
     nome: "Salão Zona Norte Fest",
     preco: 450,
@@ -484,7 +816,7 @@ export const ESPACOS: Espaco[] = [
   // ---------- RIO DE JANEIRO - RJ (8)
   {
     id: "rj-01",
-    imagem: "/5.jpeg",
+     imagem: "/4.jpeg",
     imagens: [
   "/3.jpg",
   "/1.jpg",
@@ -512,7 +844,7 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "rj-02",
-    imagem: "/6.jpg",
+    imagem: "/4.jpeg",
     imagens: [
   "/3.jpg",
   "/1.jpg",
@@ -540,7 +872,7 @@ export const ESPACOS: Espaco[] = [
   },
   {
     id: "rj-03",
-    imagem: "/1.jpg",
+    imagem: "/4.jpeg",
     imagens: [
   "/3.jpg",
   "/1.jpg",

@@ -7,14 +7,17 @@ const client = new MercadoPagoConfig({
 
 export const POST = async (req: NextRequest) => {
   try {
-    const {
-      total,
-      espacoId,
-      dataReserva,
-      hora,
-      plano,
-      qtdPessoas,
-    } = await req.json();
+const {
+  total,
+  espacoId,
+  dataReserva,
+  dataInicio,
+  dataFim,
+  plano,
+  qtdPessoas,
+  pacote,
+  convidados,
+} = await req.json();
 
     if (!total || isNaN(Number(total))) {
       return NextResponse.json(
@@ -24,6 +27,12 @@ export const POST = async (req: NextRequest) => {
     }
 
     const preference = new Preference(client);
+
+const dataFinalReserva =
+  dataReserva ||
+  (dataInicio && dataFim
+    ? `${dataInicio} até ${dataFim}`
+    : null);
 
     const body = {
       items: [
@@ -35,14 +44,15 @@ export const POST = async (req: NextRequest) => {
         },
       ],
 
-      metadata: {
-        espacoId,
-        dataReserva,
-        hora,
-        plano,
-        qtdPessoas,
-        valor: Number(total),
-      },
+metadata: {
+  espacoId,
+  dataReserva: dataFinalReserva,
+  plano,
+  qtdPessoas,
+  pacote,
+  convidados,
+  valor: Number(total),
+},
 
       back_urls: {
         success: `${process.env.NEXT_PUBLIC_BASE_URL}/pagamento/finalizado?status=success`,

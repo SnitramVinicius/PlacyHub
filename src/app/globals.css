@@ -81,15 +81,17 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+
+
 .dark {
-  --background: oklch(0.145 0 0);
+--background: rgb(15, 23, 42);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.28 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.28 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary-foreground: oklch(44.575% 0.01459 17.523);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -124,42 +126,58 @@
 /* 🔧 Container principal do calendário (estilo igual dropdown cidade) */
 .airbnb-calendar,
 .react-datepicker {
-  background-color: #ffffff !important;
-  border: 1px solid #f0f0f0 !important;
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827;
   border-radius: 1.5rem !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
   font-family: var(--font-sans);
   padding: 16px;
 }
 
+.dark .react-datepicker {
+  background-color: #1e2939 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  color: #e5e7eb;
+}
+
 /* Header totalmente branco */
 .react-datepicker__header {
-  background-color: #ffffff !important;
+  background-color: white !important;
   background-image: none !important;
   border-bottom: none !important;
   box-shadow: none !important;
   padding-top: 0;
   padding-bottom: 0.5rem;
 }
+.dark .react-datepicker__header {
+  background-color: #1e2939 !important;
+
+}
 
 /* Mês atual */
 .react-datepicker__current-month {
   font-weight: 600;
-  color: #111827;
+ color: #111827;
   text-align: center;
   margin-bottom: 0.5rem;
   font-size: 1rem;
 }
-
+.dark .react-datepicker__current-month {
+  color: #ffffff;
+}
 /* Dias da semana */
 .react-datepicker__day-name {
-  color: #717171;
+ color: #6b7280;
   font-weight: 400;
   width: 2.5rem;
   height: 2.25rem;
   line-height: 2.25rem;
   font-size: 0.75rem;
   text-transform: uppercase;
+}
+.dark .react-datepicker__day-name {
+  color: #94a3b8;
 }
 
 /* Dias */
@@ -169,20 +187,20 @@
   line-height: 2.5rem;
   margin: 0 0.125rem;
   border-radius: 50%;
-  color: #111827;
+  color: var(--foreground);
   transition: background-color 0.1s;
 }
 
 /* Selecionado */
 .react-datepicker__day--selected {
-  background-color: #111827 !important;
+   background-color: #02b0f0 !important;
   color: white !important;
   font-weight: 600;
 }
 
 /* Hover */
 .react-datepicker__day:hover {
-  background-color: #f3f4f6 !important;
+  background-color: var(--muted) !important;
 }
 
 /* Setas */
@@ -190,7 +208,7 @@
   top: 1.25rem;
   width: 24px;
   height: 24px;
-  border: 1px solid #e5e5e5;
+  border: none;
   border-radius: 50%;
   transition: all 0.2s;
 }
@@ -202,7 +220,41 @@
 
 /* Ícone da seta */
 .react-datepicker__navigation-icon::before {
-  border-color: #333;
+  border-color: #ffffff;
+}
+
+.dark .react-datepicker__day {
+  color: #e5e7eb !important;
+}
+
+/* dias que já passaram */
+.dark .react-datepicker__day--disabled,
+.dark .react-datepicker__day--outside-month {
+  color: #64748b !important;
+}
+
+/* hoje */
+.dark .react-datepicker__day--today {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* hover */
+.dark .react-datepicker__day:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* dia selecionado */
+.dark .react-datepicker__day--selected {
+  background-color: #02b0f0 !important;
+  color: #ffffff !important;
+}
+
+/* intervalo selecionado (caso use range depois) */
+.dark .react-datepicker__day--in-range {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
 }
 
 ::-webkit-scrollbar { display: none; }

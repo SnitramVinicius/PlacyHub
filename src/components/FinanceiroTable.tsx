@@ -14,14 +14,15 @@ interface Transacao {
 }
 
 export default function FinanceiroTable({ transacoes }: { transacoes: Transacao[] }) {
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Confirmado":
-        return "text-green-600 font-semibold";
+        return "text-green-600 dark:text-green-400 font-semibold";
       case "Pendente":
-        return "text-yellow-600 font-semibold";
+        return "text-yellow-600 dark:text-yellow-400 font-semibold";
       case "Cancelado":
-        return "text-red-600 font-semibold";
+        return "text-red-600 dark:text-red-400 font-semibold";
       default:
         return "";
     }
@@ -29,8 +30,11 @@ export default function FinanceiroTable({ transacoes }: { transacoes: Transacao[
 
   return (
     <div className="overflow-x-auto mt-4">
-      <table className="min-w-full bg-white border border-gray-200 rounded-xl shadow">
-        <thead className="bg-gray-100 text-gray-700">
+
+      <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow">
+
+        {/* HEADER */}
+        <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
           <tr>
             <th className="py-2 px-3 text-left">Data</th>
             <th className="py-2 px-3 text-left">Espaço</th>
@@ -44,21 +48,50 @@ export default function FinanceiroTable({ transacoes }: { transacoes: Transacao[
             <th className="py-2 px-3 text-center">Comprovante</th>
           </tr>
         </thead>
-        <tbody>
+
+        {/* BODY */}
+        <tbody className="text-gray-700 dark:text-gray-200">
+
           {transacoes.map((t, i) => (
-            <tr key={i} className="border-t hover:bg-gray-50">
+            <tr
+              key={i}
+              className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            >
               <td className="py-2 px-3">{t.data}</td>
+
               <td className="py-2 px-3">{t.espaco}</td>
+
               <td className="py-2 px-3">{t.tipo}</td>
+
               <td className="py-2 px-3">{t.metodo}</td>
-              <td className="py-2 px-3 text-right">{t.valorBruto.toFixed(2)}</td>
-              <td className="py-2 px-3 text-right">{t.taxa.toFixed(2)}</td>
-              <td className="py-2 px-3 text-right">{t.valorLiquido.toFixed(2)}</td>
-              <td className={`py-2 px-3 text-center ${getStatusColor(t.status)}`}>{t.status}</td>
-              <td className="py-2 px-3 text-center">{t.dataLiberacao}</td>
+
+              <td className="py-2 px-3 text-right">
+                {t.valorBruto.toFixed(2)}
+              </td>
+
+              <td className="py-2 px-3 text-right">
+                {t.taxa.toFixed(2)}
+              </td>
+
+              <td className="py-2 px-3 text-right font-medium">
+                {t.valorLiquido.toFixed(2)}
+              </td>
+
+              <td className={`py-2 px-3 text-center ${getStatusColor(t.status)}`}>
+                {t.status}
+              </td>
+
+              <td className="py-2 px-3 text-center">
+                {t.dataLiberacao}
+              </td>
+
               <td className="py-2 px-3 text-center">
                 {t.comprovante !== "-" ? (
-                  <a href={t.comprovante} target="_blank" className="text-sky-600 underline">
+                  <a
+                    href={t.comprovante}
+                    target="_blank"
+                    className="text-sky-600 dark:text-sky-400 hover:underline"
+                  >
                     Ver
                   </a>
                 ) : (
@@ -67,8 +100,10 @@ export default function FinanceiroTable({ transacoes }: { transacoes: Transacao[
               </td>
             </tr>
           ))}
+
         </tbody>
       </table>
+
     </div>
   );
 }

@@ -223,18 +223,18 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-8">
+    <div className="min-h-screen bg-zinc-50 dark:bg-gray-900 p-8 transition-colors">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* HEADER */}
         <header className="flex items-center justify-between">
-          <h2 className="text-2xl font-medium tracking-tight">
+         <h2 className="text-2xl font-medium tracking-tight text-gray-900 dark:text-gray-100">
             Calendário de Reservas
           </h2>
 
           <button
             onClick={simularReservas}
-            className="text-sm px-4 py-2 rounded-md border bg-white hover:bg-zinc-100 transition"
+            className="text-sm px-4 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-zinc-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition"
           >
             Simular reservas
           </button>
@@ -278,22 +278,22 @@ useEffect(() => {
             return (
               <div key={dataStr} className="grid grid-cols-[64px_1fr] gap-4">
                 {/* DATA */}
-                <div className="flex flex-col items-center justify-center rounded-lg bg-white border shadow-sm py-2">
+                <div className="flex flex-col items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm py-2">
                   <span className="text-lg font-semibold">{dia.getDate()}</span>
-                  <span className="text-xs uppercase text-zinc-500">
+                  <span className="text-xs uppercase text-zinc-500 dark:text-gray-400">
                     {dia.toLocaleDateString("pt-BR", { weekday: "short" })}
                   </span>
                 </div>
 
                 {/* CARD */}
                 <div
-                  className={`bg-white border rounded-lg px-5 py-4 flex justify-between items-center shadow-sm
+                  className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4 flex justify-between items-center shadow-sm
                     ${isPassado ? "opacity-60 cursor-not-allowed" : ""}
                   `}
                 >
-                  <div className="text-sm text-zinc-700">
+                  <div className="text-sm text-zinc-400">
                     {isPassado && (
-                      <span className="text-zinc-400 text-sm">
+                      <span className="text-zinc-400 dark:text-gray-500 text-sm">
                         Data encerrada
                       </span>
                     )}
@@ -327,7 +327,7 @@ useEffect(() => {
                             fim: dataStr,
                           });
                         }}
-                        className="text-xs px-3 py-1 rounded border hover:bg-zinc-100"
+                        className="text-xs px-3 py-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-zinc-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
                       >
                         <Lock size={14} className="inline mr-1" />
                         Bloquear
@@ -337,7 +337,7 @@ useEffect(() => {
                     {!isPassado && bloqueado && (
                       <button
                         onClick={() => setReservaParaDesbloquear(bloqueado)}
-                        className="text-xs px-3 py-1 rounded border hover:bg-zinc-100"
+                        className="text-xs px-3 py-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-zinc-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
                       >
                         <Unlock size={14} className="inline mr-1" />
                         Desbloquear
@@ -369,8 +369,8 @@ useEffect(() => {
       {/* MODAL DE BLOQUEIO */}
       {diaBloqueio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-base font-semibold">Bloquear período</h3>
               <button onClick={() => setDiaBloqueio(null)}>
                 <X />
@@ -389,7 +389,7 @@ useEffect(() => {
                       inicio: e.target.value,
                     }))
                   }
-                  className="rounded-lg border px-3 py-2 text-sm"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
 
                 <input
@@ -402,13 +402,13 @@ useEffect(() => {
                       fim: e.target.value,
                     }))
                   }
-                  className="rounded-lg border px-3 py-2 text-sm"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
               <button
                 onClick={() => confirmarBloqueio("ALL")}
-                className="w-full rounded-xl border py-3 flex items-center justify-center gap-2"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 py-3 flex items-center justify-center gap-2 hover:bg-zinc-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
               >
                 <LockKeyhole size={16} />
                 Bloquear todos os espaços
@@ -418,7 +418,7 @@ useEffect(() => {
                 <button
                   key={e.id}
                   onClick={() => confirmarBloqueio(e.id)}
-                  className="w-full rounded-xl border py-3 flex items-center justify-center gap-2"
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 py-3 flex items-center justify-center gap-2 hover:bg-zinc-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
                 >
                   <Lock size={16} />
                   {e.nome}
@@ -429,17 +429,19 @@ useEffect(() => {
         </div>
       )}
 
- {/* MODAL LISTA DO DIA */}
+{/* MODAL LISTA DO DIA */}
 {reservasDia && (
   <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-zinc-50 rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+    
+    <div className="bg-zinc-50 dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
       
       {/* Header */}
-      <div className="px-6 py-4 border-b bg-white">
-        <h3 className="text-base font-semibold tracking-tight">
+      <div className="px-6 py-4 border-b bg-white dark:bg-gray-800 border-zinc-200 dark:border-gray-700">
+        <h3 className="text-base font-semibold tracking-tight text-zinc-800 dark:text-gray-100">
           Reservas do dia
         </h3>
-        <p className="text-xs text-zinc-500">
+
+        <p className="text-xs text-zinc-500 dark:text-gray-400">
           {reservasDia.length} reservas encontradas
         </p>
       </div>
@@ -449,13 +451,14 @@ useEffect(() => {
         {reservasDia.map((reserva) => (
           <div
             key={reserva.id}
-            className="flex items-center justify-between rounded-xl bg-white px-4 py-3 hover:shadow-sm transition"
+            className="flex items-center justify-between rounded-xl bg-white dark:bg-gray-800 px-4 py-3 hover:shadow-sm transition"
           >
             <div>
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium text-zinc-800 dark:text-gray-100">
                 {reserva.espacoNome}
               </p>
-              <p className="text-xs text-zinc-500">
+
+              <p className="text-xs text-zinc-500 dark:text-gray-400">
                 {reserva.nomeCliente}
               </p>
             </div>
@@ -465,7 +468,7 @@ useEffect(() => {
                 setReservasDia(null);
                 setReservaDetalhe(reserva);
               }}
-              className="text-xs font-medium text-zinc-600 hover:text-black transition"
+              className="text-xs font-medium text-zinc-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition"
             >
               Ver
             </button>
@@ -474,14 +477,15 @@ useEffect(() => {
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-3 border-t bg-white">
+      <div className="px-6 py-3 border-t bg-white dark:bg-gray-800 border-zinc-200 dark:border-gray-700">
         <button
           onClick={() => setReservasDia(null)}
-          className="w-full text-sm text-zinc-500 hover:text-black transition"
+          className="w-full text-sm text-zinc-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition"
         >
           Fechar
         </button>
       </div>
+
     </div>
   </div>
 )}
@@ -490,10 +494,10 @@ useEffect(() => {
       {/* MODAL DETALHES */}
 {reservaDetalhe && (
   <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div className="bg-zinc-50 rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+    <div className="bg-zinc-50 dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
 
       {/* Header */}
-      <div className="px-6 py-4 border-b bg-white space-y-1">
+      <div className="px-6 py-4 border-b bg-white dark:bg-gray-800 space-y-1">
         <h3 className="text-lg font-semibold tracking-tight">
           {reservaDetalhe.espacoNome}
         </h3>
@@ -503,44 +507,44 @@ useEffect(() => {
       </div>
 
       {/* Conteúdo */}
-      <div className="p-6 space-y-4 text-sm text-zinc-700">
+      <div className="p-6 space-y-4 text-sm text-zinc-700 dark:text-gray-300">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-zinc-400">Cliente</p>
+            <p className="text-xs text-zinc-400 dark:text-gray-500">Cliente</p>
             <p className="font-medium">{reservaDetalhe.nomeCliente}</p>
           </div>
 
           <div>
-            <p className="text-xs text-zinc-400">Telefone</p>
+            <p className="text-xs text-zinc-400 dark:text-gray-500">Telefone</p>
             <p>{reservaDetalhe.telefone}</p>
           </div>
 
           <div>
-            <p className="text-xs text-zinc-400">Convidados</p>
+            <p className="text-xs text-zinc-400 dark:text-gray-500">Convidados</p>
             <p>{reservaDetalhe.convidados}</p>
           </div>
 
 <div>
-  <p className="text-xs text-zinc-400">Data do evento</p>
+  <p className="text-xs text-zinc-400 dark:text-gray-500">Data do evento</p>
   <p className="font-medium">
     {formatarData(reservaDetalhe.dataInicio)}
   </p>
 </div>
 
           <div>
-            <p className="text-xs text-zinc-400">Horário</p>
+            <p className="text-xs text-zinc-400 dark:text-gray-500">Horário</p>
             <p>{reservaDetalhe.horario}</p>
           </div>
 
           <div>
-            <p className="text-xs text-zinc-400">Valor</p>
+            <p className="text-xs text-zinc-400 dark:text-gray-500">Valor</p>
             <p className="font-medium">
               R$ {reservaDetalhe.valor}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-zinc-400">Pagamento</p>
+            <p className="text-xs text-zinc-400 dark:text-gray-500">Pagamento</p>
             <span
               className={`inline-block text-xs px-2 py-1 rounded-full ${
                 reservaDetalhe.pagamentoStatus === "pago"
@@ -557,12 +561,16 @@ useEffect(() => {
       {/* Ações */}
       <div className="px-6 pb-6 space-y-2">
         <a
-          href={`https://wa.me/55${reservaDetalhe.telefone?.replace(/\D/g, "")}`}
-          target="_blank"
-          className="block w-full text-center rounded-xl border py-2 text-sm hover:bg-zinc-100 transition"
-        >
-          💬 Chamar no WhatsApp
-        </a>
+  href={`https://wa.me/55${reservaDetalhe.telefone?.replace(/\D/g, "")}`}
+  target="_blank"
+  className="block w-full text-center rounded-xl border py-2 text-sm 
+  text-zinc-700 dark:text-gray-200
+  hover:bg-zinc-100 dark:hover:bg-gray-700
+  hover:text-black dark:hover:text-white
+  transition"
+>
+  💬 Chamar no WhatsApp
+</a>
 
 {reservaDetalhe.status === "confirmada" && (
 <button
@@ -650,10 +658,10 @@ onClick={() => {
       {/* MODAL SOLICITAÇÃO DE CANCELAMENTO */}
 {cancelamentoAberto && reservaParaCancelar && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+    <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between px-6 py-4 border-b">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-base font-semibold">
           Solicitar cancelamento
         </h3>
@@ -662,17 +670,17 @@ onClick={() => {
             setCancelamentoAberto(false);
             setMotivoCancelamento("");
           }}
-          className="text-zinc-400 hover:text-zinc-600"
+          className="text-zinc-400 dark:text-gray-500 hover:text-zinc-600"
         >
           <X />
         </button>
       </div>
 
       {/* BODY */}
-      <div className="px-6 py-5 space-y-4 text-sm text-zinc-700">
+      <div className="px-6 py-5 space-y-4 text-sm text-zinc-700 dark:text-gray-300">
 
-        <div className="rounded-lg bg-zinc-50 px-4 py-3">
-          <p className="text-xs text-zinc-400">Reserva</p>
+        <div className="rounded-lg bg-zinc-50 dark:bg-gray-700 px-4 py-3">
+          <p className="text-xs text-zinc-400 dark:text-gray-500">Reserva</p>
          <p className="font-medium">{reservaParaCancelar.espacoNome}</p>
 <p className="text-xs text-zinc-500">
   {reservaParaCancelar.nomeCliente}
@@ -688,9 +696,9 @@ onClick={() => {
             onChange={(e) => setMotivoCancelamento(e.target.value)}
             rows={4}
             placeholder="Descreva o motivo do cancelamento"
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm resize-none"
+            className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
           />
-          <p className="text-[11px] text-zinc-400 mt-1">
+          <p className="text-[11px] text-zinc-400 dark:text-gray-500 mt-1">
             Mínimo de 10 caracteres úteis
           </p>
         </div>
@@ -712,7 +720,7 @@ onClick={() => {
           className={`w-full rounded-xl py-3 font-semibold transition
             ${
               motivoCancelamento.trim().length < 10
-                ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                ? "bg-zinc-200 text-zinc-400 dark:text-gray-500 cursor-not-allowed"
                 : "bg-sky-500 text-white hover:bg-sky-600"
             }`}
         >

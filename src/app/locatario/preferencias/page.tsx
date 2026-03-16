@@ -6,9 +6,11 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useTema } from "@/context/TemaContext";
 
+
+
 export default function PreferenciasGerais() {
   const { tema, setTema } = useTema(); // usar tema global
-  const [idioma, setIdioma] = useState("pt-BR");
+  const [ setIdioma] = useState("pt-BR");
   const [notificacoes, setNotificacoes] = useState([
     {
       id: 1,
@@ -33,6 +35,7 @@ export default function PreferenciasGerais() {
   const handleSalvar = () => {
     toast.success("Preferências salvas com sucesso!");
   };
+
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
@@ -75,21 +78,6 @@ export default function PreferenciasGerais() {
         </div>
       </div>
 
-      {/* Idioma */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <Globe size={20} /> Idioma
-        </h2>
-       <select
-  value={idioma}
-  onChange={(e) => setIdioma(e.target.value as "pt-BR" | "en-US" | "es-ES")}
-  className="border rounded-xl px-4 py-2 w-full max-w-sm focus:ring-2 focus:ring-sky-400 outline-none dark:bg-gray-700 dark:text-gray-100"
->
-  <option value="pt-BR">Português (Brasil)</option>
-  <option value="en-US">Inglês (EUA)</option>
-  <option value="es-ES">Espanhol</option>
-</select>
-      </div>
 
       {/* Notificações */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">

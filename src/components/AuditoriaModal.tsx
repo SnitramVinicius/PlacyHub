@@ -220,14 +220,14 @@ const placeholderObservacoes = isPre
   ======================= */
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md max-h-[90vh] rounded-2xl bg-white shadow-xl flex flex-col">
+      <div className="w-full max-w-md max-h-[90vh] rounded-2xl bg-white dark:bg-gray-800 shadow-xl flex flex-col border border-gray-200 dark:border-gray-700">
         {/* HEADER */}
-        <div className="p-6 border-b">
-          <h3 className="text-lg font-semibold">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {isPre ? "Vistoria Pré-Locação" : "Vistoria Pós-Evento"} –{" "}
             {reserva.espacoNome}
           </h3>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-zinc-500 dark:text-gray-400 mt-1">
             {isPre
               ? "Essas informações servirão como base para conferência após o evento."
               : "Confirme o estado dos itens após o evento."}
@@ -236,7 +236,7 @@ const placeholderObservacoes = isPre
 
         {somenteLeitura &&
   reserva.auditoriaPre?.status === "encaminhada_analise" && (
-    <div className="mx-6 mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+    <div className="mx-6 mt-4 rounded-lg border bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 p-3 text-sm text-amber-800">
       Esta vistoria foi encaminhada para análise. Nossa equipe está avaliando as
       evidências registradas.
     </div>
@@ -259,7 +259,7 @@ const placeholderObservacoes = isPre
                 onChange={(e) => setNovoItem(e.target.value)}
                 placeholder="Ex: Cadeiras"
                 disabled={somenteLeitura}
-                className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
 
               <input
@@ -268,7 +268,7 @@ const placeholderObservacoes = isPre
                 value={quantidadeItem}
                 onChange={(e) => setQuantidadeItem(Number(e.target.value))}
                 disabled={somenteLeitura}
-                className="w-20 border rounded-lg px-2 py-2 text-sm"
+                className="w-20 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
 
               <button
@@ -292,7 +292,7 @@ const placeholderObservacoes = isPre
                   setQuantidadeItem(1);
                   setAuditoriaAlterada(true);
                 }}
-                className="px-3 rounded-lg bg-zinc-100"
+                className="px-3 rounded-lg bg-zinc-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100"
               >
                 +
               </button>
@@ -303,9 +303,9 @@ const placeholderObservacoes = isPre
           {itensChecklist.map((item) => (
             <div
               key={item.id}
-              className="border rounded-xl p-3 bg-zinc-50 space-y-3"
+              className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-zinc-50 dark:bg-gray-700/40 space-y-3"
             >
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {item.quantidade} {item.nome}
               </p>
 
@@ -333,7 +333,7 @@ const placeholderObservacoes = isPre
   setAuditoriaAlterada(true);
 }}
 
-                    className="border rounded-lg px-2 py-1 text-sm"
+                    className="border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="ok">Sem avarias</option>
                     <option value="avaria">Com avaria</option>
@@ -355,7 +355,7 @@ const placeholderObservacoes = isPre
         );
         setAuditoriaAlterada(true);
       }}
-      className="w-full border rounded-lg p-2 text-sm"
+     className="w-full border border-gray-200 dark:border-gray-600 rounded-lg p-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
     />
 
     {/* UPLOAD DE FOTOS DA AVARIA */}
@@ -394,7 +394,7 @@ const placeholderObservacoes = isPre
     <img
       key={`saved-${idx}`}
       src={foto}
-      className="w-16 h-16 object-cover rounded-lg border"
+      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
     />
   ))}
 
@@ -403,7 +403,7 @@ const placeholderObservacoes = isPre
     <img
       key={`temp-${idx}`}
       src={URL.createObjectURL(file)}
-      className="w-16 h-16 object-cover rounded-lg border"
+      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
     />
   ))}
 </div>
@@ -441,7 +441,7 @@ const placeholderObservacoes = isPre
     <img
       key={`saved-${idx}`}
       src={foto}
-      className="w-16 h-16 object-cover rounded-lg border"
+      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
     />
   ))}
 
@@ -450,7 +450,7 @@ const placeholderObservacoes = isPre
     <img
       key={`temp-${idx}`}
       src={URL.createObjectURL(file)}
-      className="w-16 h-16 object-cover rounded-lg border"
+      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
     />
   ))}
 </div>
@@ -483,12 +483,12 @@ const placeholderObservacoes = isPre
               setObsAuditoria(e.target.value);
               setAuditoriaAlterada(true);
             }}
-            className="w-full border rounded-lg p-3 text-sm"
+            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg p-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </div>
 
         {/* FOOTER */}
-        <div className="p-4 border-t space-y-2">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
         {!somenteLeitura && (
   <button
     onClick={registrarAuditoria}
@@ -503,7 +503,7 @@ const placeholderObservacoes = isPre
 )}
           <button
             onClick={onClose}
-            className="w-full text-sm text-zinc-500"
+            className="w-full text-sm text-zinc-500 dark:text-gray-400"
           >
             Fechar
           </button>

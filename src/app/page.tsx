@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import { useRef } from "react";
 import Link from "next/link";
@@ -15,27 +15,25 @@ import { ESPACOS, Espaco } from "@/data/espacos";
 // Visitante — Indicados (melhores avaliações)
 const espacosVisitante_Indicados: Espaco[] = [...ESPACOS]
   .sort((a, b) => b.avaliacao - a.avaliacao)
-  .slice(0, 6);
+
 
 // Visitante — Destaque (maior popularidade)
 const espacosVisitante_Destaque: Espaco[] = [...ESPACOS]
   .sort((a, b) => b.popularidade - a.popularidade)
-  .slice(0, 6);
 
 // Visitante — Fim de semana até R$600
 const espacosVisitante_FimDeSemana: Espaco[] = ESPACOS
   .filter((e) => e.preco <= 600)
-  .slice(0, 6);
+
 
 // Logado — Próximos (cidade Campo Grande)
 const espacosLogado_Proximos: Espaco[] = ESPACOS
   .filter((e) => e.cidade.includes("Campo Grande"))
-  .slice(0, 6);
 
 // Logado — Recomendados (avaliação + popularidade)
 const espacosLogado_Recomendados: Espaco[] = [...ESPACOS]
   .sort((a, b) => (b.avaliacao + b.popularidade) - (a.avaliacao + a.popularidade))
-  .slice(0, 6);
+ 
 
 // =========================
 // COMPONENTE PRINCIPAL
@@ -78,11 +76,29 @@ export default function Home() {
   // =========================
   // SEÇÃO
   // =========================
+const getBuffetPrecoMinimo = (espaco: Espaco) => {
+  if (!espaco.buffet) return null;
+
+  let menorPreco = Infinity;
+
+  espaco.buffet.tiposFesta.forEach((tipo) => {
+    tipo.pacotes.forEach((pacote) => {
+      pacote.valores.forEach((valor) => {
+        if (valor.preco < menorPreco) {
+          menorPreco = valor.preco;
+        }
+      });
+    });
+  });
+
+  return menorPreco === Infinity ? null : menorPreco;
+};
+
   const renderSection = (titulo: string, lista: Espaco[], key: string, subtitulo?: string) => (
     <>
       <div className="flex flex-col px-6 md:px-10 mt-10">
-        <h1 className="font-bold text-2xl">{titulo}</h1>
-        {subtitulo && <p className="text-gray-500 -mt-1 mb-3">{subtitulo}</p>}
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-gray-100">{titulo}</h1>
+        {subtitulo && <p className="text-gray-500 dark:text-gray-400 -mt-1 mb-3">{subtitulo}</p>}
       </div>
 
       <div className="flex justify-between items-center px-6 md:px-10 mb-3">
@@ -90,13 +106,13 @@ export default function Home() {
         <div className="flex gap-3">
           <button
             onClick={() => scrollLeft(key)}
-            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition shadow-md"
+            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={() => scrollRight(key)}
-            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition shadow-md"
+            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
           >
             <ChevronRight size={20} />
           </button>
@@ -109,8 +125,13 @@ export default function Home() {
       >
         {lista.map((espaco) => (
           <Link key={espaco.id} href={`/espaco/${espaco.id}`} className="shrink-0 w-[240px]">
-            <div className="bg-white w-full rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition">
+           <div className="bg-white dark:bg-gray-800 w-full rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition">
               <div className="relative">
+                {espaco.buffet && (
+  <span className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+    Buffet
+  </span>
+)}
                 <img src={espaco.imagem} alt={espaco.nome} className="w-[240px] h-[160px] object-cover" />
 
                 {/* Botão de Favorito */}
@@ -124,7 +145,9 @@ export default function Home() {
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition
-                      ${favoritos.includes(espaco.id) ? "bg-red-600" : "bg-white/80"}`}
+                     ${favoritos.includes(espaco.id) 
+  ? "bg-red-600" 
+  : "bg-white/80 dark:bg-gray-600"}`}
                   >
                     <Heart
                       size={18}
@@ -138,7 +161,7 @@ export default function Home() {
               <div className="p-3">
                 <div className="flex justify-between items-start">
                   <div className="w-[70%]">
-                    <p className="font-semibold text-[14px] leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                    <p className="font-semibold text-[14px] text-gray-900 dark:text-gray-100 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                       {espaco.nome}
                     </p>
                   </div>
@@ -147,9 +170,19 @@ export default function Home() {
                     <span className="text-yellow-500 text-sm font-medium">{espaco.avaliacao.toFixed(1)}</span>
                   </div>
                 </div>
-                <p className="text-gray-500 text-sm mt-1">
-                  R$ {espaco.preco} • {espaco.duracao} horas
-                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+  {espaco.buffet ? (
+    <>
+      A partir de <span className="font-semibold text-gray-900 dark:text-gray-100">
+        R$ {getBuffetPrecoMinimo(espaco)}
+      </span>
+    </>
+  ) : (
+    <>
+      R$ {espaco.preco} • {espaco.duracao} horas
+    </>
+  )}
+</p>
               </div>
             </div>
           </Link>
@@ -208,35 +241,34 @@ export default function Home() {
         </>
       )}
       {/* FOOTER */}
-      <section className="bg-[#e5e5e5] w-full py-16 mt-12">
+      <section className="bg-[#e5e5e5] dark:bg-gray-900 w-full py-16 mt-12">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 px-10 md:px-20">
           <div>
-            <h1 className="font-bold mb-3">Anunciantes</h1>
-            <Link href="/footer/cadastre-seu-espaco"><p className="hover:text-gray-600 cursor-pointer">Cadastre seu espaço</p></Link>
-            <Link href="/footer/como-funciona"><p className="hover:text-gray-600 cursor-pointer">Como funciona</p></Link>
-            <Link href="/footer/planos-e-comissoes"><p className="hover:text-gray-600 cursor-pointer">Planos e comissões</p></Link>
-            <Link href="/footer/suporte-locador"><p className="hover:text-gray-600 cursor-pointer">Suporte para locador</p></Link>
+            <h1 className="font-bold mb-3 text-gray-900">Anunciantes</h1>
+            <Link href="/footer/cadastre-seu-espaco"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Cadastre seu espaço</p></Link>
+            <Link href="/footer/como-funciona"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Como funciona</p></Link>
+            <Link href="/footer/planos-e-comissoes"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Planos e comissões</p></Link>
+            <Link href="/footer/suporte-locador"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Suporte para locador</p></Link>
           </div>
 
           <div>
-            <h1 className="font-bold mb-3">Sobre o PlacyHub</h1>
-            <Link href="/footer/sobre"><p className="hover:text-gray-600 cursor-pointer">Quem somos</p></Link>
-            <Link href="/footer/termos"><p className="hover:text-gray-600 cursor-pointer">Termos de uso</p></Link>
-            <Link href="/footer/privacidade"><p className="hover:text-gray-600 cursor-pointer">Política de privacidade</p></Link>
+            <h1 className="font-bold mb-3 text-gray-900">Sobre o PlacyHub</h1>
+            <Link href="/footer/sobre"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Quem somos</p></Link>
+            <Link href="/footer/termos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Termos de uso</p></Link>
+            <Link href="/footer/privacidade"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Política de privacidade</p></Link>
           </div>
 
           <div>
-            <h1 className="font-bold mb-3">Extras</h1>
-            <Link href="/footer/redes-sociais"><p className="hover:text-gray-600 cursor-pointer">Redes sociais</p></Link>
-            <Link href="/footer/pagamentos"><p className="hover:text-gray-600 cursor-pointer">Formas de pagamento</p></Link>
-            <Link href="/footer/faq"><p className="hover:text-gray-600 cursor-pointer">FAQ</p></Link>
+            <h1 className="font-bold mb-3 text-gray-900">Extras</h1>
+            <Link href="/footer/redes-sociais"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Redes sociais</p></Link>
+            <Link href="/footer/faq"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">FAQ</p></Link>
           </div>
 
           <div>
-            <h1 className="font-bold mb-3">Atendimento</h1>
-            <Link href="/footer/contato"><p className="hover:text-gray-600 cursor-pointer">Fale conosco</p></Link>
-            <Link href="/footer/cancelamentos"><p className="hover:text-gray-600 cursor-pointer">Políticas de cancelamento</p></Link>
-            <Link href="/footer/central-ajuda"><p className="hover:text-gray-600 cursor-pointer">Central de ajuda</p></Link>
+            <h1 className="font-bold mb-3 text-gray-900">Atendimento</h1>
+            <Link href="/footer/contato"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Fale conosco</p></Link>
+            <Link href="/footer/cancelamentos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Políticas de cancelamento</p></Link>
+            {/* <Link href="/footer/central-ajuda"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Central de ajuda</p></Link> */}
           </div>
         </div>
       </section>

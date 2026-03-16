@@ -12,19 +12,33 @@ interface TemaContextType {
 const TemaContext = createContext<TemaContextType | undefined>(undefined);
 
 export function TemaProvider({ children }: { children: ReactNode }) {
-  const [tema, setTema] = useState<Tema>("claro");
+  const [tema, setTemaState] = useState<Tema>("claro");
 
-  // Aplica a classe no body
+  // carregar tema salvo quando o site abrir
+  useEffect(() => {
+    const temaSalvo = localStorage.getItem("tema") as Tema | null;
+
+    if (temaSalvo) {
+      setTemaState(temaSalvo);
+    }
+  }, []);
+
+  // aplicar tema no html e salvar
   useEffect(() => {
     const root = document.documentElement;
-    if (tema === "claro") {
-      root.classList.add("light");
-      root.classList.remove("dark");
-    } else {
+
+    root.classList.remove("dark");
+
+    if (tema === "escuro") {
       root.classList.add("dark");
-      root.classList.remove("light");
     }
+
+    localStorage.setItem("tema", tema);
   }, [tema]);
+
+  const setTema = (novoTema: Tema) => {
+    setTemaState(novoTema);
+  };
 
   return (
     <TemaContext.Provider value={{ tema, setTema }}>

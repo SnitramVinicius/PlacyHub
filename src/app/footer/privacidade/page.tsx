@@ -6,20 +6,20 @@ export default function PoliticaPrivacidade() {
   return (
     <>
       {/* HERO */}
-      <section className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center px-6 py-20">
-        <h1 className="text-4xl font-bold mb-4">Política de Privacidade</h1>
-        <p className="text-lg max-w-3xl text-gray-700">
+      <section className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center px-6 py-20 bg-white dark:bg-slate-900">
+        <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">Política de Privacidade</h1>
+        <p className="text-lg max-w-3xl text-gray-700 dark:text-gray-300">
           A sua privacidade é importante para nós. Esta Política descreve como coletamos,
           usamos e protegemos suas informações dentro da plataforma PlacyHub.
         </p>
       </section>
 
       {/* CONTEÚDO */}
-      <section className="px-6 md:px-20 py-16 max-w-4xl mx-auto space-y-10 text-gray-800 leading-relaxed">
+      <section className="px-6 md:px-20 py-16 max-w-4xl mx-auto space-y-10 text-gray-800 dark:text-gray-300 leading-relaxed bg-white dark:bg-slate-900">
 
         {/* 1 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">1. Informações que Coletamos</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">1. Informações que Coletamos</h2>
           <p>Podemos coletar os seguintes tipos de informações:</p>
 
           <ul className="list-disc ml-6 mt-2 space-y-2">
@@ -33,7 +33,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 2 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">2. Como Utilizamos suas Informações</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">2. Como Utilizamos suas Informações</h2>
           <p>Usamos seus dados para:</p>
 
           <ul className="list-disc ml-6 mt-2 space-y-2">
@@ -48,7 +48,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 3 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">3. Compartilhamento de Informações</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">3. Compartilhamento de Informações</h2>
           <p>
             O PlacyHub não vende ou compartilha suas informações pessoais com terceiros 
             exceto nas seguintes situações:
@@ -63,7 +63,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 4 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">4. Cookies e Tecnologias de Rastreamento</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">4. Cookies e Tecnologias de Rastreamento</h2>
           <p>
             Utilizamos cookies para melhorar sua experiência, lembrar suas preferências,
             entender o uso do site e oferecer conteúdo personalizado. Você pode desativar
@@ -73,7 +73,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 5 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">5. Proteção e Segurança dos Dados</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">5. Proteção e Segurança dos Dados</h2>
           <p>
             Aplicamos medidas rigorosas de segurança digital, incluindo criptografia,
             firewalls e monitoramento constante para proteger seus dados contra acesso não autorizado.
@@ -82,7 +82,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 6 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">6. Retenção de Dados</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">6. Retenção de Dados</h2>
           <p>
             Manteremos seus dados enquanto sua conta estiver ativa ou enquanto for
             necessário para cumprir obrigações legais, prevenir fraudes ou resolver disputas.
@@ -91,7 +91,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 7 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">7. Direitos do Usuário</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">7. Direitos do Usuário</h2>
           <p>Você pode, a qualquer momento:</p>
 
           <ul className="list-disc ml-6 mt-2 space-y-2">
@@ -105,7 +105,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 8 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">8. Alterações nesta Política</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">8. Alterações nesta Política</h2>
           <p>
             O PlacyHub pode atualizar esta Política de Privacidade periodicamente.
             Quando isso ocorrer, informaremos na plataforma e a data da última
@@ -115,7 +115,7 @@ export default function PoliticaPrivacidade() {
 
         {/* 9 */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">9. Contato</h2>
+         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">9. Contato</h2>
           <p>
             Se você tiver dúvidas sobre o tratamento de seus dados, entre em contato:
           </p>
@@ -124,10 +124,10 @@ export default function PoliticaPrivacidade() {
       </section>
 
       {/* CTA FINAL */}
-      <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-gray-100 text-black">
-        <h2 className="text-2xl font-bold mb-4">Ficou com alguma dúvida?</h2>
+      <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-gray-100">
+       <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Ficou com alguma dúvida?</h2>
         <a href="/suporte-locador">
-          <button className="t-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-gray-900 transition">
+          <button className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition">
             Acessar Suporte
           </button>
         </a>

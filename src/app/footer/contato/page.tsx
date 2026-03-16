@@ -1,9 +1,9 @@
 export default function FaleConosco() {
   return (
-    <section className="w-full bg-white py-16 px-6 md:px-12">
+    <section className="w-full bg-white dark:bg-slate-900 py-16 px-6 md:px-12">
       <div className="max-w-5xl mx-auto text-center">
-        <h2 className="text-4xl font-bold mb-4">Fale Conosco</h2>
-        <p className="text-gray-600 mb-12">
+        <h2 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">Fale Conosco</h2>
+       <p className="text-gray-600 dark:text-gray-300 mb-12">
           Precisa de ajuda? Entre em contato com nosso time.
         </p>
 
@@ -11,9 +11,9 @@ export default function FaleConosco() {
         <div className="grid md:grid-cols-2 gap-8">
           
           {/* WhatsApp */}
-          <div className="p-6 rounded-2xl shadow-md border hover:shadow-lg transition">
+          <div className="p-6 rounded-2xl shadow-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-lg transition">
             <h3 className="text-xl font-semibold mb-2">WhatsApp</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Converse com a gente pelo WhatsApp.
             </p>
             <a
@@ -26,9 +26,9 @@ export default function FaleConosco() {
           </div>
 
           {/* Email */}
-          <div className="p-6 rounded-2xl shadow-md border hover:shadow-lg transition">
+          <div className="p-6 rounded-2xl shadow-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-lg transition">
             <h3 className="text-xl font-semibold mb-2">E-mail</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Prefere enviar um e-mail? Responderemos o mais rápido possível.
             </p>
             <a

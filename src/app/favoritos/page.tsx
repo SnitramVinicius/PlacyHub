@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useFavoritos } from "@/hooks/useFavoritos";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Heart, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Espaco {
@@ -52,19 +52,35 @@ export default function FavoritosPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
-
+   {/* BOTÃO VOLTAR */}
+<div className="flex w-full mb-8">
+  <Link
+    href="/"
+    className="flex items-center gap-2 ml-auto 
+    border border-gray-300 dark:border-slate-600
+    px-4 py-2 rounded-full shadow-sm
+    bg-white dark:bg-slate-800
+    text-gray-700 dark:text-gray-200
+    font-medium
+    hover:bg-gray-100 dark:hover:bg-slate-700
+    hover:shadow-md
+    transition-all duration-200"
+  >
+    <ArrowLeft size={18} /> Voltar
+  </Link>
+</div>
       {/* ⭐ Mensagem especial se estiver logado */}
       {user && (
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-gray-700 mb-4 text-sm"
+         className="text-gray-700 dark:text-gray-300 mb-4 text-sm"
         >
           Olá <strong>{user.nome}</strong> Aqui estão seus espaços favoritos!
         </motion.p>
       )}
 
-      <h1 className="text-3xl font-bold mb-6">Meus Favoritos</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">Meus Favoritos</h1>
 
       {/* Se não tiver favoritos */}
       {!loading && lista.length === 0 && (
@@ -73,7 +89,7 @@ export default function FavoritosPage() {
           animate={{ opacity: 1 }}
           className="text-center py-20"
         >
-          <p className="text-gray-500 text-lg">Você ainda não favoritou nenhum espaço</p>
+          <p className="text-gray-500 dark:text-gray-400 text-lg">Você ainda não favoritou nenhum espaço</p>
           <Link
             href="/"
             className="mt-4 inline-block bg-[#02aeee] text-white px-6 py-3 rounded-lg shadow hover:bg-[#029bd5] transition"
@@ -89,7 +105,7 @@ export default function FavoritosPage() {
           <select
             value={ordenacao}
             onChange={(e) => setOrdenacao(e.target.value)}
-            className="border px-3 py-2 rounded-md text-sm"
+            className="border border-gray-300 dark:border-slate-600 px-3 py-2 rounded-md text-sm bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200"
           >
             <option value="popularidade">Mais populares</option>
             <option value="preco">Menor preço</option>
@@ -111,7 +127,7 @@ export default function FavoritosPage() {
           {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="bg-gray-200 animate-pulse rounded-lg h-[230px]"
+              className="bg-gray-200 dark:bg-slate-700 animate-pulse rounded-lg h-[230px]"
             ></div>
           ))}
         </div>
@@ -132,7 +148,7 @@ export default function FavoritosPage() {
               transition={{ delay: index * 0.05 }}
             >
               <Link href={`/espaco/${espaco.id}`} className="w-full">
-                <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition">
+                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition border border-transparent dark:border-slate-700">
                   <div className="relative">
                     <img
                       src={espaco.imagem}
@@ -145,7 +161,7 @@ export default function FavoritosPage() {
                         e.preventDefault();
                         toggleFavorito(espaco.id);
                       }}
-                      className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-2 shadow-sm transition"
+                     className="absolute top-2 right-2 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 rounded-full p-2 shadow-sm transition"
                     >
                       <Heart
                         size={20}
@@ -156,12 +172,16 @@ export default function FavoritosPage() {
                   </div>
 
                   <div className="p-3">
-                    <p className="font-semibold text-[14px] whitespace-nowrap overflow-hidden text-ellipsis">
+                    <p className="font-semibold text-[14px] whitespace-nowrap overflow-hidden text-ellipsis text-gray-900 dark:text-gray-100">
                       {espaco.nome}
                     </p>
 
+<p className="text-xs text-gray-500 dark:text-gray-400">
+  {espaco.cidade}
+</p>
+
                     <div className="flex justify-between items-center mt-1">
-                      <span className="text-gray-600 text-sm">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm">
                         R$ {espaco.preco}
                       </span>
 

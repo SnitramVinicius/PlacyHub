@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Star, X, Heart } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -11,18 +11,47 @@ import { useFavoritos } from "@/context/FavoritosContext";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
+import { useParams } from "next/navigation";
+import { obterValorParaData } from "@/utils/precificacao";
+import { calcularValorPeriodo } from "@/utils/precificacao";
 
 registerLocale("pt-BR", ptBR);
 
 const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
 // Tipagem alterada: params pode ser uma Promise
-export default function EspacoPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const espaco = ESPACOS.find((e) => e.id === id);
-  if (!espaco) return <p className="text-center mt-10">Espaço não encontrado.</p>;
+export default function EspacoPage() {
+  const params = useParams();
+  const id = params?.id as string;
 
-  // ====== PREÇOS ======
-const precoSelecionado = espaco.preco;
+  const espaco = ESPACOS.find((e) => e.id === id);
+
+  if (!espaco) {
+    return <p className="text-center mt-10">Espaço não encontrado.</p>;
+  }
+
+const isBuffet = !!espaco.buffet;
+
+
+const getMenorPrecoBuffet = (espaco: any) => {
+  let menor = Infinity;
+
+  espaco.buffet?.tiposFesta.forEach((tipo: any) => {
+    tipo.pacotes.forEach((pacote: any) => {
+      pacote.valores.forEach((v: any) => {
+        if (v.preco < menor) menor = v.preco;
+      });
+    });
+  });
+
+  return menor === Infinity ? 0 : menor;
+};
+
+const [tipoAberto, setTipoAberto] = useState<string | null>(null);
+
+const [pacoteSelecionado, setPacoteSelecionado] = useState<any>(null);
+const [valorSelecionado, setValorSelecionado] = useState<any>(null);
+
+
 
   const { user } = useAuth();
   const isLogged = !!user;
@@ -32,10 +61,24 @@ const precoSelecionado = espaco.preco;
   const [modalReservaAberto, setModalReservaAberto] = useState(false);
   const descricaoPadrao = "Descrição não cadastrada. Em breve mais detalhes deste espaço.";
 
+const [modalPrecosAberto, setModalPrecosAberto] = useState(false);
+
   const [rangeReserva, setRangeReserva] = useState<[Date | null, Date | null]>([null, null]);
   const [startReserva, endReserva] = rangeReserva;
 
-  const [eventoMultiDia, setEventoMultiDia] = useState(false);
+ const [eventoMultiDia, setEventoMultiDia] = useState(false);
+
+  const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
+
+// 🔥 PREÇO DINÂMICO BASEADO NA DATA
+const precoBaseDinamico = startReserva
+  ? obterValorParaData(startReserva, espaco)
+  : espaco.preco ?? 0;
+
+// ====== PREÇOS ======
+const precoSelecionado = isBuffet
+  ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
+  : precoBaseDinamico;
 
 const diasReserva =
   startReserva && endReserva
@@ -45,7 +88,12 @@ const diasReserva =
       )
     : 0;
 
-  const horaRef = useRef<HTMLInputElement>(null);
+
+  const totalCalculado =
+  startReserva && endReserva
+    ? calcularValorPeriodo(startReserva, endReserva, espaco)
+    : 0;
+
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const [editandoReserva, setEditandoReserva] = useState(false);
@@ -66,6 +114,15 @@ const diasReserva =
       { usuario: "Ana", nota: 3, comentario: "Bom, mas poderia melhorar.", data: "2025-12-04" },
     ]);
   }, [espaco?.id]);
+
+  // 🔒 Simulação de datas já reservadas
+useEffect(() => {
+  setDatasBloqueadas([
+    "2026-03-10",
+    "2026-03-15",
+    "2026-03-20",
+  ]);
+}, []);
 
   // Estado do calendário
   const [activeCalendar, setActiveCalendar] = useState(false);
@@ -114,33 +171,100 @@ const diasReserva =
   };
 
   // Reserva
-  const [horaReserva, setHoraReserva] = useState("");
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
 
-  const handleAbrirModalReserva = () => {
-    if (!isLogged) {
-      toast.error("Você precisa estar logado para reservar este espaço!");
-      return;
-    }
-    setModalReservaAberto(true);
-  };
-
-const handleConfirmarReserva = async () => {
-  if (!startReserva || !endReserva) {
-    toast.error("Selecione o período completo!");
+const handleAbrirModalReserva = () => {
+  // 🔐 Precisa estar logado
+  if (!isLogged) {
+    toast.error("Você precisa estar logado para reservar este espaço!");
     return;
   }
 
-  if (!horaReserva) {
-    toast.error("Escolha a hora da reserva!");
+  // 📅 Precisa selecionar data
+  if (!startReserva) {
+    toast.error("Selecione a data do evento!");
     return;
+  }
+
+  // 🥘 Se for buffet → precisa selecionar pacote
+  if (isBuffet && !valorSelecionado) {
+    toast.error("Selecione um pacote com quantidade de convidados!");
+    return;
+  }
+
+  // 🏢 Se NÃO for buffet → validar quantidade
+  if (!isBuffet) {
+    if (!qtdPessoas || qtdPessoas < 1) {
+      toast.error("Informe a quantidade de pessoas!");
+      return;
+    }
+
+    if (qtdPessoas > espaco.capacidade) {
+      toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
+      return;
+    }
+  }
+
+  // ✅ Se passou por tudo, abre o modal
+  setModalReservaAberto(true);
+};
+
+ const handleConfirmarReserva = async () => {
+  //  Validar data
+  if (!startReserva) {
+    toast.error("Selecione a data do evento!");
+    return;
+  }
+const dataFormatada = startReserva.toISOString().split("T")[0];
+
+if (datasBloqueadas.includes(dataFormatada)) {
+  toast.error("Essa data já está reservada ou bloqueada.");
+  return;
+}
+if (eventoMultiDia && startReserva && endReserva) {
+  let dataAtual = new Date(startReserva);
+
+  while (dataAtual <= endReserva) {
+    const dataString = dataAtual.toISOString().split("T")[0];
+
+    if (datasBloqueadas.includes(dataString)) {
+      toast.error("O período selecionado contém datas indisponíveis.");
+      return;
+    }
+
+    dataAtual.setDate(dataAtual.getDate() + 1);
+  }
+}
+
+
+  // 🥘 Buffet precisa de pacote
+  if (isBuffet && !valorSelecionado) {
+    toast.error("Selecione um pacote antes de continuar!");
+    return;
+  }
+
+  // 🏢 Espaço normal valida quantidade
+  if (!isBuffet) {
+    if (!qtdPessoas || qtdPessoas < 1) {
+      toast.error("Informe a quantidade de pessoas!");
+      return;
+    }
+
+    if (qtdPessoas > espaco.capacidade) {
+      toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
+      return;
+    }
   }
 
   setReservando(true);
 
   try {
-    const total = precoSelecionado * (diasReserva || 1);
+const total = isBuffet
+  ? precoSelecionado
+  : startReserva && endReserva
+    ? calcularValorPeriodo(startReserva, endReserva, espaco)
+    : 0;
 
     const response = await fetch("/api/pagamento", {
       method: "POST",
@@ -150,8 +274,7 @@ const handleConfirmarReserva = async () => {
         espacoId: espaco.id,
         nomeEspaco: espaco.nome,
         dataInicio: startReserva.toISOString(),
-        dataFim: endReserva.toISOString(),
-        hora: horaReserva,
+        dataFim: endReserva ? endReserva.toISOString() : startReserva.toISOString(),
         diasReserva,
         qtdPessoas,
       }),
@@ -185,16 +308,24 @@ const handleConfirmarReserva = async () => {
 
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
-      {/* BOTÃO VOLTAR */}
-      <div className="flex w-full mb-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2 ml-auto border border-gray-300 px-4 py-2 rounded-full shadow-sm bg-white text-gray-700 font-medium hover:bg-gray-100 hover:shadow-md hover:border-gray-400 transition-all duration-200"
-        >
-          <ArrowLeft size={18} /> Voltar
-        </Link>
-      </div>
+    <main className="max-w-6xl mx-auto px-6 py-10 text-gray-900 dark:text-gray-100">
+    {/* BOTÃO VOLTAR */}
+<div className="flex w-full mb-8">
+  <Link
+    href="/"
+    className="flex items-center gap-2 ml-auto 
+    border border-gray-300 dark:border-slate-600
+    px-4 py-2 rounded-full shadow-sm
+    bg-white dark:bg-slate-800
+    text-gray-700 dark:text-gray-200
+    font-medium
+    hover:bg-gray-100 dark:hover:bg-slate-700
+    hover:shadow-md
+    transition-all duration-200"
+  >
+    <ArrowLeft size={18} /> Voltar
+  </Link>
+</div>
 
       <h1 className="text-4xl font-bold mb-6">{espaco.nome}</h1>
 
@@ -239,7 +370,7 @@ const handleConfirmarReserva = async () => {
           onClick={() => setModalAberto(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto relative"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -249,7 +380,7 @@ const handleConfirmarReserva = async () => {
               <X size={24} />
             </button>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-              {espaco.imagens.map((foto, index) => (
+              {espaco.imagens?.map((foto, index) => (
                 <img
                   key={index}
                   src={foto}
@@ -268,23 +399,23 @@ const handleConfirmarReserva = async () => {
           onClick={() => setModalReservaAberto(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-8 relative overflow-y-auto max-h-[90vh] border border-gray-100"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full p-8 relative overflow-y-auto max-h-[90vh] border border-gray-100 dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Botão fechar */}
             <button
               onClick={() => setModalReservaAberto(false)}
-              className="absolute top-5 right-5 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition"
+              className="absolute top-5 right-5 p-2 bg-white dark:bg-slate-700 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-slate-600 transition"
             >
               <X size={24} />
             </button>
 
             {/* Título */}
-            <h2 className="text-3xl font-bold mb-6 text-gray-800">Confirmar Alteração</h2>
+            <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 dark:text-gray-100">Confirmar Alteração</h2>
 
             {/* Resumo da reserva */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-              <p className="font-semibold text-gray-700 mb-2 flex justify-between items-center">
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-700 rounded-xl border border-gray-200 dark:border-slate-600 shadow-sm">
+              <p className="font-semibold text-gray-700 dark:text-gray-200 mb-2 flex justify-between items-center">
                 Sua reserva
                 <button
                   className="text-[#02aeee] underline hover:text-[#0284c7] text-sm"
@@ -294,50 +425,84 @@ const handleConfirmarReserva = async () => {
                 </button>
               </p>
 
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 Datas: {startReserva?.toLocaleDateString()} – {endReserva?.toLocaleDateString()}
               </p>
-              <p className="text-gray-600">
-                Quantidade de pessoas: {qtdPessoas}
-              </p>
-              <p className="text-gray-600">Horário: {horaReserva}</p>
+{isBuffet ? (
+  <>
+    <p className="text-gray-600 dark:text-gray-300">
+      Tipo de festa: {tipoAberto}
+    </p>
+    <p className="text-gray-600 dark:text-gray-300">
+      Pacote: {pacoteSelecionado?.nome}
+    </p>
+    <p className="text-gray-600 dark:text-gray-300">
+      Convidados: {valorSelecionado?.convidados}
+    </p>
+    <p className="text-gray-600 dark:text-gray-300">
+      Duração: {pacoteSelecionado?.duracao}
+    </p>
+  </>
+) : (
+  <p className="text-gray-600 dark:text-gray-300">
+    Quantidade de pessoas: {qtdPessoas}
+  </p>
+)}
+
+{isBuffet && pacoteSelecionado && (
+  <div className="mt-4 border-t pt-4">
+    <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">
+      O que está incluso:
+    </p>
+
+    <div className="grid grid-cols-2 gap-2">
+      {pacoteSelecionado.itensInclusos.map((item: string, i: number) => (
+        <div
+          key={i}
+          className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-slate-700 px-3 py-2 rounded-lg"
+        >
+          ✔ {item}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
               {/* Telinha de edição */}
               {editandoReserva && (
-                <div className="mt-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="mt-4 p-4 bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
                   <div className="flex flex-col md:flex-row gap-4">
                     {/* Calendário */}
                     <div className="flex-1">
-                      <label className="block text-gray-700 font-medium mb-1">Selecione as datas</label>
-                      <DatePicker
-                        selectsRange
-                        startDate={startReserva}
-                        endDate={endReserva}
-                        onChange={(update) => {
-                          setRangeReserva(update);
-                          if (update[1]) setActiveCalendar(false);
-                        }}
-                        inline
-                        locale="pt-BR"
-                        minDate={new Date()}
-                      />
+                      <label className="block text-gray-700 dark:text-gray-200 font-medium mb-1">Selecione a data</label>
+                    <DatePicker
+  selectsRange
+  startDate={startReserva ?? undefined}
+  endDate={endReserva ?? undefined}
+  excludeDates={
+    Array.isArray(datasBloqueadas)
+      ? datasBloqueadas.map((data) => new Date(data + "T00:00:00"))
+      : []
+  }
+  onChange={(update: [Date | null, Date | null]) => {
+    setRangeReserva(update);
+
+    if (update && update[1]) {
+      setActiveCalendar(false);
+    }
+  }}
+  inline
+  locale="pt-BR"
+  minDate={new Date()}
+/>
                     </div>
 
                     {/* Hora e quantidade de pessoas */}
                     <div className="flex flex-col gap-4">
+{!isBuffet && (
+
                       <div>
-                        <label className="block text-gray-700 font-medium mb-1">Horário</label>
-                        <input
-                          ref={horaRef}
-                          type="time"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
-                          value={horaReserva}
-                          onChange={(e) => setHoraReserva(e.target.value)}
-                          onClick={(e) => e.target.showPicker?.()}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 font-medium mb-1">Quantidade de pessoas</label>
+                        <label className="block text-gray-700 dark:text-gray-200 font-medium mb-1">Quantidade de pessoas</label>
                         <input
                           type="number"
                           min={1}
@@ -349,10 +514,11 @@ const handleConfirmarReserva = async () => {
                             if (v > espaco.capacidade) v = espaco.capacidade;
                             setQtdPessoas(v);
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          className="w-full px-3 py-2 border border border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
                           placeholder={`máx. ${espaco.capacidade}`}
                         />
                       </div>
+                      )}
                     </div>
                   </div>
 
@@ -369,29 +535,60 @@ const handleConfirmarReserva = async () => {
             </div>
 
      {/* Resumo do espaço com foto */}
-<div className="border-t border-gray-200 pt-4 mb-6 flex flex-col md:flex-row gap-6 items-start">
+<div className="border-t border-gray-200 dark:border-slate-700 pt-4 mb-6 flex flex-col md:flex-row gap-6 items-start">
 
   {/* Texto */}
-  <div className="flex-1 space-y-2 text-gray-700">
-    <p className="font-semibold text-gray-800">{espaco.nome}</p>
-    <p className="text-gray-600">Espaço inteiro: apartamento</p>
+  <div className="flex-1 space-y-2 text-gray-700 dark:text-gray-200">
+   <div className="flex items-center gap-3">
+  <p className="font-semibold text-gray-800 dark:text-gray-100 text-lg">
+    {espaco.nome}
+  </p>
+</div>
+<p className="text-gray-600 dark:text-gray-300">
+  {espaco.tipo ?? "Tipo não informado"}
+</p>
 
     {/* Avaliação correta puxando do espaço */}
-    <p className="text-gray-600">
+    <p className="text-gray-600 dark:text-gray-300">
       {espaco.avaliacao.toFixed(1)} de 5 na avaliação
     </p>
 
     {/* Preços — automático baseado no período + plano */}
-    <p className="text-gray-700 font-medium">
-      {diasReserva} {diasReserva === 1 ? "noite" : "noites"} x R$ {precoSelecionado.toFixed(2)} ={" "}
-      R$ {(diasReserva * precoSelecionado).toFixed(2)}
+{isBuffet ? (
+  <>
+    <p className="text-gray-500 text-sm">
+      Valor fechado do pacote
     </p>
 
-    <p className="text-gray-800 font-bold">
-      Total (BRL): R$ {(diasReserva * precoSelecionado).toFixed(2)}
+    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+      {precoSelecionado.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      })}
     </p>
-  </div>
+  </>
+) : (
+  <>
+<p className="text-gray-700 dark:text-gray-200 font-medium">
+  Total para {diasReserva} {diasReserva === 1 ? "dia" : "dias"}
+</p>
 
+<p className="text-gray-800 dark:text-gray-100 font-bold text-xl">
+  {totalCalculado.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</p>
+<p className="text-gray-800 dark:text-gray-100 font-bold">
+  Total (BRL):{" "}
+  {totalCalculado.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</p>
+  </>
+)}
+</div>
   {/* Imagem */}
   <div className="flex-shrink-0 w-full md:w-48 h-32 md:h-36 rounded-xl overflow-hidden shadow-sm">
     <img
@@ -404,13 +601,13 @@ const handleConfirmarReserva = async () => {
 
 
             {/* Políticas e regras clean */}
-            <div className="border-t border-gray-200 pt-4 mb-6 space-y-4 text-gray-700 text-sm">
+            <div className="border-t border-gray-200 pt-4 mb-6 space-y-4 text-gray-700 dark:text-gray-200 text-sm">
               {/* Política de cancelamento */}
-              <div className="p-4 rounded-xl border border-gray-200 shadow-sm">
-                <p className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+                <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
                   Política de Cancelamento
                 </p>
-                <p className="text-gray-700">
+                <p className="text-gray-700 dark:text-gray-200">
                   Consulte as regras de cancelamento antes de concluir sua reserva.
                  <Link
     href="/footer/cancelamentos"
@@ -423,10 +620,10 @@ const handleConfirmarReserva = async () => {
 
               {/* Regras básicas */}
               <div className="p-4 rounded-xl border border-gray-200 shadow-sm">
-                <p className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
                   Regras Básicas
                 </p>
-                <ul className="list-disc ml-6 space-y-1 text-gray-700">
+                <ul className="list-disc ml-6 space-y-1 text-gray-700 dark:text-gray-200">
                   <li>Mantenha a cordialidade e o respeito com todos os envolvidos.</li>
                   <li>Siga as instruções e regras estabelecidas pelo anfitrião.</li>
                   <li>Cuide do espaço como se fosse seu.</li>
@@ -435,25 +632,25 @@ const handleConfirmarReserva = async () => {
 
               {/* Políticas gerais */}
               <div className="p-4 rounded-xl border border-gray-200 shadow-sm">
-                <p className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
                   Políticas e Termos
                 </p>
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-gray-700 dark:text-gray-200 leading-relaxed">
                   Ao confirmar a reserva, você concorda com as políticas da PlacyHub, incluindo:
                 </p>
-                <ul className="list-disc ml-6 mt-2 space-y-1 text-gray-700">
+                <ul className="list-disc ml-6 mt-2 space-y-1 text-gray-700 dark:text-gray-200">
                   <li>Regras do espaço estabelecidas pelo anfitrião.</li>
                   <li>Política de reembolso e remarcação.</li>
                   <li>Termos de serviço e termos de pagamento da PlacyHub.</li>
                 </ul>
-                <p className="text-gray-700 mt-2">
+                <p className="text-gray-700 dark:text-gray-200 mt-2">
                   Também concorda que a PlacyHub pode processar o pagamento caso haja danos ou descumprimento das regras.
                 </p>
               </div>
             </div>
             
 {/* AVISO DE VISTORIA */}
-<div className="border border-yellow-300 bg-yellow-50 rounded-xl p-4 text-sm text-yellow-900">
+<div className="border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-4 text-sm text-yellow-900 dark:text-yellow-200">
   <p className="font-semibold mb-1">
     Vistoria do espaço
   </p>
@@ -483,8 +680,8 @@ const handleConfirmarReserva = async () => {
           {/* DESCRIÇÃO */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">Descrição</h2>
-            <p className="text-gray-700 leading-relaxed">{espaco.descricao ?? descricaoPadrao}</p>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-700 dark:text-gray-200 leading-relaxed dark:text-gray-100">{espaco.descricao ?? descricaoPadrao}</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2 dark:text-gray-100">
               {espaco.cidade} — {espaco.bairro}
             </p>
 
@@ -499,32 +696,53 @@ const handleConfirmarReserva = async () => {
               ))}
             </div>
           </section>
+          
+
 
           {/* FACILIDADES + REGRAS */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div>
-              <h2 className="text-2xl font-semibold mb-3">Facilidades incluídas</h2>
-              <ul className="space-y-1 text-gray-700">
-                {(espaco.facilidades ?? []).map((item, i) => (
-                  <li key={i}>• {item}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold mb-3">Regras do local</h2>
-              <ul className="space-y-1 text-gray-700">
-                {(espaco.regras ?? []).map((item, i) => (
-                  <li key={i}>• {item}</li>
-                ))}
-              </ul>
-            </div>
-          </section>
+        {(espaco.facilidades && espaco.facilidades.length > 0) ||
+ (espaco.regras && espaco.regras.length > 0) ? (
+
+  <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+    {/* FACILIDADES */}
+    {espaco.facilidades && espaco.facilidades.length > 0 && (
+      <div>
+        <h2 className="text-2xl font-semibold mb-3">
+          Facilidades incluídas
+        </h2>
+        <ul className="space-y-1 text-gray-700 dark:text-gray-200 dark:text-gray-100">
+          {espaco.facilidades.map((item, i) => (
+            <li key={i}>• {item}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {/* REGRAS */}
+    
+    {espaco.regras && espaco.regras.length > 0 && (
+      <div>
+        <h2 className="text-2xl font-semibold mb-3">
+          Regras do local
+        </h2>
+        <ul className="space-y-1 text-gray-700 dark:text-gray-200 dark:text-gray-100">
+          {espaco.regras.map((item, i) => (
+            <li key={i}>• {item}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+  </section>
+
+) : null}
 
           {/* SERVIÇOS ADICIONAIS */}
           {espaco.servicosAdicionais && (
             <section>
               <h2 className="text-2xl font-semibold mb-3">Serviços adicionais</h2>
-              <ul className="list-disc text-gray-700 ml-6">
+              <ul className="list-disc text-gray-700 dark:text-gray-200 ml-6 dark:text-gray-100">
                 {espaco.servicosAdicionais.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
@@ -532,8 +750,146 @@ const handleConfirmarReserva = async () => {
             </section>
           )}
 
+          {isBuffet && (
+ <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 space-y-6">
+  <h2 className="text-2xl font-semibold">Buffet e Pacotes</h2>
+
+ <p className="text-gray-600 dark:text-gray-300 dark:text-gray-300">
+    {espaco.buffet?.descricao}
+  </p>
+
+  {espaco.buffet?.tiposFesta.map((tipo, i) => {
+    const aberto = tipoAberto === tipo.nome;
+
+    return (
+      <div key={i} className="border rounded-xl overflow-hidden">
+        
+        {/* HEADER CLICÁVEL */}
+        <button
+          onClick={() =>
+            setTipoAberto(aberto ? null : tipo.nome)
+          }
+          className="w-full text-left px-5 py-4 bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 transition flex justify-between items-center"
+        >
+          <span className="text-xl font-semibold text-[#02aeee]">
+            {tipo.nome}
+          </span>
+
+          <span
+            className={`transition-transform duration-300 ${
+              aberto ? "rotate-180" : ""
+            }`}
+          >
+            ▼
+          </span>
+        </button>
+
+        {/* CONTEÚDO (só aparece se estiver aberto) */}
+        {aberto && (
+          <div className="p-5 space-y-4">
+            {tipo.pacotes.map((pacote, j) => (
+              <div
+                key={j}
+                className="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 space-y-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-semibold text-lg">
+                      {pacote.nome}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">
+                      {pacote.descricao}
+                    </p>
+                  </div>
+
+                  <span className="text-sm bg-[#02aeee] text-white px-3 py-1 rounded-full">
+                    {pacote.duracao}
+                  </span>
+                </div>
+
+                {/* Itens inclusos */}
+                <div>
+                  <p className="font-medium text-sm mb-1 text-gray-800 dark:text-gray-100 dark:text-gray-200">Inclui:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pacote.itensInclusos.map((item, k) => (
+                      <span
+                        key={k}
+                        className="text-xs bg-white dark:bg-slate-800 border dark:border-slate-600 px-2 py-1 rounded-full"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Valores */}
+                <div className="border-t pt-3">
+                  <p className="font-medium text-sm mb-2">
+                    Valores:
+                  </p>
+
+                  <div className="space-y-2">
+                    {pacote.valores
+                      .sort(
+                        (a, b) =>
+                          a.convidados - b.convidados
+                      )
+                      .map((valor, x) => {
+                        const selecionado =
+                          pacoteSelecionado?.nome ===
+                            pacote.nome &&
+                          valorSelecionado?.convidados ===
+                            valor.convidados;
+
+                        return (
+                          <div
+                            key={x}
+                            onClick={() => {
+                              setPacoteSelecionado(
+                                pacote
+                              );
+                              setValorSelecionado(valor);
+                              setQtdPessoas(
+                                valor.convidados
+                              );
+                            }}
+                            className={`flex justify-between items-center border border-gray-200 dark:border-slate-600 rounded-lg px-4 py-2 cursor-pointer transition
+                            ${
+                              selecionado
+                                ? "bg-[#02aeee] text-white border-[#02aeee]"
+                                : "hover:shadow-sm"
+                            }`}
+                          >
+                            <span>
+                              {valor.convidados} convidados
+                            </span>
+
+                            <span className="font-bold">
+                              {valor.preco.toLocaleString(
+                                "pt-BR",
+                                {
+                                  style: "currency",
+                                  currency: "BRL",
+                                }
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  })}
+</section>
+)}
+
           {/* AVALIAÇÕES */}
-          <section className="bg-white rounded-2xl shadow-md p-6 mt-10">
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 mt-10">
             <h2 className="text-2xl font-semibold mb-4">Avaliações</h2>
 
         {/* Nota Média */}
@@ -585,7 +941,7 @@ const handleConfirmarReserva = async () => {
                         />
                       ))}
                     </div>
-                    <p className="text-gray-700 text-sm mt-1">{a.comentario}</p>
+                    <p className="text-gray-700 dark:text-gray-200 text-sm mt-1 dark:text-gray-100">{a.comentario}</p>
                   </div>
                 </div>
               ))}
@@ -602,31 +958,37 @@ const handleConfirmarReserva = async () => {
           </section>
 
           {/* MAPA */}
-          <Mapa
-            espacos={[
-              {
-                ...espaco,
-                latitude: espaco.latitude ?? -20.48,
-                longitude: espaco.longitude ?? -54.64,
-              },
-            ]}
-          />
+          {/* <Mapa
+  espacos={[
+    {
+      ...espaco,
+      latitude: espaco.latitude ?? -20.48,
+      longitude: espaco.longitude ?? -54.64,
+    },
+  ]}
+/> */}
         </div>
 
         {/* CARD LATERAL */}
         <aside className="md:col-span-1">
-          <div className="sticky top-28 bg-white shadow-xl rounded-2xl p-7 border border-gray-200 space-y-6 relative">
+          <div className="sticky top-28 bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-7 border border-gray-200 dark:border-slate-700 space-y-6 relative">
 
                 <>
-                  <p className="text-3xl font-bold text-[#02aeee]">
-  R$ {espaco.preco.toFixed(2)}
-</p>
+{isBuffet ? (
+  <p className="text-3xl font-bold text-[#02aeee]">
+    A partir de R$ {getMenorPrecoBuffet(espaco).toFixed(2)}
+  </p>
+) : (
+  <p className="text-3xl font-bold text-[#02aeee]">
+    R$ {precoBaseDinamico.toFixed(2)}
+  </p>
+)}
                   <div>
                  <label className="font-semibold text-sm">Data do evento</label>
 
 <div
   onClick={() => setActiveCalendar(!activeCalendar)}
-  className="w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer bg-white"
+  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
 >
   {!startReserva ? (
     "Selecione a data"
@@ -641,33 +1003,53 @@ const handleConfirmarReserva = async () => {
 
 
 {activeCalendar && (
-  <div className="absolute z-50 mt-2 shadow-lg rounded-lg bg-white p-3" ref={calendarRef}>
-    <DatePicker
-      inline
-      locale="pt-BR"
-      minDate={new Date()}
-
-      /* Alterna entre range e 1 dia */
-      selectsRange={eventoMultiDia}
-      /* quando não é multi-dia, passa a data selecionada (ou undefined) */
-      selected={!eventoMultiDia ? (startReserva ?? undefined) : undefined}
-      startDate={startReserva ?? undefined}
-      endDate={eventoMultiDia ? (endReserva ?? undefined) : undefined}
-
-      onChange={(update: Date | [Date | null, Date | null]) => {
-        if (!eventoMultiDia) {
-          // Evento de 1 dia → update é uma Date
-          const date = update as Date;
-          setRangeReserva([date, date]); // guarda start e end iguais
-          setActiveCalendar(false);
-        } else {
-          // Evento de vários dias → update é [start, end]
-          const range = update as [Date | null, Date | null];
-          setRangeReserva(range);
-          if (range[1]) setActiveCalendar(false); // fecha quando escolher o fim
+  <div
+    className="absolute z-50 mt-2 shadow-lg rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 p-3"
+    ref={calendarRef}
+  >
+    {eventoMultiDia ? (
+      <DatePicker
+        inline
+        locale="pt-BR"
+        minDate={new Date()}
+        excludeDates={
+          Array.isArray(datasBloqueadas)
+            ? datasBloqueadas.map(
+                (data) => new Date(data + "T00:00:00")
+              )
+            : []
         }
-      }}
-    />
+        selectsRange
+        startDate={startReserva ?? undefined}
+        endDate={endReserva ?? undefined}
+        onChange={(update: [Date | null, Date | null]) => {
+          setRangeReserva(update);
+          if (update[1]) setActiveCalendar(false);
+        }}
+      />
+    ) : (
+      <DatePicker
+        inline
+        locale="pt-BR"
+        minDate={new Date()}
+        excludeDates={
+          Array.isArray(datasBloqueadas)
+            ? datasBloqueadas.map(
+                (data) => new Date(data + "T00:00:00")
+              )
+            : []
+        }
+        selected={startReserva ?? undefined}
+        onChange={(date: Date | null) => {
+          if (date) {
+            setRangeReserva([date, date]);
+            setActiveCalendar(false);
+          }
+        }}
+      />
+    )}
+  </div>
+)}
 
     {/* BOTÃO de alternância */}
     <div className="mt-3 flex items-center gap-2">
@@ -686,27 +1068,32 @@ const handleConfirmarReserva = async () => {
       <span className="text-sm">Evento com mais de um dia</span>
     </div>
   </div>
-)}
 
 
-                  </div>
+                  
 
-                  <div className="flex gap-4">
-  <div className="flex-1 relative">
-    <label className="block text-sm font-semibold mb-1">Horário</label>
+                  {isBuffet ? (
+  <div>
+    <label className="block text-sm font-semibold mb-1">
+      Qtd. Pessoas
+    </label>
 
     <input
-      ref={horaRef}
-      type="time"
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
-      value={horaReserva}
-      onChange={(e) => setHoraReserva(e.target.value)}
-      onClick={(e) => e.target.showPicker?.()}
+      type="number"
+      value={qtdPessoas}
+      disabled
+      className="w-full px-3 py-2 border border-gray-200 bg-gray-100 text-gray-500 rounded-lg text-sm cursor-not-allowed"
     />
-  </div>
 
-  <div className="flex-1">
-    <label className="block text-sm font-semibold mb-1">Qtd. Pessoas</label>
+    <p className="text-xs text-gray-400 mt-1">
+      Definido pelo pacote selecionado
+    </p>
+  </div>
+) : (
+  <div>
+    <label className="block text-sm font-semibold mb-1">
+      Qtd. Pessoas
+    </label>
 
     <input
       type="number"
@@ -719,12 +1106,11 @@ const handleConfirmarReserva = async () => {
         if (v > espaco.capacidade) v = espaco.capacidade;
         setQtdPessoas(v);
       }}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
       placeholder={`máx. ${espaco.capacidade}`}
     />
   </div>
-</div>
-
+)}
 <button onClick={handleAbrirModalReserva} className="w-full bg-[#02aeee] text-white py-3 rounded-xl font-semibold hover:bg-[#0295D4] transition" > Reservar Agora </button>
                 </>
           </div>

@@ -44,12 +44,12 @@ export default function FAQ() {
   ];
 
   return (
-    <section className="w-full bg-white py-20 px-6 md:px-20 lg:px-32">
+  <section className="w-full bg-white dark:bg-slate-900 py-20 px-6 md:px-20 lg:px-32">
 
       {/* Header */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight">FAQ – Perguntas Frequentes</h1>
-        <p className="text-gray-600 mt-3 text-lg max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100">FAQ – Perguntas Frequentes</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-3 text-lg max-w-2xl mx-auto">
           Aqui você encontra respostas rápidas para as dúvidas mais comuns sobre a plataforma.
         </p>
       </div>
@@ -60,11 +60,11 @@ export default function FAQ() {
         {perguntas.map((item, index) => (
           <div
             key={index}
-            className="border rounded-2xl p-5 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer"
+           className="border border-gray-200 dark:border-slate-700 rounded-2xl p-5 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all cursor-pointer"
             onClick={() => toggle(index)}
           >
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">{item.pergunta}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{item.pergunta}</h2>
               <ChevronDown
                 className={`w-6 h-6 transition-transform ${
                   openIndex === index ? "rotate-180" : ""
@@ -74,7 +74,7 @@ export default function FAQ() {
 
             {/* Resposta */}
             {openIndex === index && (
-              <p className="text-gray-600 mt-4 leading-relaxed">
+              <p className="text-gray-600 dark:text-gray-300 mt-4 leading-relaxed">
                 {item.resposta}
               </p>
             )}

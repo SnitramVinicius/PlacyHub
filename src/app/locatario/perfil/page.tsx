@@ -103,11 +103,11 @@ export default function PerfilUsuario() {
   };
 
   return (
-    <div className="p-6 relative">
+   <div className="p-6 relative bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
       <h1 className="text-2xl font-bold mb-6">Meu Perfil</h1>
 
       {/* Cabeçalho */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6 flex flex-col md:flex-row gap-6">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow mb-6 flex flex-col md:flex-row gap-6">
         <div className="relative">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200">
             {usuario.fotoUrl ? (
@@ -126,7 +126,7 @@ export default function PerfilUsuario() {
 
         <div>
           <h2 className="text-xl font-semibold">{usuario.nome}</h2>
-          <p className="text-gray-600">{usuario.email}</p>
+          <p className="text-gray-600 dark:text-gray-300">{usuario.email}</p>
         </div>
       </div>
 
@@ -196,7 +196,7 @@ export default function PerfilUsuario() {
       {/* Modal Logout */}
       {confirmarLogout && (
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl w-full max-w-sm">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl w-full max-w-sm text-gray-900 dark:text-gray-100">
             <p className="mb-4">Deseja sair da conta?</p>
             <div className="flex gap-3">
               <button className="w-1/2 border py-2 rounded"
@@ -219,7 +219,7 @@ export default function PerfilUsuario() {
 
 function Section({ title, children, editando, onEditar, onSalvar }: any) {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow mb-6">
+   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow mb-6">
       <div className="flex justify-between mb-4">
         <h2 className="font-semibold">{title}</h2>
         {onEditar && (
@@ -244,15 +244,16 @@ function Section({ title, children, editando, onEditar, onSalvar }: any) {
 function Input({ label, value, onChange, disabled, type = "text" }: any) {
   return (
     <div>
-      <label className="text-sm text-gray-700">{label}</label>
+      <label className="text-sm text-gray-700 dark:text-gray-300">{label}</label>
       <input
         type={type}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full border rounded-xl px-3 py-2 ${
-          disabled ? "bg-gray-100" : ""
-        }`}
+       className={`w-full border rounded-xl px-3 py-2
+bg-white text-gray-900 border-gray-300
+dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600
+${disabled ? "bg-gray-100 dark:bg-gray-600" : ""}`}
       />
     </div>
   );
@@ -262,13 +263,13 @@ function Card({ icon, title, text, onClick, danger }: any) {
   return (
     <div
       onClick={onClick}
-      className={`bg-white p-6 rounded-2xl shadow cursor-pointer text-center ${
+      className={`bg-white dark:bg-gray-800 p-6 rounded-2xl shadow cursor-pointer text-center ${
         danger ? "text-red-600" : ""
       }`}
     >
       {icon}
       <h3 className="font-semibold mt-2">{title}</h3>
-      <p className="text-gray-500 text-sm">{text}</p>
+      <p className="text-gray-500 dark:text-gray-400 text-sm">{text}</p>
     </div>
   );
 }

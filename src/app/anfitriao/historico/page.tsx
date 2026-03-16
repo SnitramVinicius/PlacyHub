@@ -163,10 +163,10 @@ function abrirVistoria(reserva: any) {
   
   return (
     <>
-    <div className="p-6 bg-zinc-50 min-h-screen">
+   <div className="p-6 bg-zinc-50 dark:bg-gray-900 min-h-screen transition-colors">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Histórico de Reservas</h1>
-        <p className="text-sm text-gray-500">
+       <h1 className="text-2xl font-bold mb-1 text-gray-900 dark:text-gray-100">Histórico de Reservas</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Reservas finalizadas ou canceladas dos seus espaços
         </p>
       </div>
@@ -174,7 +174,7 @@ function abrirVistoria(reserva: any) {
       {/* Filtros */}
       <div className="flex flex-wrap gap-4 mb-6">
         <select
-          className="p-2 border rounded-md bg-white text-sm"
+          className="p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
           value={statusFiltro}
           onChange={(e) => setStatusFiltro(e.target.value)}
         >
@@ -184,7 +184,7 @@ function abrirVistoria(reserva: any) {
         </select>
 
         <select
-          className="p-2 border rounded-md bg-white text-sm"
+          className="p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
           value={espacoFiltro}
           onChange={(e) => setEspacoFiltro(e.target.value)}
         >
@@ -194,7 +194,7 @@ function abrirVistoria(reserva: any) {
         </select>
 
         <select
-          className="p-2 border rounded-md bg-white text-sm"
+          className="p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
           value={periodoFiltro}
           onChange={(e) => setPeriodoFiltro(e.target.value)}
         >
@@ -209,7 +209,7 @@ function abrirVistoria(reserva: any) {
         {reservasFiltradas.map((reserva) => (
           <div
             key={reserva.id}
-            className="bg-white rounded-2xl shadow hover:shadow-md transition"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow hover:shadow-md transition"
           >
             <img
               src={reserva.imagem}
@@ -218,7 +218,7 @@ function abrirVistoria(reserva: any) {
             />
 
             <div className="p-4">
-              <h2 className="text-lg font-semibold">{reserva.espaco}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{reserva.espaco}</h2>
 
               <p className="text-sm text-gray-500 flex items-center gap-1">
                 <CalendarDays size={14} /> {reserva.data}
@@ -264,8 +264,7 @@ function abrirVistoria(reserva: any) {
   {dropdownAberto === reserva.id && (
     <div
      ref={dropdownRef}
-      className="absolute left-0 mt-2 w-56 bg-white 
-           border rounded-xl shadow-lg z-20 overflow-hidden
+      className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-20 overflow-hidden
            animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Ver detalhes */}
@@ -275,7 +274,7 @@ function abrirVistoria(reserva: any) {
           setDropdownAberto(null);
         }}
         className="w-full flex items-center gap-2 px-4 py-3 
-                   text-sm hover:bg-zinc-50 transition"
+                   text-sm hover:bg-zinc-50 dark:hover:bg-gray-700 transition"
       >
         <MessageCircle size={16} />
         Ver detalhes
@@ -289,7 +288,7 @@ function abrirVistoria(reserva: any) {
             setDropdownAberto(null);
           }}
           className="w-full flex items-center gap-2 px-4 py-3 
-                     text-sm hover:bg-zinc-50 transition"
+                     text-sm hover:bg-zinc-50 dark:hover:bg-gray-700 transition"
         >
           <Star size={16} />
           Avaliar cliente
@@ -305,7 +304,7 @@ function abrirVistoria(reserva: any) {
   setDropdownAberto(null);
 }}
           className="w-full flex items-center gap-2 px-4 py-3 
-                     text-sm hover:bg-zinc-50 transition"
+                     text-sm hover:bg-zinc-50 dark:hover:bg-gray-700 transition"
         >
           <ClipboardCheck size={16} />
           Vistoria pós-evento
@@ -336,7 +335,7 @@ function abrirVistoria(reserva: any) {
 
       {reservaSelecionada && (
   <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-fade-in relative">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md animate-fade-in relative">
       <button
         onClick={() => setReservaSelecionada(null)}
         className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
@@ -344,11 +343,11 @@ function abrirVistoria(reserva: any) {
         <X size={20} />
       </button>
 
-      <h3 className="text-xl font-bold text-gray-800 mb-4">
+      <h3 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">
         Detalhes da Reserva
       </h3>
 
-      <div className="space-y-2 text-gray-700 text-sm">
+      <div className="space-y-2 text-gray-700 text-sm dark:text-gray-100">
         <p><b>Cliente:</b> {reservaSelecionada.cliente}</p>
         <p><b>Período:</b> {new Date(reservaSelecionada.dataInicio).toLocaleDateString()} → {new Date(reservaSelecionada.dataFim).toLocaleDateString()}</p>
         <p><b>Valor:</b> R$ {reservaSelecionada.valor.toFixed(2)}</p>
@@ -358,25 +357,17 @@ function abrirVistoria(reserva: any) {
         <p><b>Observações:</b> {reservaSelecionada.observacoes || "Nenhuma observação."}</p>
       </div>
 
-      <div className="mt-5 flex justify-end">
-        <button
-          onClick={() => setReservaSelecionada(null)}
-          className="bg-sky-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-sky-700 transition"
-        >
-          Fechar
-        </button>
-      </div>
     </div>
   </div>
 )}
 {/* MODAL REPORTAR */}
 {reportarAberto && reservaSelecionada && (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md border border-gray-200 dark:border-gray-700">
       
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Reportar problema
         </h2>
 
@@ -389,14 +380,14 @@ function abrirVistoria(reserva: any) {
         </button>
       </div>
 
-      <select className="w-full p-2 border rounded-md mb-3 text-sm">
+      <select className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md mb-3 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
         <option>Problema com cliente</option>
         <option>Danos ao espaço</option>
         <option>Outro</option>
       </select>
 
    <textarea
-  className="w-full p-2 border rounded-md"
+className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
   rows={4}
   placeholder="Descreva o problema (mínimo 10 caracteres)"
   value={descricaoProblema}
@@ -443,7 +434,7 @@ function abrirVistoria(reserva: any) {
       </div>
 
       {/* Mensagem sutil */}
-      <p className="text-xs text-gray-400 mt-3">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
         Nossa equipe analisará sua solicitação
       </p>
     </div>

@@ -142,7 +142,7 @@ export default function Navbar() {
     <>
       {/* NAVBAR */}
       <div
-        className={`fixed top-0 left-0 w-full z-50 bg-white border-b flex items-center justify-between px-12
+        className={`fixed top-0 left-0 w-full z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-12
           transition-all duration-[480ms] ease-[cubic-bezier(0.16,1,0.3,1)] backdrop-blur-xl
           ${shrink ? "h-24 py-4 shadow-md" : "h-40 py-10 shadow-sm"}`}
       >
@@ -154,16 +154,18 @@ export default function Navbar() {
         {/* SEARCH */}
         <div className="flex justify-center flex-1 relative" ref={searchRef}>
           <div
-            className={`flex items-center rounded-full bg-white border shadow-md transition-all duration-[420ms] ease-[cubic-bezier(.22,.61,.36,1)]
+            className={`flex items-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-[420ms] ease-[cubic-bezier(.22,.61,.36,1)]
               ${shrink ? "h-12 max-w-[520px]" : "h-16 max-w-[650px]"} w-full ${activePanel !== null ? "shadow-xl" : ""}`}
           >
             {/* CAMPO CIDADE */}
             <div
               className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
-                ${activePanel === "city" ? "bg-[#e5e5e5]" : "hover:bg-[#f7f7f7]"} transition-all duration-300`}
+                ${activePanel === "city"
+  ? "bg-gray-200 dark:bg-gray-700"
+  : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
               onClick={() => setActivePanel("city")}
             >
-              <label className="text-xs font-bold text-gray-800">Onde</label>
+              <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Onde</label>
               <div className="flex items-center justify-between mt-0.5">
                 <input
                   type="text"
@@ -171,7 +173,7 @@ export default function Navbar() {
                   value={cityQuery}
                   onChange={(e) => setCityQuery(e.target.value)}
                   onFocus={() => setActivePanel("city")}
-                  className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none placeholder:text-gray-400"
+                  className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none placeholder:text-gray-400"
                 />
                 {cityQuery && (
                   <button
@@ -187,7 +189,7 @@ export default function Navbar() {
               </div>
 
               {activePanel === "city" && filteredCities.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50 animate-fadeIn">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50 animate-fadeIn">
                   {filteredCities.map((c) => (
                     <div
                       key={`${c.nome}-${c.uf}`}
@@ -195,7 +197,7 @@ export default function Navbar() {
                         setCityQuery(`${c.nome}, ${c.uf}`);
                         setActivePanel(null);
                       }}
-                      className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm transition"
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition"
                     >
                       {c.nome}, {c.uf}
                     </div>
@@ -210,11 +212,13 @@ export default function Navbar() {
             {/* CAMPO DATA */}
             <div
               className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
-                ${activePanel === "date" ? "bg-[#e5e5e5]" : "hover:bg-[#f7f7f7]"} transition-all duration-300`}
+                ${activePanel === "date"
+  ? "bg-gray-200 dark:bg-gray-700"
+  : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
               onClick={() => setActivePanel("date")}
             >
-              <label className="text-xs font-bold text-gray-800">Quando</label>
-              <span className={`text-xs ${startDate ? "text-gray-800" : "text-gray-400"}`}>
+              <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Quando</label>
+              <span className={`text-xs ${startDate ? "text-gray-800 dark:text-gray-100" : "text-gray-400"}`}>
                 {formattedDate}
               </span>
 
@@ -299,14 +303,17 @@ export default function Navbar() {
       {isOpen && (
         <div
           ref={menuRef}
-          className="absolute top-20 right-4 flex flex-col bg-white shadow-lg rounded-xl overflow-hidden p-2 z-50 border border-gray-100 min-w-[220px] animate-fadeIn"
+          className="absolute top-20 right-4 flex flex-col bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden p-2 z-50 border-gray-200dark:border-gray-700 min-w-[220px] animate-fadeIn"
         >
           {user ? (
             <>
               <Link
                 href="/favoritos"
                 onClick={() => setIsOpen(false)}
-                className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
+                className="px-4 py-2
+hover:bg-gray-100 dark:hover:bg-gray-700
+text-gray-800 dark:text-gray-100
+rounded-lg text-sm font-medium flex items-center gap-2"
               >
                 Favoritos
               </Link>
@@ -316,31 +323,37 @@ export default function Navbar() {
               <Link
                 href="/locatario/reservas"
                 onClick={() => setIsOpen(false)}
-                className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
+                className="px-4 py-2
+hover:bg-gray-100 dark:hover:bg-gray-700
+text-gray-800 dark:text-gray-100
+rounded-lg text-sm font-medium flex items-center gap-2"
               >
                 Minhas Reservas
               </Link>
 
-{isAnfitriao && <div className="my-1 border-t border-gray-100" />}
+{isAnfitriao && <div className="my-1 border-t border-gray-200 dark:border-gray-700" />}
               {isAnfitriao && (
   <Link
     href="./anfitriao"
     onClick={() => setIsOpen(false)}
-    className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
+    className="px-4 py-2
+hover:bg-gray-100 dark:hover:bg-gray-700
+text-gray-800 dark:text-gray-100
+rounded-lg text-sm font-medium flex items-center gap-2"
   >
     Painel do Anfitrião
   </Link>
 )}
 
               
-              <div className="my-1 border-t border-gray-100" />
+              <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
 
               <button
                 onClick={() => {
                   logout();
                   setIsOpen(false);
                 }}
-                className="text-left px-4 py-2 hover:bg-gray-100 rounded-lg text-sm flex items-center gap-2"
+                className="text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm flex items-center gap-2"
               >
                 Sair da conta
               </button>
@@ -360,7 +373,7 @@ export default function Navbar() {
       {/* MODAL BENEFÍCIOS */}
       {showBenefitsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white shadow-xl rounded-2xl p-8 max-w-lg w-full relative animate-fadeIn">
+          <div className="bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-8 max-w-lg w-full relative animate-fadeIn">
             <button
               onClick={() => setShowBenefitsModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-xl"
@@ -368,7 +381,7 @@ export default function Navbar() {
               ×
             </button>
 
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">
               Ganhe dinheiro alugando seu espaço
             </h2>
 
@@ -376,7 +389,7 @@ export default function Navbar() {
               Transforme seu salão, sítio ou área de festas em uma fonte de renda dentro do PlacyHub.
             </p>
 
-            <ul className="space-y-3 text-gray-700">
+            <ul className="space-y-3 text-gray-700 dark:text-gray-300">
               <li>✔ Visibilidade para milhares de pessoas.</li>
               <li>✔ Controle total de agenda, preços e regras.</li>
               <li>✔ Painel exclusivo para anfitriões.</li>
