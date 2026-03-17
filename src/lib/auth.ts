@@ -6,6 +6,7 @@ export interface JWTPayload {
   sub: string;
   name: string;
   roles: string[];
+  cpf?: string;
 }
 
 export function signToken(payload: JWTPayload) {
