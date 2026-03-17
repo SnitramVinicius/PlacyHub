@@ -27,9 +27,14 @@ export default function NavbarWrapper() {
     "/locatario/seguranca",
     "/anfitriao/espacos",
     "/app/suporte-locador",
-    "/locatario/avaliacoes",,
+    "/locatario/avaliacoes", // 👈 REMOVI A VÍRGULA EXTRA AQUI
     "/anfitriao"
   ];
+
+  // 👇 CORREÇÃO: Verifica se pathname existe antes de usar
+  if (!pathname) {
+    return <Navbar />; // Retorna navbar padrão se não houver pathname
+  }
 
   if (noNavbarPaths.some((path) => pathname.startsWith(path))) {
     return null; // nenhuma navbar
