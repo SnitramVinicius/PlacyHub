@@ -1,12 +1,17 @@
 "use client";
 
-import { useSearchParams, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const NOTIFICACOES_PADRAO = {
+type Notificacao = {
+  titulo: string;
+  descricao: string;
+};
+
+const NOTIFICACOES_PADRAO: Record<number, Notificacao> = {
   1: {
     titulo: "Reservas e Pagamentos",
     descricao: "Alertas sobre confirmações, cancelamentos e status de pagamento.",
