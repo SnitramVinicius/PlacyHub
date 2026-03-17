@@ -137,30 +137,54 @@ export default function PerfilUsuario() {
         onEditar={() => setEditando(true)}
         onSalvar={handleSalvar}
       >
-        <Input label="Nome" value={usuario.nome} disabled={!editando}
-          onChange={(v) => setUsuario({ ...usuario, nome: v })} />
+        <Input 
+          label="Nome" 
+          value={usuario.nome} 
+          disabled={!editando}
+          onChange={(v: string) => setUsuario({ ...usuario, nome: v })} 
+        />
 
-        <Input label="CPF" value={usuario.cpf || ""} disabled={!editando}
-          onChange={(v) => setUsuario({ ...usuario, cpf: v })} />
+        <Input 
+          label="CPF" 
+          value={usuario.cpf || ""} 
+          disabled={!editando}
+          onChange={(v: string) => setUsuario({ ...usuario, cpf: v })} 
+        />
 
-        <Input label="Telefone" value={usuario.telefone || ""} disabled={!editando}
-          onChange={(v) => setUsuario({ ...usuario, telefone: v })} />
+        <Input 
+          label="Telefone" 
+          value={usuario.telefone || ""} 
+          disabled={!editando}
+          onChange={(v: string) => setUsuario({ ...usuario, telefone: v })} 
+        />
       </Section>
 
       {/* Endereço */}
       <Section title="Endereço">
-        <Input label="CEP" value={usuario.endereco?.cep || ""} disabled={!editando}
-          onChange={(v) =>
+        <Input 
+          label="CEP" 
+          value={usuario.endereco?.cep || ""} 
+          disabled={!editando}
+          onChange={(v: string) =>
             setUsuario({ ...usuario, endereco: { ...usuario.endereco, cep: v } })
-          } />
-        <Input label="Cidade" value={usuario.endereco?.cidade || ""} disabled={!editando}
-          onChange={(v) =>
+          } 
+        />
+        <Input 
+          label="Cidade" 
+          value={usuario.endereco?.cidade || ""} 
+          disabled={!editando}
+          onChange={(v: string) =>
             setUsuario({ ...usuario, endereco: { ...usuario.endereco, cidade: v } })
-          } />
-        <Input label="Estado" value={usuario.endereco?.estado || ""} disabled={!editando}
-          onChange={(v) =>
+          } 
+        />
+        <Input 
+          label="Estado" 
+          value={usuario.endereco?.estado || ""} 
+          disabled={!editando}
+          onChange={(v: string) =>
             setUsuario({ ...usuario, endereco: { ...usuario.endereco, estado: v } })
-          } />
+          } 
+        />
       </Section>
 
       {/* Dados do Anfitrião */}
