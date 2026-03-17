@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import type { Role } from "@/types/role"; //
 import { toast } from "sonner";
 
 interface EstadoIBGE {
@@ -104,7 +105,7 @@ export default function CadastroLocatario() {
 login({
   name: payload.nome!,
   email: payload.email!,
-  roles: payload.roles,
+  roles: payload.roles as Role[],
   telefone: payload.telefone,
   cidade: payload.cidade,
   estado: payload.estado,
