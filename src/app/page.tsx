@@ -43,7 +43,7 @@ export default function Home() {
   const isLogged = !!user;
 
   const { favoritos, toggleFavorito } = useFavoritos();
-  const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scrollRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const scrollByAmount = (key: string, amount: number) => {
     const el = scrollRefs.current[key];
@@ -94,8 +94,9 @@ const getBuffetPrecoMinimo = (espaco: Espaco) => {
   return menorPreco === Infinity ? null : menorPreco;
 };
 
-  const renderSection = (titulo: string, lista: Espaco[], key: string, subtitulo?: string) => (
-    <>
+const renderSection = (titulo: string, lista: Espaco[], key: string, subtitulo?: string) => {
+  return (
+    <div key={key} className="mb-8">
       <div className="flex flex-col px-6 md:px-10 mt-10">
         <h1 className="font-bold text-2xl text-gray-900 dark:text-gray-100">{titulo}</h1>
         {subtitulo && <p className="text-gray-500 dark:text-gray-400 -mt-1 mb-3">{subtitulo}</p>}
@@ -119,22 +120,23 @@ const getBuffetPrecoMinimo = (espaco: Espaco) => {
         </div>
       </div>
 
-      <section
-        ref={(el) => (scrollRefs.current[key] = el)}
+    <section
+  ref={(el) => {
+  scrollRefs.current[key] = el;
+}}
         className="flex gap-6 overflow-x-auto scrollbar-hide px-6 md:px-10 py-4 scroll-smooth"
       >
         {lista.map((espaco) => (
           <Link key={espaco.id} href={`/espaco/${espaco.id}`} className="shrink-0 w-[240px]">
-           <div className="bg-white dark:bg-gray-800 w-full rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition">
+            <div className="bg-white dark:bg-gray-800 w-full rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition">
               <div className="relative">
                 {espaco.buffet && (
-  <span className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-    Buffet
-  </span>
-)}
+                  <span className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+                    Buffet
+                  </span>
+                )}
                 <img src={espaco.imagem} alt={espaco.nome} className="w-[240px] h-[160px] object-cover" />
 
-                {/* Botão de Favorito */}
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -145,9 +147,9 @@ const getBuffetPrecoMinimo = (espaco: Espaco) => {
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition
-                     ${favoritos.includes(espaco.id) 
-  ? "bg-red-600" 
-  : "bg-white/80 dark:bg-gray-600"}`}
+                      ${favoritos.includes(espaco.id) 
+                        ? "bg-red-600" 
+                        : "bg-white/80 dark:bg-gray-600"}`}
                   >
                     <Heart
                       size={18}
@@ -171,107 +173,108 @@ const getBuffetPrecoMinimo = (espaco: Espaco) => {
                   </div>
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-  {espaco.buffet ? (
-    <>
-      A partir de <span className="font-semibold text-gray-900 dark:text-gray-100">
-        R$ {getBuffetPrecoMinimo(espaco)}
-      </span>
-    </>
-  ) : (
-    <>
-      R$ {espaco.preco} • {espaco.duracao} horas
-    </>
-  )}
-</p>
+                  {espaco.buffet ? (
+                    <>
+                      A partir de <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        R$ {getBuffetPrecoMinimo(espaco)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      R$ {espaco.preco} • {espaco.duracao} horas
+                    </>
+                  )}
+                </p>
               </div>
             </div>
           </Link>
         ))}
       </section>
-    </>
+    </div>
   );
+};
 
-  // =========================
-  // RENDER PRINCIPAL
-  // =========================
-  if (!favoritos) return null;
+// =========================
+// RENDER PRINCIPAL
+// =========================
+if (!favoritos) return null;
 
-  return (
-    <>
-      {!isLogged && (
-        <>
-          {renderSection(
-            "Explore espaços populares no Brasil",
-            espacosVisitante_Indicados,
-            "visit-indicados",
-            "Os espaços mais reservados e avaliados pelos visitantes"
-          )}
+return (
+  <div>
+    {!isLogged && (
+      <div>
+        {renderSection(
+          "Explore espaços populares no Brasil",
+          espacosVisitante_Indicados,
+          "visit-indicados",
+          "Os espaços mais reservados e avaliados pelos visitantes"
+        )}
 
-          {renderSection(
-            "Em alta no momento",
-            espacosVisitante_Destaque,
-            "visit-destaque",
-            "Os espaços mais procurados nesta semana"
-          )}
+        {renderSection(
+          "Em alta no momento",
+          espacosVisitante_Destaque,
+          "visit-destaque",
+          "Os espaços mais procurados nesta semana"
+        )}
 
-          {renderSection(
-            "Disponíveis para este fim de semana",
-            espacosVisitante_FimDeSemana,
-            "visit-fds",
-            "As melhores opções para eventos rápidos"
-          )}
-        </>
-      )}
+        {renderSection(
+          "Disponíveis para este fim de semana",
+          espacosVisitante_FimDeSemana,
+          "visit-fds",
+          "As melhores opções para eventos rápidos"
+        )}
+      </div>
+    )}
 
-      {isLogged && (
-        <>
-          {renderSection(
-            "Perto de você",
-            espacosLogado_Proximos,
-            "log-proximos",
-            "Opções próximas à sua região"
-          )}
+    {isLogged && (
+      <div>
+        {renderSection(
+          "Perto de você",
+          espacosLogado_Proximos,
+          "log-proximos",
+          "Opções próximas à sua região"
+        )}
 
-          {renderSection(
-            "Sugestões para você",
-            espacosLogado_Recomendados,
-            "log-recomendados",
-            "Recomendados com base no seu perfil"
-          )}
-        </>
-      )}
-      {/* FOOTER */}
-      <section className="bg-[#e5e5e5] dark:bg-gray-900 w-full py-16 mt-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 px-10 md:px-20">
-          <div>
-            <h1 className="font-bold mb-3 text-gray-900">Anunciantes</h1>
-            <Link href="/footer/cadastre-seu-espaco"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Cadastre seu espaço</p></Link>
-            <Link href="/footer/como-funciona"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Como funciona</p></Link>
-            <Link href="/footer/planos-e-comissoes"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Planos e comissões</p></Link>
-            <Link href="/footer/suporte-locador"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Suporte para locador</p></Link>
-          </div>
+        {renderSection(
+          "Sugestões para você",
+          espacosLogado_Recomendados,
+          "log-recomendados",
+          "Recomendados com base no seu perfil"
+        )}
+      </div>
+    )}
 
-          <div>
-            <h1 className="font-bold mb-3 text-gray-900">Sobre o PlacyHub</h1>
-            <Link href="/footer/sobre"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Quem somos</p></Link>
-            <Link href="/footer/termos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Termos de uso</p></Link>
-            <Link href="/footer/privacidade"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Política de privacidade</p></Link>
-          </div>
-
-          <div>
-            <h1 className="font-bold mb-3 text-gray-900">Extras</h1>
-            <Link href="/footer/redes-sociais"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Redes sociais</p></Link>
-            <Link href="/footer/faq"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">FAQ</p></Link>
-          </div>
-
-          <div>
-            <h1 className="font-bold mb-3 text-gray-900">Atendimento</h1>
-            <Link href="/footer/contato"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Fale conosco</p></Link>
-            <Link href="/footer/cancelamentos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Políticas de cancelamento</p></Link>
-            {/* <Link href="/footer/central-ajuda"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Central de ajuda</p></Link> */}
-          </div>
+    {/* FOOTER */}
+    <section className="bg-[#e5e5e5] dark:bg-gray-900 w-full py-16 mt-12">
+      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 px-10 md:px-20">
+        <div>
+          <h1 className="font-bold mb-3 text-gray-900">Anunciantes</h1>
+          <Link href="/footer/cadastre-seu-espaco"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Cadastre seu espaço</p></Link>
+          <Link href="/footer/como-funciona"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Como funciona</p></Link>
+          <Link href="/footer/planos-e-comissoes"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Planos e comissões</p></Link>
+          <Link href="/footer/suporte-locador"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Suporte para locador</p></Link>
         </div>
-      </section>
-    </>
-  );
+
+        <div>
+          <h1 className="font-bold mb-3 text-gray-900">Sobre o PlacyHub</h1>
+          <Link href="/footer/sobre"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Quem somos</p></Link>
+          <Link href="/footer/termos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Termos de uso</p></Link>
+          <Link href="/footer/privacidade"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Política de privacidade</p></Link>
+        </div>
+
+        <div>
+          <h1 className="font-bold mb-3 text-gray-900">Extras</h1>
+          <Link href="/footer/redes-sociais"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Redes sociais</p></Link>
+          <Link href="/footer/faq"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">FAQ</p></Link>
+        </div>
+
+        <div>
+          <h1 className="font-bold mb-3 text-gray-900">Atendimento</h1>
+          <Link href="/footer/contato"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Fale conosco</p></Link>
+          <Link href="/footer/cancelamentos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Políticas de cancelamento</p></Link>
+        </div>
+      </div>
+    </section>
+  </div>
+);
 }
