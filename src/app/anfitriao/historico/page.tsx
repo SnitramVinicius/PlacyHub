@@ -68,21 +68,21 @@ const reservasMock: Reserva[] = [
     telefone: "(67) 99999-0000",
     avaliada: false,
 
-    auditoriaPre: {
-      tipo: "pre",
-      itens: [
-        {
-          id: "1",
-          nome: "Cadeiras",
-          quantidade: 50,
-          estadoPre: "ok" as const,
-          estadoPos: undefined,
-        },
-      ],
-      observacoesGerais: "",
-    status: "finalizada",
-      data: new Date().toISOString(),
+   auditoriaPre: {
+  tipo: "pre" as const,
+  itens: [
+    {
+      id: "1",
+      nome: "Cadeiras",
+      quantidade: 50,
+      estadoPre: "ok" as const,
+      estadoPos: undefined,
     },
+  ],
+  observacoesGerais: "",
+  status: "aprovada" as const,
+  data: new Date().toISOString(),
+},
   },
 
   {
