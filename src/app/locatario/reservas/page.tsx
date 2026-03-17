@@ -49,17 +49,18 @@ const convertido: Reserva[] = json.map((r: any, index: number) => {
     status = dataEvento && dataEvento < hoje ? "Finalizada" : "Confirmada";
   }
 
-  // Variáveis seguras
-  const cidade = espacoInfo?.cidade ?? "Cidade não encontrada";
-  const estado = espacoInfo?.estado ?? "Estado não encontrado";
-  const bairro = espacoInfo?.bairro ?? "Bairro não encontrado";
+  // 👇 SOLUÇÃO: usar 'as any' para acessar as propriedades
+  const espacoAny = espacoInfo as any;
+  const cidade = espacoAny?.cidade || "Cidade não encontrada";
+  const estado = espacoAny?.estado || "Estado não encontrado";
+  const bairro = espacoAny?.bairro || "Bairro não encontrado";
 
   return {
     id: r.id || `res-${index}`,
-    espaco: espacoInfo?.nome ?? "Espaço não encontrado",
-    imagem: espacoInfo?.imagem ?? "/default.jpg",
+    espaco: espacoInfo?.nome || "Espaço não encontrado",
+    imagem: espacoInfo?.imagem || "/default.jpg",
     data: dataEvento ? dataEvento.toLocaleDateString("pt-BR") : "—",
-    dataOriginal: dataEventoStr ?? "",
+    dataOriginal: dataEventoStr || "",
     hora: r.horaInicio && r.horaFim ? `${r.horaInicio} às ${r.horaFim}` : "—",
     local: `${cidade}, ${estado} - ${bairro}`,
     valor: Number(valorPago),
