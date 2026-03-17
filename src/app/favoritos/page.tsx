@@ -76,7 +76,7 @@ export default function FavoritosPage() {
           animate={{ opacity: 1, y: 0 }}
          className="text-gray-700 dark:text-gray-300 mb-4 text-sm"
         >
-          Olá <strong>{user.nome}</strong> Aqui estão seus espaços favoritos!
+          Olá <strong>{user.name}</strong> Aqui estão seus espaços favoritos!
         </motion.p>
       )}
 
