@@ -97,7 +97,7 @@ export default function AvaliacoesPage() {
                 <p className="text-gray-500 text-sm">{f.data}</p>
                 <p className="mt-1">{f.comentario}</p>
                 <div className="flex mt-1">
-                  {Array.from({ length: f.nota }).map((_, i) => (
+                  {Array.from({ length: f.nota || 0 }).map((_, i) => ( // 👈 CORREÇÃO AQUI
                     <Star key={i} className="w-4 h-4 text-yellow-400" />
                   ))}
                 </div>
@@ -120,7 +120,7 @@ export default function AvaliacoesPage() {
                 <p className="text-gray-500 text-sm">{r.data}</p>
                 <p className="mt-1">{r.comentario}</p>
                 <div className="flex mt-1">
-                  {Array.from({ length: r.nota }).map((_, i) => (
+                  {Array.from({ length: r.nota || 0 }).map((_, i) => ( // 👈 CORREÇÃO AQUI
                     <Star key={i} className="w-4 h-4 text-yellow-400" />
                   ))}
                 </div>
