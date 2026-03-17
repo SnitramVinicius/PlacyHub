@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useRef } from "react";
 import Link from "next/link";
@@ -96,46 +96,52 @@ const getBuffetPrecoMinimo = (espaco: Espaco) => {
 
 const renderSection = (titulo: string, lista: Espaco[], key: string, subtitulo?: string) => {
   return (
-    <div key={key} className="mb-8">
-      <div className="flex flex-col px-6 md:px-10 mt-10">
-        <h1 className="font-bold text-2xl text-gray-900 dark:text-gray-100">{titulo}</h1>
-        {subtitulo && <p className="text-gray-500 dark:text-gray-400 -mt-1 mb-3">{subtitulo}</p>}
+    <div key={key} className="mb-6 md:mb-8">
+      <div className="flex flex-col px-4 sm:px-6 md:px-10 mt-6 md:mt-10">
+        <h1 className="font-bold text-xl sm:text-2xl text-gray-900 dark:text-gray-100">{titulo}</h1>
+        {subtitulo && <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm -mt-1 mb-2 md:mb-3">{subtitulo}</p>}
       </div>
 
-      <div className="flex justify-between items-center px-6 md:px-10 mb-3">
+      <div className="flex justify-between items-center px-4 sm:px-6 md:px-10 mb-2 md:mb-3">
         <div />
-        <div className="flex gap-3">
+        <div className="flex gap-2 md:gap-3">
           <button
             onClick={() => scrollLeft(key)}
-            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
+            className="p-1.5 md:p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
+            aria-label="Rolar para esquerda"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={18} className="md:w-5 md:h-5" />
           </button>
           <button
             onClick={() => scrollRight(key)}
-            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
+            className="p-1.5 md:p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-md"
+            aria-label="Rolar para direita"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={18} className="md:w-5 md:h-5" />
           </button>
         </div>
       </div>
 
-    <section
-  ref={(el) => {
-  scrollRefs.current[key] = el;
-}}
-        className="flex gap-6 overflow-x-auto scrollbar-hide px-6 md:px-10 py-4 scroll-smooth"
+      <section
+        ref={(el) => {
+          scrollRefs.current[key] = el;
+        }}
+        className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-hide px-4 sm:px-6 md:px-10 py-2 md:py-4 scroll-smooth"
       >
         {lista.map((espaco) => (
-          <Link key={espaco.id} href={`/espaco/${espaco.id}`} className="shrink-0 w-[240px]">
+          <Link key={espaco.id} href={`/espaco/${espaco.id}`} className="shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px]">
             <div className="bg-white dark:bg-gray-800 w-full rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition">
               <div className="relative">
                 {espaco.buffet && (
-                  <span className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+                  <span className="absolute bottom-1 left-1 md:bottom-2 md:left-2 bg-blue-600 text-white text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 rounded-full">
                     Buffet
                   </span>
                 )}
-                <img src={espaco.imagem} alt={espaco.nome} className="w-[240px] h-[160px] object-cover" />
+                <img 
+                  src={espaco.imagem} 
+                  alt={espaco.nome} 
+                  className="w-full h-[100px] sm:h-[120px] md:h-[140px] lg:h-[160px] object-cover"
+                />
 
                 <button
                   onClick={(e) => {
@@ -143,36 +149,37 @@ const renderSection = (titulo: string, lista: Espaco[], key: string, subtitulo?:
                     e.stopPropagation();
                     handleFavoritoClick(espaco.id);
                   }}
-                  className="absolute top-2 right-2 rounded-full p-[6px] transition"
+                  className="absolute top-1 right-1 md:top-2 md:right-2 rounded-full p-1 md:p-[6px] transition"
+                  aria-label="Adicionar aos favoritos"
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition
+                    className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center transition
                       ${favoritos.includes(espaco.id) 
                         ? "bg-red-600" 
                         : "bg-white/80 dark:bg-gray-600"}`}
                   >
                     <Heart
-                      size={18}
-                      className={favoritos.includes(espaco.id) ? "text-white" : "text-red-600"}
+                      size={14}
+                      className={`md:w-[18px] md:h-[18px] ${favoritos.includes(espaco.id) ? "text-white" : "text-red-600"}`}
                       fill={favoritos.includes(espaco.id) ? "white" : "transparent"}
                     />
                   </div>
                 </button>
               </div>
 
-              <div className="p-3">
+              <div className="p-2 md:p-3">
                 <div className="flex justify-between items-start">
                   <div className="w-[70%]">
-                    <p className="font-semibold text-[14px] text-gray-900 dark:text-gray-100 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                    <p className="font-semibold text-xs sm:text-sm md:text-[14px] text-gray-900 dark:text-gray-100 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                       {espaco.nome}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-yellow-500 text-sm">★</span>
-                    <span className="text-yellow-500 text-sm font-medium">{espaco.avaliacao.toFixed(1)}</span>
+                  <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
+                    <span className="text-yellow-500 text-[10px] md:text-sm">★</span>
+                    <span className="text-yellow-500 text-[10px] md:text-sm font-medium">{espaco.avaliacao.toFixed(1)}</span>
                   </div>
                 </div>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                <p className="text-gray-500 dark:text-gray-400 text-[10px] sm:text-xs md:text-sm mt-0.5 md:mt-1">
                   {espaco.buffet ? (
                     <>
                       A partir de <span className="font-semibold text-gray-900 dark:text-gray-100">
@@ -200,7 +207,7 @@ const renderSection = (titulo: string, lista: Espaco[], key: string, subtitulo?:
 if (!favoritos) return null;
 
 return (
-  <div>
+  <div className="min-h-screen">
     {!isLogged && (
       <div>
         {renderSection(
@@ -244,37 +251,52 @@ return (
       </div>
     )}
 
-    {/* FOOTER */}
-    <section className="bg-[#e5e5e5] dark:bg-gray-900 w-full py-16 mt-12">
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 px-10 md:px-20">
-        <div>
-          <h1 className="font-bold mb-3 text-gray-900">Anunciantes</h1>
-          <Link href="/footer/cadastre-seu-espaco"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Cadastre seu espaço</p></Link>
-          <Link href="/footer/como-funciona"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Como funciona</p></Link>
-          <Link href="/footer/planos-e-comissoes"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Planos e comissões</p></Link>
-          <Link href="/footer/suporte-locador"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Suporte para locador</p></Link>
-        </div>
+    {/* FOOTER RESPONSIVO */}
+<footer className="bg-[#e5e5e5] dark:bg-gray-900 w-full py-8 sm:py-12 md:py-16 mt-8 sm:mt-10 md:mt-12">
+  <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8 md:gap-10 px-4 sm:px-6 md:px-8 lg:px-10">
+    <div className="text-left">
+      <h2 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Anunciantes</h2>
+      <ul className="space-y-1 sm:space-y-2">
+        <li><Link href="/footer/cadastre-seu-espaco" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Cadastre seu espaço</Link></li>
+        <li><Link href="/footer/como-funciona" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Como funciona</Link></li>
+        <li><Link href="/footer/planos-e-comissoes" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Planos e comissões</Link></li>
+        <li><Link href="/footer/suporte-locador" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Suporte para locador</Link></li>
+      </ul>
+    </div>
 
-        <div>
-          <h1 className="font-bold mb-3 text-gray-900">Sobre o PlacyHub</h1>
-          <Link href="/footer/sobre"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Quem somos</p></Link>
-          <Link href="/footer/termos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Termos de uso</p></Link>
-          <Link href="/footer/privacidade"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Política de privacidade</p></Link>
-        </div>
+    <div className="text-left">
+      <h2 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Sobre o PlacyHub</h2>
+      <ul className="space-y-1 sm:space-y-2">
+        <li><Link href="/footer/sobre" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Quem somos</Link></li>
+        <li><Link href="/footer/termos" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Termos de uso</Link></li>
+        <li><Link href="/footer/privacidade" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Política de privacidade</Link></li>
+      </ul>
+    </div>
 
-        <div>
-          <h1 className="font-bold mb-3 text-gray-900">Extras</h1>
-          <Link href="/footer/redes-sociais"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Redes sociais</p></Link>
-          <Link href="/footer/faq"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">FAQ</p></Link>
-        </div>
+    <div className="text-left">
+      <h2 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Extras</h2>
+      <ul className="space-y-1 sm:space-y-2">
+        <li><Link href="/footer/redes-sociais" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Redes sociais</Link></li>
+        <li><Link href="/footer/faq" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">FAQ</Link></li>
+      </ul>
+    </div>
 
-        <div>
-          <h1 className="font-bold mb-3 text-gray-900">Atendimento</h1>
-          <Link href="/footer/contato"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Fale conosco</p></Link>
-          <Link href="/footer/cancelamentos"><p className="text-gray-700 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer">Políticas de cancelamento</p></Link>
-        </div>
-      </div>
-    </section>
+    <div className="text-left">
+      <h2 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-gray-900 dark:text-gray-100">Atendimento</h2>
+      <ul className="space-y-1 sm:space-y-2">
+        <li><Link href="/footer/contato" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Fale conosco</Link></li>
+        <li><Link href="/footer/cancelamentos" className="text-xs sm:text-sm text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">Políticas de cancelamento</Link></li>
+      </ul>
+    </div>
+  </div>
+  
+  {/* Copyright */}
+  <div className="text-center mt-8 sm:mt-10 md:mt-12 pt-4 sm:pt-6 border-t border-gray-300 dark:border-gray-700 mx-4 sm:mx-6 md:mx-10">
+    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+      © {new Date().getFullYear()} PlacyHub. Todos os direitos reservados.
+    </p>
+  </div>
+</footer>
   </div>
 );
 }
