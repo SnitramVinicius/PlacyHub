@@ -20,10 +20,41 @@ import {
 import AvaliacaoModal from "@/components/AvaliacaoModal";
 import { toast } from "sonner";
 import AuditoriaModal from "@/components/AuditoriaModal";
+import type { Auditoria } from "@/components/AuditoriaModal";
 
+// type Auditoria = {
+//   tipo: string;
+//   itens: {
+//     id: string;
+//     nome: string;
+//     quantidade: number;
+//     estadoPre?: string;
+//     estadoPos?: string;
+//   }[];
+//   observacoesGerais: string;
+//   finalizada: boolean;
+//   data: string;
+// };
+
+type Reserva = {
+  id: number;
+  espaco: string;
+  data: string;
+  horario: string;
+  cliente: string;
+  local: string;
+  valor: number;
+  status: string;
+  imagem: string;
+  telefone: string;
+  avaliada: boolean;
+
+  auditoriaPre?: Auditoria; // 👈 AGORA É OPCIONAL
+  auditoriaPos?: Auditoria; // 👈 JÁ DEIXA PRONTO
+};
 
 // Mock de reservas
-const reservasMock = [
+const reservasMock: Reserva[] = [
 {
     id: 1,
     espaco: "Espaço Premium Monte Castelo",
@@ -44,11 +75,12 @@ const reservasMock = [
           id: "1",
           nome: "Cadeiras",
           quantidade: 50,
-          estadoPre: "ok",
+          estadoPre: "ok" as const,
+          estadoPos: undefined,
         },
       ],
       observacoesGerais: "",
-      finalizada: true,
+    status: "finalizada",
       data: new Date().toISOString(),
     },
   },
@@ -90,7 +122,7 @@ export default function HistoricoReservas() {
 
   const [reservaSelecionada, setReservaSelecionada] = useState<any>(null);
 
-  const [reservas, setReservas] = useState(reservasMock);
+ const [reservas, setReservas] = useState<Reserva[]>(reservasMock);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -479,7 +511,7 @@ className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-
       setVistoriaAberta(false);
       setReservaSelecionada(null);
     }}
-    onSalvar={(auditoria) => {
+    onSalvar={(auditoria: Auditoria) => {
       setReservas((prev) =>
         prev.map((r) => {
           if (r.id !== reservaSelecionada.id) {
