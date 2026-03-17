@@ -1,12 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { ESPACOS as espacosSimulados, Espaco } from "@/data/espacos";
 
-export default function ResultadosBusca() {
+// Componente interno que usa useSearchParams
+function ResultadosContent() {
   const searchParams = useSearchParams();
   const cidadeParam = searchParams.get("cidade")?.replace("%2C", ",") ?? "Campo Grande, MS";
   const startDate = searchParams.get("start");
@@ -224,5 +226,18 @@ export default function ResultadosBusca() {
         </p>
       )}
     </div>
+  );
+}
+
+// Componente principal com Suspense
+export default function ResultadosBusca() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-gray-500 animate-pulse">Carregando resultados...</div>
+      </div>
+    }>
+      <ResultadosContent />
+    </Suspense>
   );
 }
