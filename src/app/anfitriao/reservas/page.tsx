@@ -177,13 +177,13 @@ useEffect(() => {
   ]);
 }
 
-  function formatarData(data: string) {
-    return new Date(data).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  }
+  // function formatarData(data: string) {
+  //   return new Date(data).toLocaleDateString("pt-BR", {
+  //     day: "2-digit",
+  //     month: "long",
+  //     year: "numeric",
+  //   });
+  // }
 
   const ano = mesAtual.getFullYear();
   const mes = mesAtual.getMonth();
