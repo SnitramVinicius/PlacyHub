@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyTokenEdge } from "./lib/auth-edge";
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   // 🔓 LIBERA TUDO EM DEV
   if (process.env.NODE_ENV !== "production") {
     return NextResponse.next();
