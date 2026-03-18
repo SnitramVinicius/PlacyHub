@@ -1154,21 +1154,29 @@ const total = isBuffet
       <div className="mb-4">
         <p className="font-medium mb-2">Data</p>
 
-        <DatePicker
-  inline
-  locale="pt-BR"
-  minDate={new Date()}
-  selectsRange={eventoMultiDia}
-  startDate={startReserva ?? undefined}
-  endDate={endReserva ?? undefined}
-  onChange={(update: any) => {
-    if (eventoMultiDia) {
+       {eventoMultiDia ? (
+  <DatePicker
+    inline
+    locale="pt-BR"
+    minDate={new Date()}
+    selectsRange
+    startDate={startReserva ?? undefined}
+    endDate={endReserva ?? undefined}
+    onChange={(update: any) => {
       setRangeReserva(update);
-    } else {
-      setRangeReserva([update, update]);
-    }
-  }}
-/>
+    }}
+  />
+) : (
+  <DatePicker
+    inline
+    locale="pt-BR"
+    minDate={new Date()}
+    selected={startReserva ?? undefined}
+    onChange={(date: Date | null) => {
+      if (date) setRangeReserva([date, date]);
+    }}
+  />
+)}
 
         {/* MULTI DIA */}
         <div className="flex items-center gap-2 mt-2">
