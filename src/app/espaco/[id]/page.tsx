@@ -98,6 +98,8 @@ const diasReserva =
 
   const [editandoReserva, setEditandoReserva] = useState(false);
 
+const [abrirSelecaoMobile, setAbrirSelecaoMobile] = useState(false);
+
   // Avaliações internas
   const [avaliacoes, setAvaliacoes] = useState<
     { usuario: string; nota: number; comentario: string; data: string }[]
@@ -173,6 +175,18 @@ useEffect(() => {
   // Reserva
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+
+  handleResize();
+  window.addEventListener("resize", handleResize);
+
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
 
 const handleAbrirModalReserva = () => {
   // 🔐 Precisa estar logado
@@ -301,14 +315,19 @@ const total = isBuffet
     setReservando(false);
     setModalReservaAberto(false);
   }
+
+
 };
 
 
   if (!espaco) return <p className="text-center mt-10">Espaço não encontrado.</p>;
 
+ const reservaCompleta = isBuffet
+  ? startReserva && valorSelecionado
+  : startReserva && qtdPessoas > 0;
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 text-gray-900 dark:text-gray-100">
+    <main className="max-w-6xl mx-auto px-6 py-10 pb-24 text-gray-900 dark:text-gray-100">
     {/* BOTÃO VOLTAR */}
 <div className="flex w-full mb-8">
   <Link
@@ -970,7 +989,7 @@ const total = isBuffet
         </div>
 
         {/* CARD LATERAL */}
-        <aside className="md:col-span-1">
+        <aside className="hidden md:block md:col-span-1">
           <div className="sticky top-28 bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-7 border border-gray-200 dark:border-slate-700 space-y-6 relative">
 
                 <>
@@ -1116,6 +1135,148 @@ const total = isBuffet
           </div>
         </aside>
       </div>
+
+{isMobile && abrirSelecaoMobile && (
+  <div className="fixed inset-0 z-[100] bg-black/50 flex items-end animate-slideUp">
+
+    {/* CONTEÚDO */}
+    <div className="bg-white dark:bg-slate-900 w-full rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="font-semibold text-lg">Selecionar reserva</h2>
+        <button onClick={() => setAbrirSelecaoMobile(false)}>
+          <X size={24} />
+        </button>
+      </div>
+
+      {/* DATA */}
+      <div className="mb-4">
+        <p className="font-medium mb-2">Data</p>
+
+        <DatePicker
+  inline
+  locale="pt-BR"
+  minDate={new Date()}
+  selectsRange={eventoMultiDia}
+  startDate={startReserva ?? undefined}
+  endDate={endReserva ?? undefined}
+  onChange={(update: any) => {
+    if (eventoMultiDia) {
+      setRangeReserva(update);
+    } else {
+      setRangeReserva([update, update]);
+    }
+  }}
+/>
+
+        {/* MULTI DIA */}
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="checkbox"
+            checked={eventoMultiDia}
+            onChange={(e) => setEventoMultiDia(e.target.checked)}
+          />
+          <span className="text-sm">Mais de um dia</span>
+        </div>
+      </div>
+
+      {/* PESSOAS */}
+      {!isBuffet && (
+        <div className="mb-4">
+          <p className="font-medium mb-2">Quantidade de pessoas</p>
+          <input
+            type="number"
+            min={1}
+            max={espaco.capacidade}
+           value={qtdPessoas === 0 ? "" : qtdPessoas}
+            onChange={(e) => setQtdPessoas(Number(e.target.value))}
+            className="w-full border p-3 rounded-xl"
+          />
+        </div>
+      )}
+
+      {/* BOTÃO CONFIRMAR */}
+      <button
+        onClick={() => {
+          setAbrirSelecaoMobile(false);
+        }}
+        className="w-full bg-[#02aeee] text-white py-4 rounded-xl font-semibold"
+      >
+        Confirmar
+      </button>
+    </div>
+  </div>
+)}
+
+
+{isMobile && (
+  <div className="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 p-4 z-50 flex items-center justify-between">
+
+    {/* PREÇO */}
+   <div>
+  <p className="text-xs text-gray-500">
+    {startReserva
+      ? `${startReserva.toLocaleDateString()} ${
+          endReserva ? " - " + endReserva.toLocaleDateString() : ""
+        }`
+      : "Selecionar data"}
+  </p>
+
+  <p className="font-bold text-sm text-gray-900 dark:text-white">
+    {isBuffet
+      ? `${valorSelecionado?.convidados || 0} convidados`
+      : `${qtdPessoas} pessoas`}
+  </p>
+
+  <p className="font-bold text-lg text-gray-900 dark:text-white">
+    {isBuffet
+      ? precoSelecionado.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })
+      : totalCalculado.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}
+  </p>
+</div>
+
+    {/* BOTÃO */}
+<div className="flex items-center gap-2">
+
+  {/* BOTÃO EDITAR / SELECIONAR */}
+  <button
+    onClick={() => {
+      if (!isLogged) {
+        toast.error("Você precisa estar logado!");
+        return;
+      }
+
+      setAbrirSelecaoMobile(true);
+    }}
+    className="px-4 py-3 rounded-xl border border-gray-300 dark:border-slate-600 text-sm font-medium"
+  >
+    {startReserva ? "Editar" : "Selecionar"}
+  </button>
+
+  {/* BOTÃO RESERVAR */}
+ <button
+  onClick={handleAbrirModalReserva}
+  disabled={!reservaCompleta}
+  className={`px-5 py-3 rounded-xl font-semibold ${
+    reservaCompleta
+      ? "bg-[#02aeee] text-white"
+      : "bg-gray-300 text-gray-500"
+  }`}
+>
+  Reservar
+</button>
+
+</div>
+  </div>
+)}
+
     </main>
   );
 }

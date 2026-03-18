@@ -1,12 +1,23 @@
-// src/components/NavbarWrapper.tsx
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import Navbar from "./navbar";
 import Navbar2 from "./navbar2";
 
 export default function NavbarWrapper() {
   const pathname = usePathname();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Rotas que devem mostrar a Navbar2
   const navbar2Paths = [
@@ -21,29 +32,39 @@ export default function NavbarWrapper() {
   const noNavbarPaths = [
     "/locatario/perfil",
     "/locatario/favoritos",
+    "/favoritos",
     "/locatario/pagamentos",
     "/locatario/preferencias",
     "/locatario/reservas",
     "/locatario/seguranca",
     "/anfitriao/espacos",
     "/app/suporte-locador",
-    "/locatario/avaliacoes", // 👈 REMOVI A VÍRGULA EXTRA AQUI
+    "/locatario/avaliacoes",
     "/anfitriao"
   ];
 
-  // 👇 CORREÇÃO: Verifica se pathname existe antes de usar
+  // 👇 NOVO: esconder navbar no mobile na página de espaço
+  const hideOnMobilePaths = ["/espaco"];
+
   if (!pathname) {
-    return <Navbar />; // Retorna navbar padrão se não houver pathname
+    return <Navbar />;
+  }
+
+  // 🔥 PRIORIDADE: esconder no mobile
+  if (
+    hideOnMobilePaths.some((path) => pathname.startsWith(path)) &&
+    isMobile
+  ) {
+    return null;
   }
 
   if (noNavbarPaths.some((path) => pathname.startsWith(path))) {
-    return null; // nenhuma navbar
+    return null;
   }
 
   if (navbar2Paths.some((path) => pathname.startsWith(path))) {
     return <Navbar2 />;
   }
 
-  // padrão
   return <Navbar />;
 }

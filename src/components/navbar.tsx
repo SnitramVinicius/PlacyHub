@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, Search, ArrowLeft } from "lucide-react";
+import { Menu, Search, ArrowLeft, Heart, Calendar, User, LayoutDashboard } from "lucide-react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
@@ -179,7 +179,7 @@ export default function Navbar() {
           ${shrink ? "h-20 py-3 shadow-md" : "h-24 md:h-40 py-3 md:py-10 shadow-sm"}`}
       >
         {/* LOGO - Esconder em mobile quando a busca estiver ativa */}
-        {(!isMobile || !showMobileSearch) && (
+        {!isMobile && (
           <button 
             aria-label="Ir para home" 
             onClick={() => router.push("/")} 
@@ -195,7 +195,7 @@ export default function Navbar() {
           {isMobile && !showMobileSearch && (
             <button
               onClick={() => setShowMobileSearch(true)}
-              className="w-full flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 shadow-sm border border-gray-200"
+              className="w-full flex items-center justify-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 shadow-sm border border-gray-200"
             >
               <Search size={18} className="text-gray-500" />
               <span className="text-sm text-gray-500">Onde e quando?</span>
@@ -204,7 +204,7 @@ export default function Navbar() {
 
           {/* MOBILE - Tela de busca expandida */}
           {isMobile && showMobileSearch && (
-            <div className="fixed inset-0 bg-white z-[60]">
+            <div className="fixed inset-0 bg-white z-[999] h-screen w-screen overflow-y-auto isolate">
               {/* Header da busca mobile */}
               <div className="flex items-center gap-3 p-4 border-b">
                 <button 
@@ -392,7 +392,7 @@ export default function Navbar() {
         </div>
 
         {/* MENU DIREITO - Esconder em mobile quando a busca estiver ativa */}
-        {(!isMobile || !showMobileSearch) && (
+       {!isMobile && (
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
             {!isAnfitriao && !isMobile && (
               <button
@@ -432,7 +432,7 @@ export default function Navbar() {
       </div>
 
       {/* Espaço para empurrar conteúdo - Ajustado para mobile */}
-      <div className={shrink ? "h-20" : isMobile ? "h-24" : "h-40"} />
+    <div className={shrink ? "h-20" : isMobile ? "h-32" : "h-40"} />
 
       {/* MENU DROPDOWN USUÁRIO (mantido igual) */}
       {isOpen && (
@@ -460,7 +460,7 @@ export default function Navbar() {
 
               {isAnfitriao && <div className="my-1 border-t border-gray-200 dark:border-gray-700" />}
               
-              {isAnfitriao && (
+              {user && isAnfitriao && (
                 <Link
                   href="./anfitriao"
                   onClick={() => setIsOpen(false)}
@@ -537,6 +537,74 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+{isMobile && !showMobileSearch && (
+  <div className="fixed bottom-0 left-0 w-full h-16 bg-white border-t border-gray-200 flex items-center justify-center z-50">
+
+    <div className="flex items-center gap-10">
+
+      {/* BUSCAR */}
+      <button
+        onClick={() => setShowMobileSearch(true)}
+        className="flex flex-col items-center text-xs text-gray-600"
+      >
+        <Search size={20} />
+        <span>Explorar</span>
+      </button>
+
+      {/* NÃO LOGADO */}
+      {!user && (
+        <button
+          onClick={() => router.push("/login")}
+          className="flex flex-col items-center text-xs text-sky-500 font-semibold"
+        >
+          <User size={20} />
+          <span>Entrar</span>
+        </button>
+      )}
+
+      {/* LOGADO */}
+      {user && (
+        <>
+          <button
+            onClick={() => router.push("/favoritos")}
+            className="flex flex-col items-center text-xs text-gray-600"
+          >
+            <Heart size={20} />
+            <span>Favoritos</span>
+          </button>
+
+          <button
+            onClick={() => router.push("/locatario/reservas")}
+            className="flex flex-col items-center text-xs text-gray-600"
+          >
+            <Calendar size={20} />
+            <span>Reservas</span>
+          </button>
+
+          {isAnfitriao && (
+            <button
+              onClick={() => router.push("/anfitriao")}
+              className="flex flex-col items-center text-xs text-gray-600"
+            >
+              <LayoutDashboard size={20} />
+              <span>Anfitrião</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => router.push("/locatario/perfil")}
+            className="flex flex-col items-center text-xs text-gray-600"
+          >
+            <User size={20} />
+            <span>Perfil</span>
+          </button>
+        </>
+      )}
+
+    </div>
+  </div>
+)}
 
       <style jsx>{`
         @keyframes fadeIn {
