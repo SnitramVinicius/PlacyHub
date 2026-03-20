@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, X } from "lucide-react";
+import { Eye, EyeOff, X, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import type { Role } from "@/types/role"; //
+import type { Role } from "@/types/role";
 import { toast } from "sonner";
 
 interface EstadoIBGE {
@@ -102,61 +102,83 @@ export default function CadastroLocatario() {
 
     localStorage.setItem("usuario", JSON.stringify(payload));
 
-login({
-  name: payload.nome!,
-  email: payload.email!,
-  roles: payload.roles as Role[],
-  telefone: payload.telefone,
-  cidade: payload.cidade,
-  estado: payload.estado,
-});
+    login({
+      name: payload.nome!,
+      email: payload.email!,
+      roles: payload.roles as Role[],
+      telefone: payload.telefone,
+      cidade: payload.cidade,
+      estado: payload.estado,
+    });
 
     toast.success("Conta criada com sucesso!");
     setTimeout(() => router.push("/"), 1500);
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Logo no topo */}
+      <div className="flex justify-center pt-6 pb-2">
+        <Link href="/">
+          <img src="/placyhub.png" alt="PlacyHub Logo" className="h-12 w-auto" />
+        </Link>
+      </div>
 
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h1 className="text-2xl font-semibold text-gray-800">
+      <div className="max-w-2xl mx-auto px-4 py-4 sm:py-6">
+        {/* Botão Voltar */}
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 
+            hover:text-sky-600 dark:hover:text-sky-400 transition-colors mb-4"
+        >
+          <ArrowLeft size={18} />
+          <span>Voltar para o login</span>
+        </Link>
+
+        {/* Card do formulário */}
+        <div className="bg-white dark:bg-gray-800 p-6 sm:p-8">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-gray-100">
             Crie sua conta no PlacyHub
           </h1>
-          <p className="text-gray-500 text-sm mt-1 mb-8">
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 mb-6 sm:mb-8">
             Comece a alugar os melhores espaços da sua cidade.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nome completo" name="nome" />
-              <Input label="E-mail" name="email" type="email" />
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input label="Nome completo" name="nome" required />
+              <Input label="E-mail" name="email" type="email" required />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <PasswordInput
                 label="Senha"
                 name="senha"
                 show={mostrarSenha}
                 toggle={() => setMostrarSenha(!mostrarSenha)}
+                required
               />
               <PasswordInput
                 label="Confirmar senha"
                 name="confirmarSenha"
                 show={mostrarConfirmarSenha}
-                toggle={() =>
-                  setMostrarConfirmarSenha(!mostrarConfirmarSenha)
-                }
+                toggle={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
+                required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Telefone" name="telefone" />
-              <Input label="Cidade" name="cidade" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input label="Telefone" name="telefone" required />
+              <Input label="Cidade" name="cidade" required />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select label="Estado" name="estado" disabled={loadingEstados}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select 
+                label="Estado" 
+                name="estado" 
+                disabled={loadingEstados}
+                required
+              >
                 <option value="">
                   {loadingEstados ? "Carregando..." : "Selecione"}
                 </option>
@@ -174,24 +196,26 @@ login({
               />
             </div>
 
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input type="checkbox" name="termos" />
-              Aceito os{" "}
-              <button
-                type="button"
-                onClick={() => setModalAberto("termos")}
-                className="text-sky-600 hover:underline"
-              >
-                Termos de Uso
-              </button>{" "}
-              e a{" "}
-              <button
-                type="button"
-                onClick={() => setModalAberto("privacidade")}
-                className="text-sky-600 hover:underline"
-              >
-                Política de Privacidade
-              </button>
+            <label className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <input type="checkbox" name="termos" className="mt-1" />
+              <span>
+                Aceito os{" "}
+                <button
+                  type="button"
+                  onClick={() => setModalAberto("termos")}
+                  className="text-sky-600 dark:text-sky-400 hover:underline"
+                >
+                  Termos de Uso
+                </button>{" "}
+                e a{" "}
+                <button
+                  type="button"
+                  onClick={() => setModalAberto("privacidade")}
+                  className="text-sky-600 dark:text-sky-400 hover:underline"
+                >
+                  Política de Privacidade
+                </button>
+              </span>
             </label>
 
             <button
@@ -201,9 +225,9 @@ login({
               Criar conta
             </button>
 
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
               Já tem uma conta?{" "}
-              <Link href="/login" className="text-sky-600 hover:underline">
+              <Link href="/login" className="text-sky-600 dark:text-sky-400 hover:underline">
                 Entrar
               </Link>
             </p>
@@ -211,6 +235,7 @@ login({
         </div>
       </div>
 
+      {/* Modal */}
       {modalAberto && (
         <Modal
           titulo={
@@ -221,31 +246,41 @@ login({
           onClose={() => setModalAberto(null)}
         />
       )}
-    </>
+    </div>
   );
 }
 
 /* 🔹 COMPONENTES */
 
-function Input({ label, ...props }: any) {
+function Input({ label, required, ...props }: any) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm text-gray-600">{label}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <input
         {...props}
-        className="border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
+        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 
+          focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition
+          bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
       />
     </div>
   );
 }
 
-function Select({ label, children, ...props }: any) {
+function Select({ label, children, required, ...props }: any) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm text-gray-600">{label}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <select
         {...props}
-        className="border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
+        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 
+          focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition
+          bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
       >
         {children}
       </select>
@@ -253,19 +288,24 @@ function Select({ label, children, ...props }: any) {
   );
 }
 
-function PasswordInput({ label, name, show, toggle }: any) {
+function PasswordInput({ label, name, show, toggle, required }: any) {
   return (
     <div className="flex flex-col gap-1 relative">
-      <label className="text-sm text-gray-600">{label}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <input
         type={show ? "text" : "password"}
         name={name}
-        className="border border-gray-300 rounded-xl px-3 py-2 pr-10 focus:ring-2 focus:ring-sky-500 outline-none"
+        className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 pr-10 
+          focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition
+          bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
       />
       <button
         type="button"
         onClick={toggle}
-        className="absolute right-3 top-8 text-gray-500"
+        className="absolute right-3 top-9 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
       >
         {show ? <EyeOff size={18} /> : <Eye size={18} />}
       </button>
@@ -275,18 +315,20 @@ function PasswordInput({ label, name, show, toggle }: any) {
 
 function Modal({ titulo, onClose }: { titulo: string; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 relative">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full p-6 relative">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <X size={18} />
         </button>
 
-        <h2 className="text-lg font-semibold mb-4">{titulo}</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+          {titulo}
+        </h2>
 
-        <div className="text-sm text-gray-600 space-y-3 max-h-[60vh] overflow-y-auto">
+        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-3 max-h-[60vh] overflow-y-auto">
           <p>
             Este é um texto exemplo. Em produção, este conteúdo deve vir do
             backend ou CMS, permitindo versionamento e auditoria legal.
@@ -296,6 +338,13 @@ function Modal({ titulo, onClose }: { titulo: string; onClose: () => void }) {
             práticas da plataforma.
           </p>
         </div>
+
+        <button
+          onClick={onClose}
+          className="mt-4 w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl font-medium transition"
+        >
+          Fechar
+        </button>
       </div>
     </div>
   );

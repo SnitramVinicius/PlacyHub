@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "./navbar";
-import Navbar2 from "./navbar2";
+
 
 export default function NavbarWrapper() {
   const pathname = usePathname();
@@ -19,20 +19,11 @@ export default function NavbarWrapper() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Rotas que devem mostrar a Navbar2
-  const navbar2Paths = [
-    "/login",
-    "/cadastro/locatario",
-    "/anfitriao/cadastro",
-    "/anfitriao/espacos/novo",
-    "/esqueci-senha",
-  ];
 
   // Rotas que não devem mostrar nenhuma navbar
   const noNavbarPaths = [
     "/locatario/perfil",
     "/locatario/favoritos",
-    "/favoritos",
     "/locatario/pagamentos",
     "/locatario/preferencias",
     "/locatario/reservas",
@@ -40,7 +31,10 @@ export default function NavbarWrapper() {
     "/anfitriao/espacos",
     "/app/suporte-locador",
     "/locatario/avaliacoes",
-    "/anfitriao"
+    "/anfitriao",
+    "/login",
+    "/esqueci-senha",
+    "/cadastro/locatario"
   ];
 
   // 👇 NOVO: esconder navbar no mobile na página de espaço
@@ -62,9 +56,6 @@ export default function NavbarWrapper() {
     return null;
   }
 
-  if (navbar2Paths.some((path) => pathname.startsWith(path))) {
-    return <Navbar2 />;
-  }
-
+ 
   return <Navbar />;
 }

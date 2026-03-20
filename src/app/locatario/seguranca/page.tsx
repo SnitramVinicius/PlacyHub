@@ -18,6 +18,17 @@ export default function GerenciarSeguranca() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [autenticacao2FA, setAutenticacao2FA] = useState(false);
   const [devices, setDevices] = useState<any[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar mobile
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     async function loadDevices() {
@@ -105,127 +116,150 @@ export default function GerenciarSeguranca() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Cabeçalho com botão voltar */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
         <Link
           href="/locatario/perfil"
-          className="text-sky-500 hover:text-sky-600 flex items-center gap-1"
+          className="text-sky-500 hover:text-sky-600 flex items-center gap-1 w-fit"
         >
-          <ArrowLeft size={18} /> Voltar
+          <ArrowLeft size={18} /> 
+          <span>Voltar</span>
         </Link>
-        <h1 className="text-2xl font-bold">Segurança da Conta</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Segurança da Conta
+        </h1>
       </div>
-      {/* Alterar Senha */}{" "}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        {" "}
+
+      {/* Alterar Senha */}
+      <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-2xl shadow mb-4 md:mb-6">
         <div className="flex items-center gap-2 mb-4">
-          {" "}
-          <Lock className="text-sky-500" size={22} />{" "}
-          <h2 className="text-lg font-semibold">Alterar Senha</h2>{" "}
-        </div>{" "}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {" "}
+          <Lock className="text-sky-500" size={22} />
+          <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Alterar Senha
+          </h2>
+        </div>
+        
+        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
           <input
             type="password"
             placeholder="Senha atual"
             value={senhaAtual}
             onChange={(e) => setSenhaAtual(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
-          />{" "}
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 md:py-2 
+              bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+              focus:ring-2 focus:ring-sky-500 outline-none transition"
+          />
           <input
             type="password"
             placeholder="Nova senha"
             value={novaSenha}
             onChange={(e) => setNovaSenha(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
-          />{" "}
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 md:py-2 
+              bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+              focus:ring-2 focus:ring-sky-500 outline-none transition"
+          />
           <input
             type="password"
             placeholder="Confirmar nova senha"
             value={confirmarSenha}
             onChange={(e) => setConfirmarSenha(e.target.value)}
-            className="border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
-          />{" "}
-        </div>{" "}
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 md:py-2 
+              bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+              focus:ring-2 focus:ring-sky-500 outline-none transition"
+          />
+        </div>
+        
         <button
           onClick={handleAlterarSenha}
-          className="mt-4 bg-sky-500 text-white px-4 py-2 rounded-xl font-semibold hover:bg-sky-600 transition flex items-center gap-2"
+          className="mt-4 w-full md:w-auto bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 md:py-2 rounded-xl font-semibold transition flex items-center justify-center gap-2"
         >
-          {" "}
-          <Save size={16} /> Salvar Nova Senha{" "}
-        </button>{" "}
-      </div>
-      {/* 2FA */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="text-sky-500" size={26} />
-          <div>
-            <h3 className="font-semibold">Autenticação em Duas Etapas</h3>
-            <p className="text-sm text-gray-500">
-              Proteja sua conta com uma camada extra.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={handleToggle2FA}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            autenticacao2FA
-              ? "bg-red-100 text-red-600 hover:bg-red-200"
-              : "bg-sky-100 text-sky-600 hover:bg-sky-200"
-          }`}
-        >
-          {autenticacao2FA ? "Desativar" : "Ativar"}
+          <Save size={16} />
+          <span>Salvar Nova Senha</span>
         </button>
       </div>
+
+      {/* 2FA */}
+      <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-2xl shadow mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <ShieldCheck className="text-sky-500" size={26} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                Autenticação em Duas Etapas
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Proteja sua conta com uma camada extra de segurança
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggle2FA}
+            className={`w-full sm:w-auto px-4 py-3 md:py-2 rounded-xl text-sm font-medium transition ${
+              autenticacao2FA
+                ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50"
+                : "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 hover:bg-sky-200 dark:hover:bg-sky-900/50"
+            }`}
+          >
+            {autenticacao2FA ? "Desativar 2FA" : "Ativar 2FA"}
+          </button>
+        </div>
+      </div>
+
       {/* DISPOSITIVOS */}
-      <div className="bg-white p-6 rounded-2xl shadow">
+      <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-2xl shadow">
         <div className="flex items-center gap-2 mb-4">
-          <Smartphone className="text-sky-500" />
-          <h2 className="font-semibold text-lg">Dispositivos Conectados</h2>
+          <Smartphone className="text-sky-500" size={22} />
+          <h2 className="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Dispositivos Conectados
+          </h2>
         </div>
 
         {devices.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
             Nenhum dispositivo registrado.
           </p>
         )}
 
-        <ul className="space-y-4">
+        <ul className="space-y-3">
           {devices.map((device) => (
             <li
               key={device.id}
-              className="flex justify-between items-center border rounded-xl p-4"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4"
             >
-              <div>
-                <p className="text-sm font-medium text-gray-800">
-                  📱 Dispositivo
-                </p>
-                <p className="text-xs text-gray-500 truncate max-w-md">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                    📱 {device.name || "Dispositivo"}
+                  </span>
+                  {device.atual && (
+                    <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                      Dispositivo atual
+                    </span>
+                  )}
+                </div>
+                
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {device.userAgent}
                 </p>
 
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                   Último acesso: {new Date(device.lastAccess).toLocaleString()}
                 </p>
               </div>
 
-              <button
-                onClick={() => handleEncerrarDispositivo(device.id)}
-                className="
-                  flex items-center gap-1
-                  px-3 py-1
-                  text-xs font-medium
-                  text-red-600
-                  border border-red-200
-                  rounded-lg
-                  hover:bg-red-50
-                  transition
-                "
-              >
-                <LogOut size={12} />
-                Encerrar
-              </button>
+              {!device.atual && (
+                <button
+                  onClick={() => handleEncerrarDispositivo(device.id)}
+                  className="flex items-center justify-center gap-1 px-4 py-2 sm:px-3 sm:py-1 text-sm sm:text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition whitespace-nowrap"
+                >
+                  <LogOut size={14} />
+                  <span>Encerrar</span>
+                </button>
+              )}
             </li>
           ))}
         </ul>

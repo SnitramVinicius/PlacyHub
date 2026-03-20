@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, Search, ArrowLeft, Heart, Calendar, User, LayoutDashboard } from "lucide-react";
+import { Menu, Search, ArrowLeft, Heart, Calendar, User, LayoutDashboard, X } from "lucide-react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
@@ -150,6 +150,20 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Função simplificada para o botão Explorar - apenas volta para home
+  const handleExploreClick = () => {
+    router.push("/");
+  };
+
+  // Função para fechar o modal de busca
+  const closeMobileSearch = () => {
+    setShowMobileSearch(false);
+    setActivePanel(null);
+  };
+
+  // Verifica se está no painel do anfitrião
+  const isPainelAnfitriao = pathname === "/anfitriao" || pathname?.startsWith("/anfitriao/");
+
   // ============================================
   // AGORA SIM, PODEMOS TER RETORNOS CONDICIONAIS
   // ============================================
@@ -170,76 +184,172 @@ export default function Navbar() {
       : startDate.toLocaleDateString("pt-BR")
     : "Selecione as datas";
 
+  const isFavoritosPage = pathname === "/favoritos";
+
   return (
     <>
-      {/* NAVBAR */}
-      <div
-        className={`fixed top-0 left-0 w-full z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 md:px-12
-          transition-all duration-[480ms] ease-[cubic-bezier(0.16,1,0.3,1)] backdrop-blur-xl
-          ${shrink ? "h-20 py-3 shadow-md" : "h-24 md:h-40 py-3 md:py-10 shadow-sm"}`}
-      >
-        {/* LOGO - Esconder em mobile quando a busca estiver ativa */}
-        {!isMobile && (
-          <button 
-            aria-label="Ir para home" 
-            onClick={() => router.push("/")} 
-            className="flex items-center shrink-0"
-          >
-            <img src="/placyhub.png" alt="PlacyHub" className="h-8 md:h-10 w-auto select-none" />
-          </button>
-        )}
-
-        {/* SEARCH */}
-        <div className="flex justify-center flex-1 relative px-2 md:px-4" ref={searchRef}>
-          {/* MOBILE - Botão de busca simplificado */}
-          {isMobile && !showMobileSearch && (
-            <button
-              onClick={() => setShowMobileSearch(true)}
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 shadow-sm border border-gray-200"
+      {/* NAVBAR - SÓ APARECE EM DESKTOP OU QUANDO NÃO É FAVORITOS EM MOBILE */}
+      {(!isMobile || (isMobile && !isFavoritosPage)) && (
+        <div
+          className={`fixed top-0 left-0 w-full z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 md:px-12
+            transition-all duration-[480ms] ease-[cubic-bezier(0.16,1,0.3,1)] backdrop-blur-xl
+            ${shrink ? "h-20 py-3 shadow-md" : "h-24 md:h-40 py-3 md:py-10 shadow-sm"}`}
+        >
+          {/* LOGO - Sempre visível em desktop, mesmo em favoritos */}
+          {!isMobile && (
+            <button 
+              aria-label="Ir para home" 
+              onClick={() => router.push("/")} 
+              className="flex items-center shrink-0"
             >
-              <Search size={18} className="text-gray-500" />
-              <span className="text-sm text-gray-500">Onde e quando?</span>
+              <img src="/placyhub.png" alt="PlacyHub" className="h-8 md:h-10 w-auto select-none" />
             </button>
           )}
 
-          {/* MOBILE - Tela de busca expandida */}
-          {isMobile && showMobileSearch && (
-            <div className="fixed inset-0 bg-white z-[999] h-screen w-screen overflow-y-auto isolate">
-              {/* Header da busca mobile */}
-              <div className="flex items-center gap-3 p-4 border-b">
-                <button 
-                  onClick={() => {
-                    setShowMobileSearch(false);
-                    setActivePanel(null);
-                  }}
-                  className="p-1"
-                >
-                  <ArrowLeft size={24} />
-                </button>
-                <h2 className="font-semibold">Buscar espaços</h2>
-              </div>
+          {/* SEARCH - Só aparece em desktop quando NÃO é favoritos */}
+          <div className="flex justify-center flex-1 relative px-2 md:px-4" ref={searchRef}>
+            {/* MOBILE - Botão de busca simplificado (NUNCA aparece em favoritos) */}
+            {isMobile && !showMobileSearch && !isFavoritosPage && (
+              <button
+                onClick={() => setShowMobileSearch(true)}
+                className="w-full flex items-center justify-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 shadow-sm border border-gray-200"
+              >
+                <Search size={18} className="text-gray-500" />
+                <span className="text-sm text-gray-500">Onde e quando?</span>
+              </button>
+            )}
 
-              {/* Conteúdo da busca mobile */}
-              <div className="p-4 space-y-4">
-                {/* Campo Cidade */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Onde?</label>
-                  <input
-                    type="text"
-                    placeholder="Digite uma cidade"
-                    value={cityQuery}
-                    onChange={(e) => setCityQuery(e.target.value)}
-                    className="w-full p-3 bg-gray-100 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
-                  {cityQuery && filteredCities.length > 0 && (
-                    <div className="bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+            {/* MOBILE - Tela de busca expandida (COM BOTÃO DE FECHAR) */}
+            {isMobile && showMobileSearch && (
+              <div className="fixed inset-0 bg-white z-[999] h-screen w-screen overflow-y-auto">
+                {/* Header com botão de fechar */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+                  <div className="flex items-center justify-between p-4">
+                    <h2 className="text-lg font-semibold">Buscar espaços</h2>
+                    <button
+                      onClick={closeMobileSearch}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                      aria-label="Fechar busca"
+                    >
+                      <X size={24} className="text-gray-600" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Conteúdo da busca mobile */}
+                <div className="p-4 space-y-4">
+                  {/* Campo Cidade */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Onde?</label>
+                    <input
+                      type="text"
+                      placeholder="Digite uma cidade"
+                      value={cityQuery}
+                      onChange={(e) => setCityQuery(e.target.value)}
+                      className="w-full p-3 bg-gray-100 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      autoFocus
+                    />
+                    {cityQuery && filteredCities.length > 0 && (
+                      <div className="bg-white border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {filteredCities.map((c) => (
+                          <div
+                            key={`${c.nome}-${c.uf}`}
+                            onClick={() => {
+                              setCityQuery(`${c.nome}, ${c.uf}`);
+                            }}
+                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 text-sm border-b last:border-b-0"
+                          >
+                            {c.nome}, {c.uf}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Campo Data */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Quando?</label>
+                    <div className="bg-gray-100 p-3 rounded-xl border border-gray-200">
+                      <p className="text-sm text-gray-600 mb-2">{formattedDate}</p>
+                      <DatePicker
+                        selectsRange
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
+                        inline
+                        minDate={minSelectableDate}
+                        locale="pt-BR"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botão Buscar */}
+                  <button
+                    onClick={() => {
+                      if (!cityQuery) {
+                        toast.warning("Selecione uma cidade");
+                        return;
+                      }
+
+                      const start = startDate ? startDate.toISOString().split("T")[0] : "";
+                      const end = endDate ? endDate.toISOString().split("T")[0] : "";
+
+                      setShowMobileSearch(false);
+                      router.push(`/resultados?cidade=${encodeURIComponent(cityQuery)}&start=${start}&end=${end}`);
+                    }}
+                    className="w-full bg-sky-500 hover:bg-sky-600 text-white py-4 rounded-xl font-medium transition-colors"
+                  >
+                    Buscar espaços
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* DESKTOP - Só aparece quando NÃO é favoritos */}
+            {!isMobile && !isFavoritosPage && (
+              <div
+                className={`flex items-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-[420ms] ease-[cubic-bezier(.22,.61,.36,1)]
+                  ${shrink ? "h-12 max-w-[520px]" : "h-16 max-w-[650px]"} w-full ${activePanel !== null ? "shadow-xl" : ""}`}
+              >
+                {/* CAMPO CIDADE */}
+                <div
+                  className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
+                    ${activePanel === "city" ? "bg-gray-200 dark:bg-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
+                  onClick={() => setActivePanel("city")}
+                >
+                  <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Onde</label>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <input
+                      type="text"
+                      placeholder="Cidade do evento"
+                      value={cityQuery}
+                      onChange={(e) => setCityQuery(e.target.value)}
+                      onFocus={() => setActivePanel("city")}
+                      className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none placeholder:text-gray-400"
+                    />
+                    {cityQuery && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCityQuery("");
+                        }}
+                        className="text-gray-400 hover:text-gray-600 ml-2 transition"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {activePanel === "city" && filteredCities.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50 animate-fadeIn">
                       {filteredCities.map((c) => (
                         <div
                           key={`${c.nome}-${c.uf}`}
                           onClick={() => {
                             setCityQuery(`${c.nome}, ${c.uf}`);
+                            setActivePanel(null);
                           }}
-                          className="px-4 py-3 cursor-pointer hover:bg-gray-100 text-sm border-b last:border-b-0"
+                          className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition"
                         >
                           {c.nome}, {c.uf}
                         </div>
@@ -248,193 +358,114 @@ export default function Navbar() {
                   )}
                 </div>
 
-                {/* Campo Data */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Quando?</label>
-                  <div className="bg-gray-100 p-3 rounded-xl border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-2">{formattedDate}</p>
-                    <DatePicker
-                      selectsRange
-                      startDate={startDate}
-                      endDate={endDate}
-                      onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
-                      inline
-                      minDate={minSelectableDate}
-                      locale="pt-BR"
-                    />
-                  </div>
-                </div>
+                {/* DIVISOR */}
+                <div className="w-px h-8 bg-gray-300"></div>
 
-                {/* Botão Buscar */}
-                <button
-                  onClick={() => {
-                    if (!cityQuery) {
-                      toast.warning("Selecione uma cidade");
-                      return;
-                    }
-
-                    const start = startDate ? startDate.toISOString().split("T")[0] : "";
-                    const end = endDate ? endDate.toISOString().split("T")[0] : "";
-
-                    setShowMobileSearch(false);
-                    router.push(`/resultados?cidade=${encodeURIComponent(cityQuery)}&start=${start}&end=${end}`);
-                  }}
-                  className="w-full bg-sky-500 hover:bg-sky-600 text-white py-4 rounded-xl font-medium transition-colors"
+                {/* CAMPO DATA */}
+                <div
+                  className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
+                    ${activePanel === "date" ? "bg-gray-200 dark:bg-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
+                  onClick={() => setActivePanel("date")}
                 >
-                  Buscar espaços
-                </button>
-              </div>
-            </div>
-          )}
+                  <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Quando</label>
+                  <span className={`text-xs ${startDate ? "text-gray-800 dark:text-gray-100" : "text-gray-400"}`}>
+                    {formattedDate}
+                  </span>
 
-          {/* DESKTOP ORIGINAL */}
-          {!isMobile && (
-            <div
-              className={`flex items-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md transition-all duration-[420ms] ease-[cubic-bezier(.22,.61,.36,1)]
-                ${shrink ? "h-12 max-w-[520px]" : "h-16 max-w-[650px]"} w-full ${activePanel !== null ? "shadow-xl" : ""}`}
-            >
-              {/* CAMPO CIDADE */}
-              <div
-                className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
-                  ${activePanel === "city" ? "bg-gray-200 dark:bg-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
-                onClick={() => setActivePanel("city")}
-              >
-                <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Onde</label>
-                <div className="flex items-center justify-between mt-0.5">
-                  <input
-                    type="text"
-                    placeholder="Cidade do evento"
-                    value={cityQuery}
-                    onChange={(e) => setCityQuery(e.target.value)}
-                    onFocus={() => setActivePanel("city")}
-                    className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none placeholder:text-gray-400"
-                  />
-                  {cityQuery && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCityQuery("");
-                      }}
-                      className="text-gray-400 hover:text-gray-600 ml-2 transition"
-                    >
-                      ×
-                    </button>
+                  {activePanel === "date" && (
+                    <div className="absolute top-full left-0 mt-1 z-50 rounded-lg overflow-hidden animate-fadeIn">
+                      <DatePicker
+                        selectsRange
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
+                        inline
+                        minDate={minSelectableDate}
+                        locale="pt-BR"
+                      />
+                    </div>
                   )}
                 </div>
 
-                {activePanel === "city" && filteredCities.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50 animate-fadeIn">
-                    {filteredCities.map((c) => (
-                      <div
-                        key={`${c.nome}-${c.uf}`}
-                        onClick={() => {
-                          setCityQuery(`${c.nome}, ${c.uf}`);
-                          setActivePanel(null);
-                        }}
-                        className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition"
-                      >
-                        {c.nome}, {c.uf}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* BOTÃO BUSCAR */}
+                <button
+                  onClick={() => {
+                    if (!cityQuery) {
+                      toast.warning("Selecione uma cidade para continuar");
+                      return;
+                    }
+                    const start = startDate ? startDate.toISOString().split("T")[0] : "";
+                    const end = endDate ? endDate.toISOString().split("T")[0] : "";
+                    setActivePanel(null);
+                    router.push(`/resultados?cidade=${encodeURIComponent(cityQuery)}&start=${start}&end=${end}`);
+                  }}
+                  className={`bg-sky-500 hover:bg-sky-600 text-white rounded-full flex items-center justify-center shrink-0
+                    transition-all duration-[420ms] ease-[cubic-bezier(.22,.61,.36,1)]
+                    ${shrink ? "h-10 w-10 mr-2" : "h-12 w-12 mr-3"}`}
+                >
+                  <Search size={shrink ? 16 : 18} />
+                </button>
               </div>
+            )}
+          </div>
 
-              {/* DIVISOR */}
-              <div className="w-px h-8 bg-gray-300"></div>
+          {/* MENU DIREITO - Sempre visível em desktop, mesmo em favoritos */}
+          {!isMobile && (
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              {!isAnfitriao && !isMobile && !isFavoritosPage && (
+                <button
+                  onClick={() => setShowBenefitsModal(true)}
+                  className="text-sm pr-1 hover:text-gray-600 transition-colors whitespace-nowrap hidden md:block"
+                >
+                  Tem um espaço para alugar?
+                </button>
+              )}
 
-              {/* CAMPO DATA */}
-              <div
-                className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
-                  ${activePanel === "date" ? "bg-gray-200 dark:bg-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
-                onClick={() => setActivePanel("date")}
-              >
-                <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Quando</label>
-                <span className={`text-xs ${startDate ? "text-gray-800 dark:text-gray-100" : "text-gray-400"}`}>
-                  {formattedDate}
-                </span>
+              {user ? (
+                <>
+                  <button
+                    onClick={() => router.push("/locatario/perfil")}
+                    className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold hover:shadow-md transition-shadow text-sm md:text-base
+                      ${isPainelAnfitriao 
+                        ? "bg-sky-500 text-white hover:bg-sky-600" 
+                        : "bg-gray-300 text-white"
+                      }`}
+                  >
+                    {user.name[0].toUpperCase()}
+                  </button>
 
-                {activePanel === "date" && (
-                  <div className="absolute top-full left-0 mt-1 z-50 rounded-lg overflow-hidden animate-fadeIn">
-                    <DatePicker
-                      selectsRange
-                      startDate={startDate}
-                      endDate={endDate}
-                      onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
-                      inline
-                      minDate={minSelectableDate}
-                      locale="pt-BR"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* BOTÃO BUSCAR */}
-              <button
-                onClick={() => {
-                  if (!cityQuery) {
-                    toast.warning("Selecione uma cidade para continuar");
-                    return;
-                  }
-                  const start = startDate ? startDate.toISOString().split("T")[0] : "";
-                  const end = endDate ? endDate.toISOString().split("T")[0] : "";
-                  setActivePanel(null);
-                  router.push(`/resultados?cidade=${encodeURIComponent(cityQuery)}&start=${start}&end=${end}`);
-                }}
-                className={`bg-sky-500 hover:bg-sky-600 text-white rounded-full flex items-center justify-center shrink-0
-                  transition-all duration-[420ms] ease-[cubic-bezier(.22,.61,.36,1)]
-                  ${shrink ? "h-10 w-10 mr-2" : "h-12 w-12 mr-3"}`}
-              >
-                <Search size={shrink ? 16 : 18} />
-              </button>
+                  <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="p-1.5 md:p-2 border rounded-full hover:shadow-md transition-shadow flex items-center gap-2"
+                  >
+                    <Menu size={18} />
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-3 md:px-4 py-1.5 md:py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  Entrar
+                </Link>
+              )}
             </div>
           )}
         </div>
-
-        {/* MENU DIREITO - Esconder em mobile quando a busca estiver ativa */}
-       {!isMobile && (
-          <div className="flex items-center gap-2 md:gap-3 shrink-0">
-            {!isAnfitriao && !isMobile && (
-              <button
-                onClick={() => setShowBenefitsModal(true)}
-                className="text-sm pr-1 hover:text-gray-600 transition-colors whitespace-nowrap hidden md:block"
-              >
-                Tem um espaço para alugar?
-              </button>
-            )}
-
-            {user ? (
-              <>
-                <button
-                  onClick={() => router.push("/locatario/perfil")}
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold hover:shadow-md transition-shadow text-sm md:text-base"
-                >
-                  {user.name[0].toUpperCase()}
-                </button>
-
-                <button
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="p-1.5 md:p-2 border rounded-full hover:shadow-md transition-shadow flex items-center gap-2"
-                >
-                  <Menu size={18} />
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="px-3 md:px-4 py-1.5 md:py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
-              >
-                Entrar
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Espaço para empurrar conteúdo - Ajustado para mobile */}
-    <div className={shrink ? "h-20" : isMobile ? "h-32" : "h-40"} />
+      <div className={
+        isMobile && isFavoritosPage 
+          ? "h-0" 
+          : shrink 
+            ? "h-20" 
+            : isMobile 
+              ? "h-32" 
+              : "h-40"
+      } />
 
-      {/* MENU DROPDOWN USUÁRIO (mantido igual) */}
+      {/* MENU DROPDOWN USUÁRIO */}
       {isOpen && (
         <div
           ref={menuRef}
@@ -494,7 +525,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* MODAL BENEFÍCIOS (mantido igual) */}
+      {/* MODAL BENEFÍCIOS */}
       {showBenefitsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-6 md:p-8 max-w-lg w-full relative animate-fadeIn">
@@ -538,73 +569,70 @@ export default function Navbar() {
         </div>
       )}
 
-{isMobile && !showMobileSearch && (
-  <div className="fixed bottom-0 left-0 w-full h-16 bg-white border-t border-gray-200 flex items-center justify-center z-50">
-
-    <div className="flex items-center gap-10">
-
-      {/* BUSCAR */}
-      <button
-        onClick={() => setShowMobileSearch(true)}
-        className="flex flex-col items-center text-xs text-gray-600"
-      >
-        <Search size={20} />
-        <span>Explorar</span>
-      </button>
-
-      {/* NÃO LOGADO */}
-      {!user && (
-        <button
-          onClick={() => router.push("/login")}
-          className="flex flex-col items-center text-xs text-sky-500 font-semibold"
-        >
-          <User size={20} />
-          <span>Entrar</span>
-        </button>
-      )}
-
-      {/* LOGADO */}
-      {user && (
-        <>
-          <button
-            onClick={() => router.push("/favoritos")}
-            className="flex flex-col items-center text-xs text-gray-600"
-          >
-            <Heart size={20} />
-            <span>Favoritos</span>
-          </button>
-
-          <button
-            onClick={() => router.push("/locatario/reservas")}
-            className="flex flex-col items-center text-xs text-gray-600"
-          >
-            <Calendar size={20} />
-            <span>Reservas</span>
-          </button>
-
-          {isAnfitriao && (
+      {/* RODAPÉ MOBILE */}
+      {isMobile && !showMobileSearch && (
+        <div className="fixed bottom-0 left-0 w-full h-16 bg-white border-t border-gray-200 flex items-center justify-center z-50">
+          <div className="flex items-center gap-10">
             <button
-              onClick={() => router.push("/anfitriao")}
+              onClick={handleExploreClick}
               className="flex flex-col items-center text-xs text-gray-600"
             >
-              <LayoutDashboard size={20} />
-              <span>Anfitrião</span>
+              <Search size={20} />
+              <span>Explorar</span>
             </button>
-          )}
 
-          <button
-            onClick={() => router.push("/locatario/perfil")}
-            className="flex flex-col items-center text-xs text-gray-600"
-          >
-            <User size={20} />
-            <span>Perfil</span>
-          </button>
-        </>
+            {!user && (
+              <button
+                onClick={() => router.push("/login")}
+                className="flex flex-col items-center text-xs text-sky-500 font-semibold"
+              >
+                <User size={20} />
+                <span>Entrar</span>
+              </button>
+            )}
+
+            {user && (
+              <>
+                <button
+                  onClick={() => router.push("/favoritos")}
+                  className="flex flex-col items-center text-xs text-gray-600"
+                >
+                  <Heart size={20} />
+                  <span>Favoritos</span>
+                </button>
+
+                <button
+                  onClick={() => router.push("/locatario/reservas")}
+                  className="flex flex-col items-center text-xs text-gray-600"
+                >
+                  <Calendar size={20} />
+                  <span>Reservas</span>
+                </button>
+
+                {isAnfitriao && (
+                  <button
+                    onClick={() => router.push("/anfitriao")}
+                    className="flex flex-col items-center text-xs text-gray-600"
+                  >
+                    <LayoutDashboard size={20} />
+                    <span>Anfitrião</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => router.push("/locatario/perfil")}
+                  className={`flex flex-col items-center text-xs ${
+                    isPainelAnfitriao ? "text-sky-500 font-semibold" : "text-gray-600"
+                  }`}
+                >
+                  <User size={20} />
+                  <span>Perfil</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
-
-    </div>
-  </div>
-)}
 
       <style jsx>{`
         @keyframes fadeIn {
