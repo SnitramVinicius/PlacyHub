@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar2 from "@/components/navbar2";
 
 export default function QuemSomos() {
   return (

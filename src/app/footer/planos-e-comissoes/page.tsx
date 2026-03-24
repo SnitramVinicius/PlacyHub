@@ -1,6 +1,5 @@
 "use client";
 
-import Navbar2 from "@/components/navbar2";
 import { CheckCircle } from "lucide-react";
 
 export default function PlanosEComissoes() {
