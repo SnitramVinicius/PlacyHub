@@ -1,6 +1,6 @@
 "use client";
 
-export default function Navbar2() {
+export default function navbar2() {
 
 
     
