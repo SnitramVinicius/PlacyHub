@@ -1,4 +1,6 @@
 "use client";
+import {ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 
 export default function QuemSomos() {
@@ -6,6 +8,25 @@ export default function QuemSomos() {
     <>
       {/* HERO */}
       <section className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center px-6 py-20 bg-white dark:bg-slate-900">
+         <div className="w-full mb-8 flex justify-end">
+                              <Link
+                                href="/"
+                                className="flex items-center justify-center
+                                w-10 h-10 rounded-full
+                                bg-white dark:bg-slate-800
+                                border border-gray-200 dark:border-slate-700
+                                text-gray-500 dark:text-gray-400
+                                hover:bg-gray-50 dark:hover:bg-slate-700
+                                hover:border-gray-300 dark:hover:border-slate-600
+                                hover:text-gray-700 dark:hover:text-gray-200
+                                hover:shadow-sm
+                                transition-all duration-300
+                                group"
+                                aria-label="Voltar"
+                              >
+                                <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
+                              </Link>
+                            </div>
         <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">Quem Somos</h1>
         <p className="text-lg max-w-2xl text-gray-700 dark:text-gray-300">
           O PlacyHub nasceu com a missão de facilitar a locação de espaços para eventos,

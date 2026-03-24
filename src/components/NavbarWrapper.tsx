@@ -34,7 +34,21 @@ export default function NavbarWrapper() {
     "/anfitriao",
     "/login",
     "/esqueci-senha",
-    "/cadastro/locatario"
+    "/cadastro/locatario",
+    "/virar-anfitriao",
+    "/footer/cadastre-seu-espaco",
+    "/footer/como-funciona",
+    "/footer/planos-e-comissoes",
+    "/footer/central-ajuda",
+    "/footer/faq",
+    "/footer/redes-sociais",
+    "/footer/sobre",
+    "/footer/suporte-locador",
+    "/footer/termos",
+    "/footer/privacidade",
+    "/footer/contato",
+    "/footer/cancelamento"
+
   ];
 
   // 👇 NOVO: esconder navbar no mobile na página de espaço

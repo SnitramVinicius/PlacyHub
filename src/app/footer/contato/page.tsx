@@ -1,7 +1,29 @@
+
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 export default function FaleConosco() {
   return (
     <section className="w-full bg-white dark:bg-slate-900 py-16 px-6 md:px-12">
       <div className="max-w-5xl mx-auto text-center">
+        <div className="w-full mb-8 flex justify-end">
+                              <Link
+                                href="/"
+                                className="flex items-center justify-center
+                                w-10 h-10 rounded-full
+                                bg-white dark:bg-slate-800
+                                border border-gray-200 dark:border-slate-700
+                                text-gray-500 dark:text-gray-400
+                                hover:bg-gray-50 dark:hover:bg-slate-700
+                                hover:border-gray-300 dark:hover:border-slate-600
+                                hover:text-gray-700 dark:hover:text-gray-200
+                                hover:shadow-sm
+                                transition-all duration-300
+                                group"
+                                aria-label="Voltar"
+                              >
+                                <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
+                              </Link>
+                            </div>
         <h2 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">Fale Conosco</h2>
        <p className="text-gray-600 dark:text-gray-300 mb-12">
           Precisa de ajuda? Entre em contato com nosso time.

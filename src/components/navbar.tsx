@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, Search, ArrowLeft, Heart, Calendar, User, LayoutDashboard, X } from "lucide-react";
+import { Menu, Search, ArrowLeft, Heart, Calendar, User, LayoutDashboard, X, Home } from "lucide-react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
@@ -570,69 +570,86 @@ export default function Navbar() {
       )}
 
       {/* RODAPÉ MOBILE */}
-      {isMobile && !showMobileSearch && (
-        <div className="fixed bottom-0 left-0 w-full h-16 bg-white border-t border-gray-200 flex items-center justify-center z-50">
-          <div className="flex items-center gap-10">
-            <button
-              onClick={handleExploreClick}
-              className="flex flex-col items-center text-xs text-gray-600"
-            >
-              <Search size={20} />
-              <span>Explorar</span>
-            </button>
+{isMobile && !showMobileSearch && (
+  <div className="fixed bottom-0 left-0 w-full h-16 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-center z-50">
+    <div className="flex items-center justify-around w-full px-2">
+      <button
+        onClick={handleExploreClick}
+        className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
+      >
+        <Search size={20} />
+        <span>Explorar</span>
+      </button>
 
-            {!user && (
-              <button
-                onClick={() => router.push("/login")}
-                className="flex flex-col items-center text-xs text-sky-500 font-semibold"
-              >
-                <User size={20} />
-                <span>Entrar</span>
-              </button>
-            )}
-
-            {user && (
-              <>
-                <button
-                  onClick={() => router.push("/favoritos")}
-                  className="flex flex-col items-center text-xs text-gray-600"
-                >
-                  <Heart size={20} />
-                  <span>Favoritos</span>
-                </button>
-
-                <button
-                  onClick={() => router.push("/locatario/reservas")}
-                  className="flex flex-col items-center text-xs text-gray-600"
-                >
-                  <Calendar size={20} />
-                  <span>Reservas</span>
-                </button>
-
-                {isAnfitriao && (
-                  <button
-                    onClick={() => router.push("/anfitriao")}
-                    className="flex flex-col items-center text-xs text-gray-600"
-                  >
-                    <LayoutDashboard size={20} />
-                    <span>Anfitrião</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => router.push("/locatario/perfil")}
-                  className={`flex flex-col items-center text-xs ${
-                    isPainelAnfitriao ? "text-sky-500 font-semibold" : "text-gray-600"
-                  }`}
-                >
-                  <User size={20} />
-                  <span>Perfil</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+      {!user && (
+        <button
+          onClick={() => router.push("/login")}
+          className="flex flex-col items-center text-xs text-sky-500 dark:text-sky-400 font-semibold"
+        >
+          <User size={20} />
+          <span>Entrar</span>
+        </button>
       )}
+
+      {user && (
+        <>
+          {!isAnfitriao && (
+            <button
+              onClick={() => {
+                if (!user) {
+                  router.push("/login?redirect=/virar-anfitriao");
+                } else {
+                  router.push("/virar-anfitriao");
+                }
+              }}
+              className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
+            >
+              <Home size={20} />
+              <span>Anunciar</span>
+            </button>
+          )}
+          <button
+            onClick={() => router.push("/favoritos")}
+            className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
+          >
+            <Heart size={20} />
+            <span>Favoritos</span>
+          </button>
+
+          <button
+            onClick={() => router.push("/locatario/reservas")}
+            className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
+          >
+            <Calendar size={20} />
+            <span>Reservas</span>
+          </button>
+
+          {isAnfitriao && (
+            <button
+              onClick={() => router.push("/anfitriao")}
+              className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
+            >
+              <LayoutDashboard size={20} />
+              <span>Anfitrião</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => router.push("/locatario/perfil")}
+            className={`flex flex-col items-center text-xs ${
+              isPainelAnfitriao 
+                ? "text-sky-500 dark:text-sky-400 font-semibold" 
+                : "text-gray-600 dark:text-gray-400"
+            }`}
+          >
+            <User size={20} />
+            <span>Perfil</span>
+          </button>
+        </>
+      )}
+    </div>
+  </div>
+)}
 
       <style jsx>{`
         @keyframes fadeIn {

@@ -53,20 +53,23 @@ export default function FavoritosPage() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
    {/* BOTÃO VOLTAR */}
-<div className="flex w-full mb-8">
+<div className="w-full mb-8 flex justify-end">
   <Link
     href="/"
-    className="flex items-center gap-2 ml-auto 
-    border border-gray-300 dark:border-slate-600
-    px-4 py-2 rounded-full shadow-sm
+    className="flex items-center justify-center
+    w-10 h-10 rounded-full
     bg-white dark:bg-slate-800
-    text-gray-700 dark:text-gray-200
-    font-medium
-    hover:bg-gray-100 dark:hover:bg-slate-700
-    hover:shadow-md
-    transition-all duration-200"
+    border border-gray-200 dark:border-slate-700
+    text-gray-500 dark:text-gray-400
+    hover:bg-gray-50 dark:hover:bg-slate-700
+    hover:border-gray-300 dark:hover:border-slate-600
+    hover:text-gray-700 dark:hover:text-gray-200
+    hover:shadow-sm
+    transition-all duration-300
+    group"
+    aria-label="Voltar"
   >
-    <ArrowLeft size={18} /> Voltar
+    <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
   </Link>
 </div>
       {/* ⭐ Mensagem especial se estiver logado */}

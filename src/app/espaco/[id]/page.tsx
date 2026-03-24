@@ -329,23 +329,25 @@ const total = isBuffet
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 pb-24 text-gray-900 dark:text-gray-100">
     {/* BOTÃO VOLTAR */}
-<div className="flex w-full mb-8">
-  <Link
-    href="/"
-    className="flex items-center gap-2 ml-auto 
-    border border-gray-300 dark:border-slate-600
-    px-4 py-2 rounded-full shadow-sm
-    bg-white dark:bg-slate-800
-    text-gray-700 dark:text-gray-200
-    font-medium
-    hover:bg-gray-100 dark:hover:bg-slate-700
-    hover:shadow-md
-    transition-all duration-200"
-  >
-    <ArrowLeft size={18} /> Voltar
-  </Link>
-</div>
-
+<div className="w-full mb-8 flex justify-end">
+                              <Link
+                                href="/"
+                                className="flex items-center justify-center
+                                w-10 h-10 rounded-full
+                                bg-white dark:bg-slate-800
+                                border border-gray-200 dark:border-slate-700
+                                text-gray-500 dark:text-gray-400
+                                hover:bg-gray-50 dark:hover:bg-slate-700
+                                hover:border-gray-300 dark:hover:border-slate-600
+                                hover:text-gray-700 dark:hover:text-gray-200
+                                hover:shadow-sm
+                                transition-all duration-300
+                                group"
+                                aria-label="Voltar"
+                              >
+                                <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
+                              </Link>
+                            </div>
       <h1 className="text-4xl font-bold mb-6">{espaco.nome}</h1>
 
       {/* IMAGEM PRINCIPAL */}
@@ -430,7 +432,7 @@ const total = isBuffet
             </button>
 
             {/* Título */}
-            <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 dark:text-gray-100">Confirmar Alteração</h2>
+            <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100">Confirmar Alteração</h2>
 
             {/* Resumo da reserva */}
             <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-700 rounded-xl border border-gray-200 dark:border-slate-600 shadow-sm">
@@ -533,7 +535,7 @@ const total = isBuffet
                             if (v > espaco.capacidade) v = espaco.capacidade;
                             setQtdPessoas(v);
                           }}
-                          className="w-full px-3 py-2 border border border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
+                          className="w-full px-3 py-2 border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
                           placeholder={`máx. ${espaco.capacidade}`}
                         />
                       </div>
@@ -699,8 +701,8 @@ const total = isBuffet
           {/* DESCRIÇÃO */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">Descrição</h2>
-            <p className="text-gray-700 dark:text-gray-200 leading-relaxed dark:text-gray-100">{espaco.descricao ?? descricaoPadrao}</p>
-            <p className="text-gray-600 dark:text-gray-300 mt-2 dark:text-gray-100">
+            <p className="text-gray-700 dark:text-gray-200 leading-relaxed ">{espaco.descricao ?? descricaoPadrao}</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2 ">
               {espaco.cidade} — {espaco.bairro}
             </p>
 
@@ -730,7 +732,7 @@ const total = isBuffet
         <h2 className="text-2xl font-semibold mb-3">
           Facilidades incluídas
         </h2>
-        <ul className="space-y-1 text-gray-700 dark:text-gray-200 dark:text-gray-100">
+        <ul className="space-y-1 text-gray-700 dark:text-gray-200 ">
           {espaco.facilidades.map((item, i) => (
             <li key={i}>• {item}</li>
           ))}
@@ -745,7 +747,7 @@ const total = isBuffet
         <h2 className="text-2xl font-semibold mb-3">
           Regras do local
         </h2>
-        <ul className="space-y-1 text-gray-700 dark:text-gray-200 dark:text-gray-100">
+        <ul className="space-y-1 text-gray-700 dark:text-gray-200 ">
           {espaco.regras.map((item, i) => (
             <li key={i}>• {item}</li>
           ))}
@@ -761,7 +763,7 @@ const total = isBuffet
           {espaco.servicosAdicionais && (
             <section>
               <h2 className="text-2xl font-semibold mb-3">Serviços adicionais</h2>
-              <ul className="list-disc text-gray-700 dark:text-gray-200 ml-6 dark:text-gray-100">
+              <ul className="list-disc text-gray-700 dark:text-gray-200 ml-6 ">
                 {espaco.servicosAdicionais.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
@@ -773,7 +775,7 @@ const total = isBuffet
  <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 space-y-6">
   <h2 className="text-2xl font-semibold">Buffet e Pacotes</h2>
 
- <p className="text-gray-600 dark:text-gray-300 dark:text-gray-300">
+ <p className="text-gray-600 dark:text-gray-300 ">
     {espaco.buffet?.descricao}
   </p>
 
@@ -816,7 +818,7 @@ const total = isBuffet
                     <h4 className="font-semibold text-lg">
                       {pacote.nome}
                     </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 dark:text-gray-300">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
                       {pacote.descricao}
                     </p>
                   </div>
@@ -828,7 +830,7 @@ const total = isBuffet
 
                 {/* Itens inclusos */}
                 <div>
-                  <p className="font-medium text-sm mb-1 text-gray-800 dark:text-gray-100 dark:text-gray-200">Inclui:</p>
+                  <p className="font-medium text-sm mb-1 text-gray-800 dark:text-gray-100 ">Inclui:</p>
                   <div className="flex flex-wrap gap-2">
                     {pacote.itensInclusos.map((item, k) => (
                       <span
@@ -960,7 +962,7 @@ const total = isBuffet
                         />
                       ))}
                     </div>
-                    <p className="text-gray-700 dark:text-gray-200 text-sm mt-1 dark:text-gray-100">{a.comentario}</p>
+                    <p className="text-gray-700  text-sm mt-1 dark:text-gray-100">{a.comentario}</p>
                   </div>
                 </div>
               ))}

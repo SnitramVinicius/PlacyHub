@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface Estado {
   sigla: string;
@@ -36,25 +38,25 @@ export default function VirarAnfitriao() {
   const [draft, setDraft] = useState<Step1Data | null>(null);
 
   /* ========================== PROTEÇÃO =========================== */
-useEffect(() => {
-  if (!user) return;
+  useEffect(() => {
+    if (!user) return;
 
-  // só redireciona se NÃO estiver no meio do fluxo
-  if (isAnfitriao && step === 1) {
-    router.replace("/anfitriao");
-  }
-}, [user, isAnfitriao, step, router]);
+    // só redireciona se NÃO estiver no meio do fluxo
+    if (isAnfitriao && step === 1) {
+      router.replace("/anfitriao");
+    }
+  }, [user, isAnfitriao, step, router]);
 
   /* ========================== RESTAURA STEP 1 =========================== */
-useEffect(() => {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
 
-  if (raw) {
-    const parsed: Step1Data = JSON.parse(raw);
-    setDraft(parsed);
-    // 🚫 NÃO muda o step aqui
-  }
-}, []);
+    if (raw) {
+      const parsed: Step1Data = JSON.parse(raw);
+      setDraft(parsed);
+      // 🚫 NÃO muda o step aqui
+    }
+  }, []);
 
   /* ========================== ESTADOS (IBGE) =========================== */
   useEffect(() => {
@@ -145,18 +147,17 @@ useEffect(() => {
       );
 
       // ✅ FORMA CORRETA (atualiza token + contexto)
-     try {
-  await virarAnfitriao(cpf);
+      try {
+        await virarAnfitriao(cpf);
 
-  localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY);
 
-  toast.success("Agora você é um anfitrião");
+        toast.success("Agora você é um anfitrião");
 
-router.replace("/anfitriao");
-} catch (err: any) {
-  toast.error(err.message || "Erro ao virar anfitrião");
-}
-
+        router.replace("/anfitriao");
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao virar anfitrião");
+      }
     }
   };
 
@@ -164,9 +165,30 @@ router.replace("/anfitriao");
 
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-full max-w-2xl p-8 rounded-2xl shadow-md bg-white">
-          <h2 className="text-2xl font-semibold mb-6">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="w-full max-w-2xl p-8 rounded-2xl shadow-md bg-white dark:bg-slate-800">
+          {/* BOTÃO VOLTAR */}
+          <div className="w-full mb-8 flex justify-end">
+            <Link
+              href="/"
+              className="flex items-center justify-center
+              w-10 h-10 rounded-full
+              bg-white dark:bg-slate-800
+              border border-gray-200 dark:border-slate-700
+              text-gray-500 dark:text-gray-400
+              hover:bg-gray-50 dark:hover:bg-slate-700
+              hover:border-gray-300 dark:hover:border-slate-600
+              hover:text-gray-700 dark:hover:text-gray-200
+              hover:shadow-sm
+              transition-all duration-300
+              group"
+              aria-label="Voltar"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
+            </Link>
+          </div>
+
+          <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
             Torne-se um anfitrião no PlacyHub
           </h2>
 
@@ -177,28 +199,28 @@ router.replace("/anfitriao");
                   name="nome"
                   defaultValue={draft?.nome || user.name}
                   placeholder="Nome completo"
-                  className="input"
+                  className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-gray-400"
                 />
 
                 <input
                   name="telefone"
                   defaultValue={draft?.telefone || user.telefone || ""}
                   placeholder="Telefone"
-                  className="input"
+                  className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-gray-400"
                 />
 
                 <input
                   name="cidade"
                   defaultValue={draft?.cidade || user.cidade || ""}
                   placeholder="Cidade"
-                  className="input"
+                  className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-gray-400"
                 />
 
                 <select
                   name="estado"
                   defaultValue={draft?.estado || user.estado || ""}
                   disabled={loadingEstados}
-                  className="input"
+                  className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                 >
                   <option value="">
                     {loadingEstados
@@ -216,15 +238,23 @@ router.replace("/anfitriao");
 
             {step === 2 && (
               <>
-                <input name="cpf" placeholder="CPF" className="input" />
+                <input
+                  name="cpf"
+                  placeholder="CPF"
+                  className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-gray-400"
+                />
 
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="termos" />
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    name="termos"
+                    className="dark:bg-slate-700 dark:border-slate-600"
+                  />
                   Aceito os{" "}
                   <button
                     type="button"
                     onClick={() => setShowTerms(true)}
-                    className="text-sky-600 hover:underline"
+                    className="text-sky-600 dark:text-sky-400 hover:underline"
                   >
                     Termos de Uso
                   </button>
@@ -232,7 +262,7 @@ router.replace("/anfitriao");
               </>
             )}
 
-            <button className="w-full bg-sky-500 text-white py-2 rounded-xl font-semibold">
+            <button className="w-full bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-700 text-white py-2 rounded-xl font-semibold transition-colors duration-200">
               {step === 1 ? "Continuar" : "Confirmar e virar anfitrião"}
             </button>
           </form>
@@ -241,18 +271,20 @@ router.replace("/anfitriao");
 
       {/* MODAL TERMOS */}
       {showTerms && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-white max-w-lg w-full p-6 rounded-2xl shadow-xl relative">
+        <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 max-w-lg w-full p-6 rounded-2xl shadow-xl relative">
             <button
               onClick={() => setShowTerms(false)}
-              className="absolute top-4 right-4 text-gray-400 text-xl"
+              className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-xl transition-colors"
             >
               ×
             </button>
 
-            <h3 className="text-xl font-semibold mb-4">Termos de Uso</h3>
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+              Termos de Uso
+            </h3>
 
-            <div className="max-h-80 overflow-y-auto text-sm text-gray-600 space-y-3">
+            <div className="max-h-80 overflow-y-auto text-sm text-gray-600 dark:text-gray-400 space-y-3">
               <p>
                 Ao se tornar anfitrião no PlacyHub, você concorda em fornecer
                 informações verdadeiras sobre seus espaços.
@@ -269,7 +301,7 @@ router.replace("/anfitriao");
 
             <button
               onClick={() => setShowTerms(false)}
-              className="mt-6 w-full bg-sky-500 text-white py-2 rounded-xl"
+              className="mt-6 w-full bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-700 text-white py-2 rounded-xl transition-colors duration-200"
             >
               Entendi
             </button>
@@ -283,6 +315,22 @@ router.replace("/anfitriao");
           border: 1px solid #ddd;
           border-radius: 12px;
           padding: 10px;
+          transition: all 0.2s ease;
+        }
+        
+        .input:focus {
+          outline: none;
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+        
+        .dark .input {
+          border-color: #475569;
+        }
+        
+        .dark .input:focus {
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
         }
       `}</style>
     </>
