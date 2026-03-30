@@ -237,7 +237,7 @@ export default function Navbar() {
                 </div>
                 
                 {/* Conteúdo da busca mobile */}
-                <div className="p-4 space-y-4">
+                <div className="p-4 space-y-4 max-w-md mx-auto w-full">
                   {/* Campo Cidade */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Onde?</label>
@@ -269,18 +269,23 @@ export default function Navbar() {
                   {/* Campo Data */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Quando?</label>
-                    <div className="bg-gray-100 p-3 rounded-xl border border-gray-200">
-                      <p className="text-sm text-gray-600 mb-2">{formattedDate}</p>
-                      <DatePicker
-                        selectsRange
-                        startDate={startDate}
-                        endDate={endDate}
-                        onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
-                        inline
-                        minDate={minSelectableDate}
-                        locale="pt-BR"
-                      />
-                    </div>
+                   <div className="bg-gray-100 p-3 rounded-xl border border-gray-200">
+  <p className="text-sm text-gray-600 mb-2">{formattedDate}</p>
+
+  <div className="flex justify-center w-full overflow-hidden">
+    <div className="scale-[0.90] sm:scale-100 origin-top">
+      <DatePicker
+        selectsRange
+        startDate={startDate}
+        endDate={endDate}
+        onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
+        inline
+        minDate={minSelectableDate}
+        locale="pt-BR"
+      />
+    </div>
+  </div>
+</div>
                   </div>
 
                   {/* Botão Buscar */}
