@@ -31,6 +31,7 @@ export default function VirarAnfitriao() {
 
   const [step, setStep] = useState(1);
   const [showTerms, setShowTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Novo estado para controle de submissão
 
   const [estados, setEstados] = useState<Estado[]>([]);
   const [loadingEstados, setLoadingEstados] = useState(true);
@@ -39,13 +40,13 @@ export default function VirarAnfitriao() {
 
   /* ========================== PROTEÇÃO =========================== */
   useEffect(() => {
-    if (!user) return;
+    // Só redireciona se NÃO estiver submetendo e se for anfitrião e estiver no step 1
+    if (!user || isSubmitting) return;
 
-    // só redireciona se NÃO estiver no meio do fluxo
     if (isAnfitriao && step === 1) {
       router.replace("/anfitriao");
     }
-  }, [user, isAnfitriao, step, router]);
+  }, [user, isAnfitriao, step, router, isSubmitting]);
 
   /* ========================== RESTAURA STEP 1 =========================== */
   useEffect(() => {
@@ -54,7 +55,6 @@ export default function VirarAnfitriao() {
     if (raw) {
       const parsed: Step1Data = JSON.parse(raw);
       setDraft(parsed);
-      // 🚫 NÃO muda o step aqui
     }
   }, []);
 
@@ -85,6 +85,10 @@ export default function VirarAnfitriao() {
   /* ========================== SUBMIT =========================== */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Evita submissões múltiplas
+    if (isSubmitting) return;
+    
     const formData = new FormData(e.currentTarget);
 
     /* ---------- STEP 1 ---------- */
@@ -101,7 +105,6 @@ export default function VirarAnfitriao() {
         return;
       }
 
-      // ⚠️ APAGAR quando usar banco
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
 
       setDraft(dados);
@@ -133,10 +136,6 @@ export default function VirarAnfitriao() {
 
       const step1: Step1Data = JSON.parse(step1Raw);
 
-      /**
-       * ⚠️ PERFIL TEMPORÁRIO
-       * APAGAR quando persistir no banco
-       */
       localStorage.setItem(
         "placyhub_perfil_anfitriao",
         JSON.stringify({
@@ -146,16 +145,22 @@ export default function VirarAnfitriao() {
         })
       );
 
-      // ✅ FORMA CORRETA (atualiza token + contexto)
       try {
+        setIsSubmitting(true); // Marca como submetendo antes da requisição
+        
         await virarAnfitriao(cpf);
 
         localStorage.removeItem(STORAGE_KEY);
 
         toast.success("Agora você é um anfitrião");
 
-        router.replace("/anfitriao");
+        // Pequeno delay para garantir que o estado foi atualizado
+        setTimeout(() => {
+          router.replace("/anfitriao");
+        }, 100);
+        
       } catch (err: any) {
+        setIsSubmitting(false); // Libera em caso de erro
         toast.error(err.message || "Erro ao virar anfitrião");
       }
     }
@@ -262,8 +267,12 @@ export default function VirarAnfitriao() {
               </>
             )}
 
-            <button className="w-full bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-700 text-white py-2 rounded-xl font-semibold transition-colors duration-200">
-              {step === 1 ? "Continuar" : "Confirmar e virar anfitrião"}
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-700 text-white py-2 rounded-xl font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Processando..." : (step === 1 ? "Continuar" : "Confirmar e virar anfitrião")}
             </button>
           </form>
         </div>
