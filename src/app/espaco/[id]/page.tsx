@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation"; // Adicione esta importação
 import Link from "next/link";
-import { ArrowLeft, Star, X, Heart } from "lucide-react";
+import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { ESPACOS } from "@/data/espacos";
@@ -18,8 +19,9 @@ import { calcularValorPeriodo } from "@/utils/precificacao";
 registerLocale("pt-BR", ptBR);
 
 const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
-// Tipagem alterada: params pode ser uma Promise
+
 export default function EspacoPage() {
+  const router = useRouter(); // Adicione esta linha
   const params = useParams();
   const id = params?.id as string;
 
@@ -29,30 +31,25 @@ export default function EspacoPage() {
     return <p className="text-center mt-10">Espaço não encontrado.</p>;
   }
 
-const isBuffet = !!espaco.buffet;
+  const isBuffet = !!espaco.buffet;
 
+  const getMenorPrecoBuffet = (espaco: any) => {
+    let menor = Infinity;
 
-const getMenorPrecoBuffet = (espaco: any) => {
-  let menor = Infinity;
-
-  espaco.buffet?.tiposFesta.forEach((tipo: any) => {
-    tipo.pacotes.forEach((pacote: any) => {
-      pacote.valores.forEach((v: any) => {
-        if (v.preco < menor) menor = v.preco;
+    espaco.buffet?.tiposFesta.forEach((tipo: any) => {
+      tipo.pacotes.forEach((pacote: any) => {
+        pacote.valores.forEach((v: any) => {
+          if (v.preco < menor) menor = v.preco;
+        });
       });
     });
-  });
 
-  return menor === Infinity ? 0 : menor;
-};
+    return menor === Infinity ? 0 : menor;
+  };
 
-const [tipoAberto, setTipoAberto] = useState<string | null>(null);
-
-const [pacoteSelecionado, setPacoteSelecionado] = useState<any>(null);
-const [valorSelecionado, setValorSelecionado] = useState<any>(null);
-
-
-
+  const [tipoAberto, setTipoAberto] = useState<string | null>(null);
+  const [pacoteSelecionado, setPacoteSelecionado] = useState<any>(null);
+  const [valorSelecionado, setValorSelecionado] = useState<any>(null);
   const { user } = useAuth();
   const isLogged = !!user;
   const { favoritos, toggleFavorito } = useFavoritos();
@@ -60,51 +57,39 @@ const [valorSelecionado, setValorSelecionado] = useState<any>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [modalReservaAberto, setModalReservaAberto] = useState(false);
   const descricaoPadrao = "Descrição não cadastrada. Em breve mais detalhes deste espaço.";
-
-const [modalPrecosAberto, setModalPrecosAberto] = useState(false);
-
+  const [modalPrecosAberto, setModalPrecosAberto] = useState(false);
   const [rangeReserva, setRangeReserva] = useState<[Date | null, Date | null]>([null, null]);
   const [startReserva, endReserva] = rangeReserva;
-
- const [eventoMultiDia, setEventoMultiDia] = useState(false);
-
+  const [eventoMultiDia, setEventoMultiDia] = useState(false);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
 
-// 🔥 PREÇO DINÂMICO BASEADO NA DATA
-const precoBaseDinamico = startReserva
-  ? obterValorParaData(startReserva, espaco)
-  : espaco.preco ?? 0;
+  const precoBaseDinamico = startReserva
+    ? obterValorParaData(startReserva, espaco)
+    : espaco.preco ?? 0;
 
-// ====== PREÇOS ======
-const precoSelecionado = isBuffet
-  ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
-  : precoBaseDinamico;
+  const precoSelecionado = isBuffet
+    ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
+    : precoBaseDinamico;
 
-const diasReserva =
-  startReserva && endReserva
-    ? Math.max(
-        1,
-        Math.ceil((endReserva.getTime() - startReserva.getTime()) / (1000 * 60 * 60 * 24))
-      )
-    : 0;
-
+  const diasReserva =
+    startReserva && endReserva
+      ? Math.max(
+          1,
+          Math.ceil((endReserva.getTime() - startReserva.getTime()) / (1000 * 60 * 60 * 24))
+        )
+      : 0;
 
   const totalCalculado =
-  startReserva && endReserva
-    ? calcularValorPeriodo(startReserva, endReserva, espaco)
-    : 0;
+    startReserva && endReserva
+      ? calcularValorPeriodo(startReserva, endReserva, espaco)
+      : 0;
 
   const calendarRef = useRef<HTMLDivElement>(null);
-
   const [editandoReserva, setEditandoReserva] = useState(false);
-
-const [abrirSelecaoMobile, setAbrirSelecaoMobile] = useState(false);
-
-  // Avaliações internas
+  const [abrirSelecaoMobile, setAbrirSelecaoMobile] = useState(false);
   const [avaliacoes, setAvaliacoes] = useState<
     { usuario: string; nota: number; comentario: string; data: string }[]
   >([]);
-
   const notaMedia = avaliacoes.length
     ? avaliacoes.reduce((acc, a) => acc + a.nota, 0) / avaliacoes.length
     : 0;
@@ -117,16 +102,14 @@ const [abrirSelecaoMobile, setAbrirSelecaoMobile] = useState(false);
     ]);
   }, [espaco?.id]);
 
-  // 🔒 Simulação de datas já reservadas
-useEffect(() => {
-  setDatasBloqueadas([
-    "2026-03-10",
-    "2026-03-15",
-    "2026-03-20",
-  ]);
-}, []);
+  useEffect(() => {
+    setDatasBloqueadas([
+      "2026-03-10",
+      "2026-03-15",
+      "2026-03-20",
+    ]);
+  }, []);
 
-  // Estado do calendário
   const [activeCalendar, setActiveCalendar] = useState(false);
 
   useEffect(() => {
@@ -158,7 +141,6 @@ useEffect(() => {
     };
   }, [modalAberto, modalReservaAberto]);
 
-  // Favorito com alerta
   const handleFavoritoClick = (espacoId: string) => {
     if (!isLogged) {
       toast.error("Você precisa estar logado para adicionar aos favoritos!");
@@ -172,247 +154,276 @@ useEffect(() => {
     }
   };
 
-  // Reserva
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-useEffect(() => {
-  const handleResize = () => {
-    setIsMobile(window.innerWidth < 768);
+  const [indexAtual, setIndexAtual] = useState(0);
+
+// junta imagem principal + galeria
+const imagens = [espaco.imagem, ...(espaco.imagens || [])];
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleAbrirModalReserva = () => {
+    if (!isLogged) {
+      toast.error("Você precisa estar logado para reservar este espaço!");
+      return;
+    }
+
+    if (!startReserva) {
+      toast.error("Selecione a data do evento!");
+      return;
+    }
+
+    if (isBuffet && !valorSelecionado) {
+      toast.error("Selecione um pacote com quantidade de convidados!");
+      return;
+    }
+
+    if (!isBuffet) {
+      if (!qtdPessoas || qtdPessoas < 1) {
+        toast.error("Informe a quantidade de pessoas!");
+        return;
+      }
+
+      if (qtdPessoas > espaco.capacidade) {
+        toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
+        return;
+      }
+    }
+
+    setModalReservaAberto(true);
   };
 
-  handleResize();
-  window.addEventListener("resize", handleResize);
-
-  return () => window.removeEventListener("resize", handleResize);
-}, []);
-
-const handleAbrirModalReserva = () => {
-  // 🔐 Precisa estar logado
-  if (!isLogged) {
-    toast.error("Você precisa estar logado para reservar este espaço!");
-    return;
-  }
-
-  // 📅 Precisa selecionar data
-  if (!startReserva) {
-    toast.error("Selecione a data do evento!");
-    return;
-  }
-
-  // 🥘 Se for buffet → precisa selecionar pacote
-  if (isBuffet && !valorSelecionado) {
-    toast.error("Selecione um pacote com quantidade de convidados!");
-    return;
-  }
-
-  // 🏢 Se NÃO for buffet → validar quantidade
-  if (!isBuffet) {
-    if (!qtdPessoas || qtdPessoas < 1) {
-      toast.error("Informe a quantidade de pessoas!");
+  const handleConfirmarReserva = async () => {
+    if (!startReserva) {
+      toast.error("Selecione a data do evento!");
       return;
     }
 
-    if (qtdPessoas > espaco.capacidade) {
-      toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
-      return;
-    }
-  }
+    const dataFormatada = startReserva.toISOString().split("T")[0];
 
-  // ✅ Se passou por tudo, abre o modal
-  setModalReservaAberto(true);
-};
-
- const handleConfirmarReserva = async () => {
-  //  Validar data
-  if (!startReserva) {
-    toast.error("Selecione a data do evento!");
-    return;
-  }
-const dataFormatada = startReserva.toISOString().split("T")[0];
-
-if (datasBloqueadas.includes(dataFormatada)) {
-  toast.error("Essa data já está reservada ou bloqueada.");
-  return;
-}
-if (eventoMultiDia && startReserva && endReserva) {
-  let dataAtual = new Date(startReserva);
-
-  while (dataAtual <= endReserva) {
-    const dataString = dataAtual.toISOString().split("T")[0];
-
-    if (datasBloqueadas.includes(dataString)) {
-      toast.error("O período selecionado contém datas indisponíveis.");
+    if (datasBloqueadas.includes(dataFormatada)) {
+      toast.error("Essa data já está reservada ou bloqueada.");
       return;
     }
 
-    dataAtual.setDate(dataAtual.getDate() + 1);
-  }
-}
+    if (eventoMultiDia && startReserva && endReserva) {
+      let dataAtual = new Date(startReserva);
 
+      while (dataAtual <= endReserva) {
+        const dataString = dataAtual.toISOString().split("T")[0];
 
-  // 🥘 Buffet precisa de pacote
-  if (isBuffet && !valorSelecionado) {
-    toast.error("Selecione um pacote antes de continuar!");
-    return;
-  }
+        if (datasBloqueadas.includes(dataString)) {
+          toast.error("O período selecionado contém datas indisponíveis.");
+          return;
+        }
 
-  // 🏢 Espaço normal valida quantidade
-  if (!isBuffet) {
-    if (!qtdPessoas || qtdPessoas < 1) {
-      toast.error("Informe a quantidade de pessoas!");
+        dataAtual.setDate(dataAtual.getDate() + 1);
+      }
+    }
+
+    if (isBuffet && !valorSelecionado) {
+      toast.error("Selecione um pacote antes de continuar!");
       return;
     }
 
-    if (qtdPessoas > espaco.capacidade) {
-      toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
-      return;
+    if (!isBuffet) {
+      if (!qtdPessoas || qtdPessoas < 1) {
+        toast.error("Informe a quantidade de pessoas!");
+        return;
+      }
+
+      if (qtdPessoas > espaco.capacidade) {
+        toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
+        return;
+      }
     }
-  }
 
-  setReservando(true);
+    setReservando(true);
 
-  try {
-const total = isBuffet
-  ? precoSelecionado
-  : startReserva && endReserva
-    ? calcularValorPeriodo(startReserva, endReserva, espaco)
-    : 0;
+    try {
+      const total = isBuffet
+        ? precoSelecionado
+        : startReserva && endReserva
+          ? calcularValorPeriodo(startReserva, endReserva, espaco)
+          : 0;
 
-    const response = await fetch("/api/pagamento", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        total,
-        espacoId: espaco.id,
-        nomeEspaco: espaco.nome,
-        dataInicio: startReserva.toISOString(),
-        dataFim: endReserva ? endReserva.toISOString() : startReserva.toISOString(),
-        diasReserva,
-        qtdPessoas,
-      }),
-    });
+      const response = await fetch("/api/pagamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          total,
+          espacoId: espaco.id,
+          nomeEspaco: espaco.nome,
+          dataInicio: startReserva.toISOString(),
+          dataFim: endReserva ? endReserva.toISOString() : startReserva.toISOString(),
+          diasReserva,
+          qtdPessoas,
+        }),
+      });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Erro API:", text);
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Erro API:", text);
+        toast.error("Erro ao criar pagamento. Tente novamente.");
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.url) {
+        window.location.href = result.url;
+      } else {
+        toast.error("Erro ao criar pagamento. Tente novamente.");
+      }
+    } catch (err) {
+      console.error(err);
       toast.error("Erro ao criar pagamento. Tente novamente.");
-      return;
+    } finally {
+      setReservando(false);
+      setModalReservaAberto(false);
     }
-
-    const result = await response.json();
-
-    if (result.url) {
-      window.location.href = result.url; // abre Mercado Pago
-    } else {
-      toast.error("Erro ao criar pagamento. Tente novamente.");
-    }
-  } catch (err) {
-    console.error(err);
-    toast.error("Erro ao criar pagamento. Tente novamente.");
-  } finally {
-    setReservando(false);
-    setModalReservaAberto(false);
-  }
-
-
-};
-
+  };
 
   if (!espaco) return <p className="text-center mt-10">Espaço não encontrado.</p>;
 
- const reservaCompleta = isBuffet
-  ? startReserva && valorSelecionado
-  : startReserva && qtdPessoas > 0;
+  const reservaCompleta = isBuffet
+    ? startReserva && valorSelecionado
+    : startReserva && qtdPessoas > 0;
+
+  // Função para voltar para a página anterior
+  const handleVoltar = () => {
+    router.back(); // Isso volta para a página anterior no histórico
+  };
+
+  const proximaImagem = () => {
+  setIndexAtual((prev) => (prev + 1) % imagens.length);
+};
+
+const imagemAnterior = () => {
+  setIndexAtual((prev) =>
+    prev === 0 ? imagens.length - 1 : prev - 1
+  );
+};
+
+const selecionarImagem = (index: number) => {
+  setIndexAtual(index);
+};
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 pb-24 text-gray-900 dark:text-gray-100">
-    {/* BOTÃO VOLTAR */}
-<div className="w-full mb-8 flex justify-end">
-                              <Link
-                                href="/"
-                                className="flex items-center justify-center
-                                w-10 h-10 rounded-full
-                                bg-white dark:bg-slate-800
-                                border border-gray-200 dark:border-slate-700
-                                text-gray-500 dark:text-gray-400
-                                hover:bg-gray-50 dark:hover:bg-slate-700
-                                hover:border-gray-300 dark:hover:border-slate-600
-                                hover:text-gray-700 dark:hover:text-gray-200
-                                hover:shadow-sm
-                                transition-all duration-300
-                                group"
-                                aria-label="Voltar"
-                              >
-                                <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
-                              </Link>
-                            </div>
-      <h1 className="text-4xl font-bold mb-6">{espaco.nome}</h1>
-
-      {/* IMAGEM PRINCIPAL */}
-      <div className="relative rounded-2xl overflow-hidden shadow-xl mb-4">
-        <img src={espaco.imagem} alt={espaco.nome} className="w-full h-[450px] object-cover" />
+      {/* BOTÃO VOLTAR - Corrigido */}
+      <div className="w-full mb-8 flex justify-end">
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleFavoritoClick(espaco.id);
-          }}
-          className="absolute top-2 right-2 rounded-full p-[6px] transition"
+          onClick={handleVoltar}
+          className="flex items-center justify-center
+          w-10 h-10 rounded-full
+          bg-white dark:bg-slate-800
+          border border-gray-200 dark:border-slate-700
+          text-gray-500 dark:text-gray-400
+          hover:bg-gray-50 dark:hover:bg-slate-700
+          hover:border-gray-300 dark:hover:border-slate-600
+          hover:text-gray-700 dark:hover:text-gray-200
+          hover:shadow-sm
+          transition-all duration-300
+          group"
+          aria-label="Voltar"
         >
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition
-              ${favoritos.includes(espaco.id) ? "bg-red-600" : "bg-white/80"}`}
-          >
-            <Heart
-              size={18}
-              className={favoritos.includes(espaco.id) ? "text-white" : "text-red-600"}
-              fill={favoritos.includes(espaco.id) ? "white" : "transparent"}
-            />
-          </div>
+          <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
         </button>
       </div>
+      
+      <h1 className="text-4xl font-bold mb-6">{espaco.nome}</h1>
 
-      {/* BOTÃO GALERIA */}
-      {espaco.imagens && espaco.imagens.length > 0 && (
-        <button
-          onClick={() => setModalAberto(true)}
-          className="mb-6 px-6 py-2 bg-[#02aeee] text-white font-semibold rounded-lg hover:bg-[#0295d4] transition"
-        >
-          Ver galeria ({espaco.imagens.length})
-        </button>
-      )}
+ <div className="mb-6">
+  {/* IMAGEM PRINCIPAL */}
+  <div className="relative rounded-2xl overflow-hidden shadow-xl">
+    <img
+      src={imagens[indexAtual]}
+      alt="Imagem do espaço"
+      className="w-full h-[450px] object-cover transition-all duration-300"
+    />
 
-      {/* MODAL GALERIA */}
-      {modalAberto && (
-        <div
-          className="fixed inset-0 z-9999 bg-black/70 flex items-center justify-center p-4"
-          onClick={() => setModalAberto(false)}
-        >
-          <div
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setModalAberto(false)}
-              className="absolute top-4 right-4 p-2 bg-white text-black hover:bg-gray-200 rounded-full shadow-md z-50"
-            >
-              <X size={24} />
-            </button>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-              {espaco.imagens?.map((foto, index) => (
-                <img
-                  key={index}
-                  src={foto}
-                  alt={`Foto ${index + 1} de ${espaco.nome}`}
-                  className="w-full h-48 md:h-64 object-cover rounded-lg"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+    {/* BOTÕES DESKTOP */}
+    {!isMobile && (
+      <>
+       <button
+  onClick={imagemAnterior}
+  className="absolute left-4 top-1/2 -translate-y-1/2
+  w-11 h-11 flex items-center justify-center
+  rounded-full
+  bg-white/20 backdrop-blur-md
+  border border-white/30
+  shadow-lg
+  hover:bg-white/30 hover:scale-105
+  active:scale-95
+  transition-all duration-300"
+>
+  <ChevronLeft className="text-white" size={22} />
+</button>
+
+       <button
+  onClick={proximaImagem}
+  className="absolute right-4 top-1/2 -translate-y-1/2
+  w-11 h-11 flex items-center justify-center
+  rounded-full
+  bg-white/20 backdrop-blur-md
+  border border-white/30
+  shadow-lg
+  hover:bg-white/30 hover:scale-105
+  active:scale-95
+  transition-all duration-300"
+>
+  <ChevronRight className="text-white" size={22} />
+</button>
+      </>
+    )}
+  </div>
+
+  {/* MOBILE */}
+  {isMobile && (
+    <div className="flex gap-2 overflow-x-auto mt-2 pb-2">
+      {imagens.map((img, index) => (
+        <img
+          key={index}
+          src={img}
+          onClick={() => selecionarImagem(index)}
+          className={`h-20 w-32 object-cover rounded-lg cursor-pointer ${
+            index === indexAtual ? "ring-2 ring-blue-500" : ""
+          }`}
+        />
+      ))}
+    </div>
+  )}
+
+  {/* DESKTOP MINIATURAS */}
+  {!isMobile && (
+    <div className="flex gap-2 mt-3 overflow-x-auto">
+      {imagens.map((img, index) => (
+        <img
+          key={index}
+          src={img}
+          onClick={() => selecionarImagem(index)}
+          className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition ${
+  index === indexAtual ? "ring-2 ring-blue-500" : ""
+}`}
+        />
+      ))}
+    </div>
+  )}
+</div>
+   
       {/* NOVO MODAL DE RESERVA */}
       {modalReservaAberto && (
         <div

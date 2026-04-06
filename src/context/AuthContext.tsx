@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    */
 const refreshUser = () => {
   const raw = localStorage.getItem("placyhub_user_dev");
-
+ console.log("REFRESH USER RAW:", raw);
   if (!raw) {
     setUser(null);
     setLoading(false);

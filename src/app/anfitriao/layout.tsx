@@ -26,6 +26,8 @@ const links = [
   { name: "Perfil", href: "/locatario/perfil", icon: User },
 ];
 
+console.log("🔥 LAYOUT ANFITRIAO EXECUTOU");
+
 export default function AnfitriaoLayout({
   children,
 }: {
@@ -48,18 +50,33 @@ export default function AnfitriaoLayout({
   }, []);
 
   /* ===================== PROTEÇÃO CENTRAL ===================== */
-  useEffect(() => {
-    if (loading) return;
+ /* ===================== DEBUG + PROTEÇÃO ===================== */
+useEffect(() => {
+  console.log("====== DEBUG ANFITRIAO ======");
+  console.log("loading:", loading);
+  console.log("user:", user);
+  console.log("roles:", user?.roles);
+  console.log("isAnfitriao:", isAnfitriao);
 
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
+  if (loading) {
+    console.log("⏳ Ainda carregando...");
+    return;
+  }
 
-    if (!isAnfitriao) {
-      router.replace("/");
-    }
-  }, [loading, user, isAnfitriao, router]);
+  if (!user) {
+    console.log("❌ REDIRECT: usuário NÃO existe");
+    router.replace("/login");
+    return;
+  }
+
+  if (!user.roles?.includes("ANFITRIAO")) {
+    console.log("❌ REDIRECT: NÃO é anfitrião");
+    router.replace("/");
+    return;
+  }
+
+  console.log("✅ ACESSO LIBERADO AO PAINEL");
+}, [loading, user, isAnfitriao, router]);
 
   /* ===================== LOADING STATE ===================== */
   if (loading) {

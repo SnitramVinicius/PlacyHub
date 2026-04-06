@@ -1,6 +1,7 @@
 /* ======================= TELA PRINCIPAL PAINEL DO ANFITRIAO ======================= */
 
 export default function PainelAnfitriao() {
+    console.log("🔥 PAGE ANFITRIAO EXECUTOU");
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-gray-900 dark:text-gray-100">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">

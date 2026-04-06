@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { MessageCircle, Bug } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { useRef } from "react";
+
+
 
 export default function FloatingHelpButton() {
   const [open, setOpen] = useState(false);
   const [openReport, setOpenReport] = useState(false);
   const [descricaoBug, setDescricaoBug] = useState("");
+  const controls = useAnimation();
+  const isDragging = useRef(false);
+let timeoutRef: any = null;
+
 
   const enviarBug = () => {
     if (!descricaoBug.trim()) {
@@ -41,52 +48,95 @@ Horário: ${new Date().toLocaleString()}
   return (
     <>
       {/* Botão flutuante */}
-      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 flex flex-col items-end gap-2 sm:gap-3 z-50">
+<motion.div
+  drag="y"
+  dragConstraints={{ top: -80, bottom: 0 }}
+  dragElastic={0.15}
+  dragMomentum={false}
+  animate={controls}
+
+  onDragStart={() => {
+    isDragging.current = true;
+  }}
+
+  onDragEnd={() => {
+    // libera clique depois de um pequeno tempo
+    setTimeout(() => {
+      isDragging.current = false;
+    }, 100);
+
+    // anima de volta depois de 2s
+    if (timeoutRef) clearTimeout(timeoutRef);
+
+    timeoutRef = setTimeout(() => {
+      controls.start({
+        y: 0,
+        transition: {
+          type: "spring",
+          stiffness: 120,
+          damping: 12,
+        },
+      });
+    }, 2000);
+  }}
+
+  className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 flex flex-col items-end gap-2 sm:gap-3 z-50"
+>
 
         {/* Botões secundários */}
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 15 }}
-              className="flex flex-col gap-2 sm:gap-3 items-end"
-            >
-              <button
-                onClick={() => setOpenReport(true)}
-                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 px-3 sm:px-4 rounded-xl shadow-lg text-sm sm:text-base"
-              >
-                <Bug size={16} /> 
-                <span className="hidden sm:inline">Reportar Bug</span>
-              </button>
+       <AnimatePresence>
+  {open && (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 15 }}
+      className="flex flex-col gap-2 sm:gap-3 items-end"
+    >
+      <button
+        onClick={() => setOpenReport(true)}
+        className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white py-2 px-3 sm:px-4 rounded-xl shadow-lg text-sm sm:text-base"
+      >
+        <Bug size={16} />
+        <span className="hidden sm:inline">Reportar Bug</span>
+      </button>
 
-              <button
-                onClick={() =>
-                  window.location.href =
-                    "https://wa.me/5567996696791?text=Olá,%20preciso%20de%20ajuda%20no%20PlacyHub"
-                }
-                className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white py-2 px-3 sm:px-4 rounded-xl shadow-lg text-sm sm:text-base"
-              >
-                <MessageCircle size={16} />
-                <span className="hidden sm:inline">Suporte</span>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <button
+        onClick={() =>
+          window.location.href =
+            "https://wa.me/5567996696791?text=Olá,%20preciso%20de%20ajuda%20no%20PlacyHub"
+        }
+        className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white py-2 px-3 sm:px-4 rounded-xl shadow-lg text-sm sm:text-base"
+      >
+        <MessageCircle size={16} />
+        <span className="hidden sm:inline">Suporte</span>
+      </button>
+    </motion.div>
+  )}
+</AnimatePresence>
 
         {/* Botão principal */}
-        <motion.button
-          onClick={() => setOpen(!open)}
-          className="bg-sky-500 hover:bg-sky-600 text-white w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-xl flex items-center justify-center"
-          animate={{ rotate: open ? 45 : 0 }}
-        >
-          {open ? (
-            <span className="text-xl sm:text-2xl font-bold leading-none">×</span>
-          ) : (
-            <MessageCircle size={20} />
-          )}
-        </motion.button>
-      </div>
+{/* Botão principal */}
+<motion.button
+  onClick={() => {
+  if (isDragging.current) return;
+  setOpen(!open);
+}}
+  whileTap={{ scale: 0.9 }}
+  whileHover={{ scale: 1.05 }}
+  className="bg-sky-500 hover:bg-sky-600 text-white 
+  w-14 h-14 sm:w-16 sm:h-16 
+  rounded-full shadow-xl 
+  flex items-center justify-center
+  transition-all duration-300"
+  animate={{ rotate: open ? 45 : 0 }}
+>
+  {open ? (
+    <span className="text-xl sm:text-2xl font-bold leading-none">×</span>
+  ) : (
+    <MessageCircle size={20} />
+  )}
+</motion.button>
+      </motion.div>
 
       {/* Modal */}
       {openReport && (
