@@ -19,6 +19,7 @@ const {
   convidados,
 } = await req.json();
 
+
     if (!total || isNaN(Number(total))) {
       return NextResponse.json(
         { error: "Valor inválido recebido.", details: total },
