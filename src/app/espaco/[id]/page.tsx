@@ -63,6 +63,8 @@ export default function EspacoPage() {
   const [eventoMultiDia, setEventoMultiDia] = useState(false);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
 
+
+  const [modalImagemAberto, setModalImagemAberto] = useState(false);
   const precoBaseDinamico = startReserva
     ? obterValorParaData(startReserva, espaco)
     : espaco.preco ?? 0;
@@ -158,7 +160,35 @@ export default function EspacoPage() {
   const [reservando, setReservando] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  const [showBottomBar, setShowBottomBar] = useState(true);
+const lastScrollY = useRef(0);
+
   const [indexAtual, setIndexAtual] = useState(0);
+  const touchStartX = useRef(0);
+const touchEndX = useRef(0);
+
+const handleTouchStart = (e: React.TouchEvent) => {
+  touchStartX.current = e.changedTouches[0].screenX;
+};
+
+const handleTouchEnd = (e: React.TouchEvent) => {
+  touchEndX.current = e.changedTouches[0].screenX;
+  handleSwipe();
+};
+
+const handleSwipe = () => {
+  const distance = touchStartX.current - touchEndX.current;
+
+  if (distance > 50) {
+    // 👉 swipe pra esquerda (próxima imagem)
+    proximaImagem();
+  }
+
+  if (distance < -50) {
+    // 👉 swipe pra direita (imagem anterior)
+    imagemAnterior();
+  }
+};
 
 // junta imagem principal + galeria
 const imagens = [espaco.imagem, ...(espaco.imagens || [])];
@@ -173,6 +203,35 @@ const imagens = [espaco.imagem, ...(espaco.imagens || [])];
 
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+useEffect(() => {
+  if (!isMobile) return;
+
+  const handleScroll = () => {
+    if (modalReservaAberto) return; // 🔥 trava total
+
+    const currentScrollY = window.scrollY;
+
+    if (currentScrollY < 50) {
+      setShowBottomBar(true);
+    } else if (currentScrollY > lastScrollY.current) {
+      setShowBottomBar(false);
+    } else {
+      setShowBottomBar(true);
+    }
+
+    lastScrollY.current = currentScrollY;
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () => window.removeEventListener("scroll", handleScroll);
+}, [isMobile, modalReservaAberto]);
+useEffect(() => {
+  if (modalReservaAberto) {
+    setShowBottomBar(false);
+  }
+}, [modalReservaAberto]);
 
   const handleAbrirModalReserva = () => {
     if (!isLogged) {
@@ -252,6 +311,8 @@ const imagens = [espaco.imagem, ...(espaco.imagens || [])];
 
     setReservando(true);
 
+
+    
     try {
       const total = isBuffet
         ? precoSelecionado
@@ -321,6 +382,8 @@ const selecionarImagem = (index: number) => {
   setIndexAtual(index);
 };
 
+
+
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 pb-24 text-gray-900 dark:text-gray-100">
       {/* BOTÃO VOLTAR - Corrigido */}
@@ -348,13 +411,16 @@ const selecionarImagem = (index: number) => {
 
  <div className="mb-6">
   {/* IMAGEM PRINCIPAL */}
-  <div className="relative rounded-2xl overflow-hidden shadow-xl">
-    <img
-      src={imagens[indexAtual]}
-      alt="Imagem do espaço"
-      className="w-full h-[450px] object-cover transition-all duration-300"
-    />
-
+ <div className="relative rounded-2xl overflow-hidden shadow-xl">
+  <div className="flex overflow-x-auto snap-x snap-mandatory">
+<img
+  src={imagens[indexAtual]}
+  alt="Imagem do espaço"
+  onTouchStart={handleTouchStart}
+  onTouchEnd={handleTouchEnd}
+  onClick={() => setModalImagemAberto(true)} // 👈 AQUI
+  className="w-full h-[450px] object-cover transition-all duration-300 cursor-pointer"
+/>
     {/* BOTÕES DESKTOP */}
     {!isMobile && (
       <>
@@ -389,6 +455,7 @@ const selecionarImagem = (index: number) => {
 </button>
       </>
     )}
+    </div>
   </div>
 
   {/* MOBILE */}
@@ -423,6 +490,52 @@ const selecionarImagem = (index: number) => {
     </div>
   )}
 </div>
+   
+{modalImagemAberto && (
+  <div
+    className="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center"
+    onClick={() => setModalImagemAberto(false)}
+  >
+    {/* BOTÃO FECHAR */}
+    <button
+      onClick={() => setModalImagemAberto(false)}
+      className="absolute top-5 right-5 text-white bg-black/50 rounded-full p-2"
+    >
+      <X size={28} />
+    </button>
+
+    {/* BOTÃO ESQUERDA */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        imagemAnterior();
+      }}
+      className="absolute left-4 top-1/2 -translate-y-1/2
+      bg-white/20 backdrop-blur-md p-3 rounded-full"
+    >
+      <ChevronLeft className="text-white" size={30} />
+    </button>
+
+    {/* IMAGEM */}
+    <img
+      src={imagens[indexAtual]}
+      className="max-w-[95%] max-h-[90%] object-contain"
+      onClick={(e) => e.stopPropagation()}
+    />
+
+    {/* BOTÃO DIREITA */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        proximaImagem();
+      }}
+      className="absolute right-4 top-1/2 -translate-y-1/2
+      bg-white/20 backdrop-blur-md p-3 rounded-full"
+    >
+      <ChevronRight className="text-white" size={30} />
+    </button>
+  </div>
+)}
    
       {/* NOVO MODAL DE RESERVA */}
       {modalReservaAberto && (
@@ -1231,8 +1344,12 @@ const selecionarImagem = (index: number) => {
 )}
 
 
-{isMobile && (
-  <div className="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 p-4 z-50 flex items-center justify-between">
+{isMobile && !modalReservaAberto && (
+ <div
+  className={`fixed left-0 w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 p-4 z-50 flex items-center justify-between transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+  ${showBottomBar ? "translate-y-0" : "translate-y-full"}`}
+  style={{ bottom: 0 }}
+>
 
     {/* PREÇO */}
    <div>

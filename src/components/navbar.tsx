@@ -33,6 +33,9 @@ export default function Navbar() {
   const [showBenefitsModal, setShowBenefitsModal] = useState(false);
   const [shrink, setShrink] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+const [showMobileNav, setShowMobileNav] = useState(true);
+const lastScrollY = useRef(0);
+
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   // Refs
@@ -73,6 +76,33 @@ export default function Navbar() {
     }
     loadCities();
   }, []);
+
+useEffect(() => {
+  if (!isMobile) return;
+
+  const handleScroll = () => {
+    const currentScrollY = window.scrollY;
+
+    // Se estiver no topo, sempre mostra
+    if (currentScrollY < 50) {
+      setShowMobileNav(true);
+    } 
+    // Scroll para baixo → esconde
+    else if (currentScrollY > lastScrollY.current) {
+      setShowMobileNav(false);
+    } 
+    // Scroll para cima → mostra
+    else {
+      setShowMobileNav(true);
+    }
+
+    lastScrollY.current = currentScrollY;
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () => window.removeEventListener("scroll", handleScroll);
+}, [isMobile]);
 
   // Effect para clique fora do search
   useEffect(() => {
@@ -319,7 +349,7 @@ export default function Navbar() {
                 {/* CAMPO CIDADE */}
                 <div
                   className={`flex flex-col flex-1 px-6 py-2 cursor-pointer rounded-full h-full justify-center relative
-                    ${activePanel === "city" ? "bg-gray-200 dark:bg-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-300`}
+                    ${activePanel === "city" ? "bg-gray-200 dark:bg-gray-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"} transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
                   onClick={() => setActivePanel("city")}
                 >
                   <label className="text-xs font-bold text-gray-800 dark:text-gray-100">Onde</label>
@@ -460,15 +490,13 @@ export default function Navbar() {
       )}
 
       {/* Espaço para empurrar conteúdo - Ajustado para mobile */}
-      <div className={
-        isMobile && isFavoritosPage 
-          ? "h-0" 
-          : shrink 
-            ? "h-20" 
-            : isMobile 
-              ? "h-32" 
-              : "h-40"
-      } />
+<div className={
+  isMobile && isFavoritosPage 
+    ? "h-0" 
+    : isMobile
+      ? (shrink ? "h-20" : "h-24")
+      : (shrink ? "h-20" : "h-40")
+} />
 
       {/* MENU DROPDOWN USUÁRIO */}
       {isOpen && (
@@ -575,7 +603,11 @@ export default function Navbar() {
 
       {/* RODAPÉ MOBILE */}
 {isMobile && !showMobileSearch && (
-  <div className="fixed bottom-0 left-0 w-full h-16 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-center z-50">
+ <div
+  className={`fixed left-0 w-full h-16 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-center z-50 transition-transform duration-300
+  ${showMobileNav ? "translate-y-0" : "translate-y-full"}`}
+  style={{ bottom: 0 }}
+>
     <div className="flex items-center justify-around w-full px-2">
       <button
         onClick={handleExploreClick}
