@@ -105,9 +105,12 @@ export default function ComoFunciona() {
       {/* CTA FINAL */}
       <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100">
         <h2 className="text-2xl font-bold mb-4">Pronto para usar o PlacyHub?</h2>
-        <button className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition">
-          Criar minha conta
-        </button>
+<Link
+  href="/login"
+  className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition inline-block"
+>
+  Criar minha conta
+</Link>
       </section>
 
     </>

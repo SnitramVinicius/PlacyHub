@@ -137,11 +137,15 @@ export default function EspacoPage() {
   }, [activeCalendar]);
 
   useEffect(() => {
-    document.body.style.overflow = modalAberto || modalReservaAberto ? "hidden" : "auto";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [modalAberto, modalReservaAberto]);
+  document.body.style.overflow =
+    modalAberto || modalReservaAberto || modalImagemAberto
+      ? "hidden"
+      : "auto";
+
+  return () => {
+    document.body.style.overflow = "auto";
+  };
+}, [modalAberto, modalReservaAberto, modalImagemAberto]);
 
   const handleFavoritoClick = (espacoId: string) => {
     if (!isLogged) {
@@ -158,7 +162,9 @@ export default function EspacoPage() {
 
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+ const [isMobile, setIsMobile] = useState(
+  typeof window !== "undefined" ? window.innerWidth < 768 : false
+);
 
   const [showBottomBar, setShowBottomBar] = useState(true);
 const lastScrollY = useRef(0);
@@ -495,6 +501,7 @@ const selecionarImagem = (index: number) => {
   <div
     className="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center"
     onClick={() => setModalImagemAberto(false)}
+    onTouchMove={(e) => e.preventDefault()}
   >
     {/* BOTÃO FECHAR */}
     <button
@@ -504,36 +511,40 @@ const selecionarImagem = (index: number) => {
       <X size={28} />
     </button>
 
-    {/* BOTÃO ESQUERDA */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        imagemAnterior();
-      }}
-      className="absolute left-4 top-1/2 -translate-y-1/2
-      bg-white/20 backdrop-blur-md p-3 rounded-full"
-    >
-      <ChevronLeft className="text-white" size={30} />
-    </button>
+    {/* BOTÃO ESQUERDA (só desktop) */}
+    {!isMobile && (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          imagemAnterior();
+        }}
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md p-3 rounded-full"
+      >
+        <ChevronLeft className="text-white" size={30} />
+      </button>
+    )}
 
-    {/* IMAGEM */}
+    {/* 🔥 IMAGEM (AGORA SEMPRE VISÍVEL) */}
     <img
       src={imagens[indexAtual]}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className="max-w-[95%] max-h-[90%] object-contain"
       onClick={(e) => e.stopPropagation()}
     />
 
-    {/* BOTÃO DIREITA */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        proximaImagem();
-      }}
-      className="absolute right-4 top-1/2 -translate-y-1/2
-      bg-white/20 backdrop-blur-md p-3 rounded-full"
-    >
-      <ChevronRight className="text-white" size={30} />
-    </button>
+    {/* BOTÃO DIREITA (só desktop) */}
+    {!isMobile && (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          proximaImagem();
+        }}
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md p-3 rounded-full"
+      >
+        <ChevronRight className="text-white" size={30} />
+      </button>
+    )}
   </div>
 )}
    
@@ -1092,14 +1103,6 @@ const selecionarImagem = (index: number) => {
               ))}
             </div>
 
-            {isLogged && (
-              <button
-                onClick={() => toast("Abrir modal para adicionar avaliação")}
-                className="mt-4 w-full py-2 bg-[#02aeee] text-white rounded-lg font-medium hover:bg-[#0295d4] transition"
-              >
-                Avaliar Espaço
-              </button>
-            )}
           </section>
 
           {/* MAPA */}
