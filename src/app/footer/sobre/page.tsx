@@ -1,14 +1,16 @@
 "use client";
 import {ArrowLeft } from "lucide-react";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 
 export default function QuemSomos() {
+   const router = useRouter();
   return (
     <>
       {/* HERO */}
       <section className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center px-6 py-20 bg-white dark:bg-slate-900">
-         <div className="w-full mb-8 flex justify-end">
+         <div className="text-center mb-12">
+         <div className="max-w-5xl mx-auto w-full">
                               <Link
                                 href="/"
                                 className="flex items-center justify-center
@@ -33,6 +35,7 @@ export default function QuemSomos() {
           tornando o processo simples, seguro e acessível tanto para locadores quanto
           para quem deseja encontrar o local perfeito.
         </p>
+        </div>
       </section>
 
       {/* NOSSA HISTÓRIA */}
@@ -93,11 +96,12 @@ export default function QuemSomos() {
         <p className="max-w-xl text-gray-600 dark:text-gray-300 mb-6">
           Descubra como é fácil anunciar seu espaço e começar a receber reservas.
         </p>
-        <a href="/cadastre-seu-espaco">
-          <button className="t-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition">
-            Criar minha conta
-          </button>
-        </a>
+<button
+  onClick={() => router.push("/?openModal=true")}
+  className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-gray-900 transition"
+>
+  Iniciar cadastro
+</button>
       </section>
     </>
   );

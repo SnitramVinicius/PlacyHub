@@ -7,8 +7,9 @@ export default function TermosDeUso() {
   return (
     <>
       {/* HERO */}
-     <section className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center px-6 py-20 bg-white dark:bg-slate-900">
-        <div className="w-full mb-8 flex justify-end">
+  <section className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center px-6 py-20 bg-white dark:bg-slate-900">
+        <div className="text-center mb-12">
+         <div className="max-w-5xl mx-auto w-full">
                               <Link
                                 href="/"
                                 className="flex items-center justify-center
@@ -32,6 +33,7 @@ export default function TermosDeUso() {
           Estes Termos de Uso regulam a utilização da plataforma PlacyHub,
           responsável por conectar locadores de espaços a locatários interessados. 
         </p>
+        </div>
       </section>
 
       {/* CONTEÚDO */}
@@ -141,7 +143,7 @@ export default function TermosDeUso() {
       </section>
 
       {/* CTA FINAL */}
-      <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-gray-100">
+      {/* <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-gray-100">
         <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Precisa de ajuda?</h2>
         <p className="max-w-xl text-gray-700 dark:text-gray-300 mb-6">
           Nossa equipe está disponível para esclarecer dúvidas sobre o funcionamento da plataforma.
@@ -151,7 +153,7 @@ export default function TermosDeUso() {
             Ir para o Suporte
           </button>
         </a>
-      </section>
+      </section> */}
     </>
   );
 }

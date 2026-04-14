@@ -2,14 +2,23 @@
 
 import { CheckCircle, ArrowLeft} from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function ComoFunciona() {
+  const [logado, setLogado] = useState(false);
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    setLogado(true);
+  }
+}, []);
   return (
     <>
 
       {/* HERO */}
       <section className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center px-6 py-20">
-        <div className="w-full mb-8 flex justify-end">
+        <div className="max-w-5xl mx-auto w-full">
                                       <Link
                                         href="/"
                                         className="flex items-center justify-center
@@ -103,15 +112,18 @@ export default function ComoFunciona() {
       </section>
 
       {/* CTA FINAL */}
-      <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100">
-        <h2 className="text-2xl font-bold mb-4">Pronto para usar o PlacyHub?</h2>
-<Link
-  href="/login"
-  className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition inline-block"
->
-  Criar minha conta
-</Link>
-      </section>
+    {!logado && (
+  <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100">
+    <h2 className="text-2xl font-bold mb-4">Pronto para usar o PlacyHub?</h2>
+
+    <Link
+      href="/login"
+      className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition inline-block"
+    >
+      Criar minha conta
+    </Link>
+  </section>
+)}
 
     </>
   );

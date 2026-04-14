@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 
 registerLocale("pt-BR", ptBR);
 
@@ -18,10 +19,15 @@ export default function Navbar() {
   const router = useRouter();
   const { user, logout, isAnfitriao } = useAuth();
 
+  const searchParams = useSearchParams();
   // ============================================
   // TODOS OS HOOKS DEVEM VIR PRIMEIRO
   // ============================================
-  
+  useEffect(() => {
+  if (searchParams.get("openModal") === "true") {
+    setShowBenefitsModal(true);
+  }
+}, [searchParams]);
   // Estados
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);

@@ -7,7 +7,8 @@ export default function PoliticaPrivacidade() {
     <>
       {/* HERO */}
       <section className="w-full min-h-[40vh] flex flex-col justify-center items-center text-center px-6 py-20 bg-white dark:bg-slate-900">
-         <div className="w-full mb-8 flex justify-end">
+        <div className="text-center mb-12">
+         <div className="max-w-5xl mx-auto w-full">
                               <Link
                                 href="/"
                                 className="flex items-center justify-center
@@ -31,6 +32,7 @@ export default function PoliticaPrivacidade() {
           A sua privacidade é importante para nós. Esta Política descreve como coletamos,
           usamos e protegemos suas informações dentro da plataforma PlacyHub.
         </p>
+        </div>
       </section>
 
       {/* CONTEÚDO */}
@@ -142,15 +144,6 @@ export default function PoliticaPrivacidade() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-gray-100">
-       <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Ficou com alguma dúvida?</h2>
-        <a href="/suporte-locador">
-          <button className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-[#029bd5] transition">
-            Acessar Suporte
-          </button>
-        </a>
-      </section>
     </>
   );
 }

@@ -49,7 +49,7 @@ export default function FAQ() {
 
       {/* Header */}
       <div className="text-center mb-12">
-        <div className="w-full mb-8 flex justify-end">
+        <div className="max-w-5xl mx-auto w-full">
                               <Link
                                 href="/"
                                 className="flex items-center justify-center

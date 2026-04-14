@@ -8,7 +8,7 @@ export default function SupportLocador() {
    <section className="py-20 bg-white dark:bg-slate-900">
    
       <div className="max-w-6xl mx-auto px-6 text-center">
- <div className="w-full mb-8 flex justify-end">
+ <div className="max-w-5xl mx-auto w-full">
                               <Link
                                 href="/"
                                 className="flex items-center justify-center

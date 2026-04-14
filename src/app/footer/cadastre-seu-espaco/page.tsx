@@ -2,14 +2,17 @@
 
 import { CheckCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function CadastreSeuEspaco() {
+  const router = useRouter();
+  
   return (
     <>
 
       {/* HERO */}
       <section className="w-full min-h-[60vh] flex flex-col justify-center items-center text-center px-6 py-20">
-        <div className="w-full mb-8 flex justify-end">
+        <div className="max-w-5xl mx-auto w-full">
                               <Link
                                 href="/"
                                 className="flex items-center justify-center
@@ -34,9 +37,12 @@ export default function CadastreSeuEspaco() {
           O cadastro é rápido, simples e totalmente gratuito.
         </p>
 
-        <button className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-gray-900 transition">
-          Iniciar cadastro
-        </button>
+<button
+  onClick={() => router.push("/?openModal=true")}
+  className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-gray-900 transition"
+>
+  Iniciar cadastro
+</button>
       </section>
 
       {/* BENEFÍCIOS */}
@@ -92,13 +98,6 @@ export default function CadastreSeuEspaco() {
         </ul>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="w-full flex flex-col justify-center items-center text-center px-6 py-16 bg-gray-100 dark:bg-slate-900 dark:text-gray-100 text-black">
-        <h2 className="text-2xl font-bold mb-4">Pronto para começar?</h2>
-        <button className="mt-8 px-8 py-3 bg-[#02aeee] text-white rounded-xl hover:bg-gray-900 transition">
-          Começar agora
-        </button>
-      </section>
     </>
   );
 }
