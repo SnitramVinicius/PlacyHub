@@ -39,7 +39,6 @@ export default function NovoEspaco() {
         {
           nome_espaco: dados.nome_espaco,
           tipo_espaco: dados.tipo_espaco,
-          tipo_reserva: dados.tipo_reserva,
           capacidade: dados.capacidade,
           area: dados.area,
           estado: dados.estado,

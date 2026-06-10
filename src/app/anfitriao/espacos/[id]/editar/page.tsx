@@ -259,7 +259,6 @@ console.log("📸 Todas URLs (array):", todasUrls);
       .update({
         nome_espaco: dadosAtualizados.nome_espaco,
         tipo_espaco: dadosAtualizados.tipo_espaco,
-        tipo_reserva: dadosAtualizados.tipo_reserva,
         capacidade: dadosAtualizados.capacidade,
         area: dadosAtualizados.area,
         estado: dadosAtualizados.estado,
