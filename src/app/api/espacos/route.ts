@@ -1,32 +1,29 @@
-// src/app/api/espacos/route.ts
-
 import { NextResponse } from "next/server";
-import { ESPACOS } from "@/data/espacos";
+import { supabase } from "@/lib/supabase";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+export async function GET() {
+  try {
+    // Buscar espaços do Supabase
+    const { data: espacos, error } = await supabase
+      .from("spaces")
+      .select("*")
+      .eq("disponivel", true)
+      .order("created_at", { ascending: false });
 
-  const cidade = searchParams.get("cidade");
-  const ordenacao = searchParams.get("ordenacao") || "popularidade";
+    if (error) {
+      console.error("Erro ao buscar espaços:", error);
+      return NextResponse.json(
+        { error: "Erro ao carregar espaços" },
+        { status: 500 }
+      );
+    }
 
-  let espacos = [...ESPACOS];
-
-  // 🔍 Filtrar por cidade
-  if (cidade) {
-    espacos = espacos.filter(
-      (e) => e.cidade.toLowerCase() === cidade.toLowerCase()
+    return NextResponse.json(espacos || []);
+  } catch (error) {
+    console.error("Erro:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
     );
   }
-
-  // 🔄 Ordenação
-  if (ordenacao === "preco") {
-    espacos.sort((a, b) => a.preco - b.preco);
-  } else if (ordenacao === "avaliacao") {
-    espacos.sort((a, b) => b.avaliacao - a.avaliacao);
-  } else {
-    // popularidade
-    espacos.sort((a, b) => b.avaliacao - a.avaliacao);
-  }
-
-  return NextResponse.json(espacos);
 }
