@@ -7,6 +7,8 @@ import { Eye, EyeOff, X, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/types/role";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { hashPassword } from "@/lib/passwordUtils";
 
 interface EstadoIBGE {
   id: number;
@@ -15,11 +17,13 @@ interface EstadoIBGE {
 }
 
 export default function CadastroLocatario() {
+  const [loading, setLoading] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [estados, setEstados] = useState<EstadoIBGE[]>([]);
   const [loadingEstados, setLoadingEstados] = useState(true);
   const [modalAberto, setModalAberto] = useState<"termos" | "privacidade" | null>(null);
+  
 
   const router = useRouter();
   const { login } = useAuth();
@@ -44,76 +48,120 @@ export default function CadastroLocatario() {
   const validarSenha = (senha: string) =>
     /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(senha);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  const formData = new FormData(e.currentTarget);
 
-    const usuario = {
-      nome: formData.get("nome")?.toString().trim(),
-      email: formData.get("email")?.toString().trim(),
-      senha: formData.get("senha")?.toString(),
-      confirmarSenha: formData.get("confirmarSenha")?.toString(),
-      telefone: formData.get("telefone")?.toString().trim(),
-      cidade: formData.get("cidade")?.toString().trim(),
-      estado: formData.get("estado")?.toString(),
-      dataNascimento: formData.get("dataNascimento")?.toString() || null,
-      termos: formData.get("termos") === "on",
-    };
-
-    if (
-      !usuario.nome ||
-      !usuario.email ||
-      !usuario.senha ||
-      !usuario.confirmarSenha ||
-      !usuario.telefone ||
-      !usuario.cidade ||
-      !usuario.estado
-    ) {
-      toast.error("Preencha todos os campos obrigatórios.");
-      return;
-    }
-
-    if (!usuario.termos) {
-      toast.error("Aceite os termos para continuar.");
-      return;
-    }
-
-    if (usuario.senha !== usuario.confirmarSenha) {
-      toast.error("As senhas não coincidem.");
-      return;
-    }
-
-    if (!validarSenha(usuario.senha)) {
-      toast.error(
-        "Senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um número."
-      );
-      return;
-    }
-
-    const payload = {
-      nome: usuario.nome,
-      email: usuario.email,
-      telefone: usuario.telefone,
-      cidade: usuario.cidade,
-      estado: usuario.estado,
-      dataNascimento: usuario.dataNascimento,
-      roles: ["LOCATARIO"],
-    };
-
-    localStorage.setItem("usuario", JSON.stringify(payload));
-
-    login({
-      name: payload.nome!,
-      email: payload.email!,
-      roles: payload.roles as Role[],
-      telefone: payload.telefone,
-      cidade: payload.cidade,
-      estado: payload.estado,
-    });
-
-    toast.success("Conta criada com sucesso!");
-    setTimeout(() => router.push("/"), 1500);
+  const usuario = {
+    nome: formData.get("nome")?.toString().trim(),
+    email: formData.get("email")?.toString().trim(),
+    senha: formData.get("senha")?.toString(),
+    confirmarSenha: formData.get("confirmarSenha")?.toString(),
+    telefone: formData.get("telefone")?.toString().trim(),
+    cidade: formData.get("cidade")?.toString().trim(),
+    estado: formData.get("estado")?.toString(),
+    dataNascimento: formData.get("dataNascimento")?.toString() || null,
+    termos: formData.get("termos") === "on",
   };
+
+  // Validações
+  if (
+    !usuario.nome ||
+    !usuario.email ||
+    !usuario.senha ||
+    !usuario.confirmarSenha ||
+    !usuario.telefone ||
+    !usuario.cidade ||
+    !usuario.estado
+  ) {
+    toast.error("Preencha todos os campos obrigatórios.");
+    return;
+  }
+
+  if (!usuario.termos) {
+    toast.error("Aceite os termos para continuar.");
+    return;
+  }
+
+  if (usuario.senha !== usuario.confirmarSenha) {
+    toast.error("As senhas não coincidem.");
+    return;
+  }
+
+  if (!validarSenha(usuario.senha)) {
+    toast.error(
+      "Senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um número."
+    );
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // 1. Verificar se email já existe no Supabase
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("email")
+      .eq("email", usuario.email)
+      .maybeSingle();
+
+    if (existingUser) {
+      toast.error("Este e-mail já está cadastrado");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Inserir novo usuário no Supabase
+    const { data, error } = await supabase
+  .from("users")
+  .insert({
+    email: usuario.email,
+    name: usuario.nome,
+    telefone: usuario.telefone,
+    cidade: usuario.cidade,
+    estado: usuario.estado,
+    is_anfitriao: false,
+    senha: hashPassword(usuario.senha), // 🔥 Salvar com hash
+  })
+  .select()
+  .single();
+
+    if (error) {
+      console.error("Erro ao cadastrar:", error);
+      toast.error("Erro ao criar conta. Tente novamente.");
+      setLoading(false);
+      return;
+    }
+
+    console.log("✅ Usuário criado:", data);
+
+if (data) {
+  await supabase
+    .from("password_history")
+    .insert({
+      user_id: data.id,
+      password_hash: hashPassword(usuario.senha),
+    });
+}
+
+    // 3. Fazer login automático
+    const loginSuccess = await login(usuario.email, usuario.senha);
+
+    if (loginSuccess) {
+      toast.success("Conta criada com sucesso!");
+      router.push("/");
+    } else {
+      toast.error("Conta criada, mas erro ao fazer login. Faça login manualmente.");
+      router.push("/login");
+    }
+
+  } catch (err) {
+    console.error("Erro:", err);
+    toast.error("Erro ao criar conta");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -219,11 +267,13 @@ export default function CadastroLocatario() {
             </label>
 
             <button
-              type="submit"
-              className="w-full bg-sky-500 hover:bg-sky-600 text-white py-3 rounded-xl font-medium transition"
-            >
-              Criar conta
-            </button>
+  type="submit"
+  disabled={loading}
+  className={`w-full bg-sky-500 hover:bg-sky-600 text-white py-3 rounded-xl font-medium transition
+    ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+>
+  {loading ? "Criando conta..." : "Criar conta"}
+</button>
 
             <p className="text-center text-sm text-gray-500 dark:text-gray-400">
               Já tem uma conta?{" "}

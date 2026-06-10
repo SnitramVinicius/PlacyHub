@@ -1,30 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function RecuperarSenha() {
   const [email, setEmail] = useState("");
   const [linkEnviado, setLinkEnviado] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [tempoRestante, setTempoRestante] = useState(0);
 
-  // Timer de reenviar link
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (tempoRestante > 0) {
-      timer = setTimeout(() => setTempoRestante(tempoRestante - 1), 1000);
+  const handleEnviarLink = async () => {
+    if (!email) {
+      toast.error("Digite seu e-mail");
+      return;
     }
-    return () => clearTimeout(timer);
-  }, [tempoRestante]);
 
-  const handleEnviarLink = () => {
-    if (!email) return toast.error("Digite seu e-mail");
+    setLoading(true);
 
-    // Aqui você chamaria a API de envio de link
-    setLinkEnviado(true);
-    setTempoRestante(30); // bloqueia 30s antes de reenviar
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setLinkEnviado(true);
+        setTempoRestante(30); // bloqueia 30s antes de reenviar
+        
+        // Iniciar timer
+        const timer = setInterval(() => {
+          setTempoRestante(prev => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        
+        toast.success(data.message || "Link enviado! Verifique seu e-mail.");
+      } else {
+        toast.error(data.error || "Erro ao enviar link");
+      }
+    } catch (error) {
+      toast.error("Erro de conexão");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,20 +87,28 @@ export default function RecuperarSenha() {
             className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 
               focus:outline-none focus:border-[#02b0f0] focus:ring-2 focus:ring-[#02b0f0]/20
               bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 w-full"
+            disabled={loading}
           />
 
           <button
             onClick={handleEnviarLink}
-            disabled={tempoRestante > 0}
-            className={`w-full py-2 rounded-lg text-white transition mt-4 ${
-              tempoRestante > 0
+            disabled={tempoRestante > 0 || loading}
+            className={`w-full py-2 rounded-lg text-white transition mt-4 flex items-center justify-center gap-2
+              ${tempoRestante > 0 || loading
                 ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
                 : "bg-[#02b0f0] hover:bg-[#0292cb]"
-            }`}
+              }`}
           >
-            {tempoRestante > 0
-              ? `Reenviar link em ${tempoRestante}s`
-              : "Enviar link de redefinição"}
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Enviando...
+              </>
+            ) : tempoRestante > 0 ? (
+              `Reenviar link em ${tempoRestante}s`
+            ) : (
+              "Enviar link de redefinição"
+            )}
           </button>
 
           {linkEnviado && (
@@ -83,7 +118,7 @@ export default function RecuperarSenha() {
               </p>
 
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-4 text-center">
-                Não recebeu o e-mail? Você também pode entrar em contato com o suporte:
+                Não recebeu o e-mail? Verifique sua caixa de spam ou entre em contato com o suporte:
                 <ul className="list-disc list-inside mt-2 text-gray-700 dark:text-gray-300">
                   <li>
                     E-mail:{" "}

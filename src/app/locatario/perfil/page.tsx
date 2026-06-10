@@ -13,6 +13,8 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 /* ===================== TIPOS ===================== */
 
@@ -65,42 +67,211 @@ interface Anfitriao {
 
 export default function PerfilUsuario() {
   const router = useRouter();
-
+  const { user, updateUser } = useAuth();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [editando, setEditando] = useState(false);
   const [confirmarLogout, setConfirmarLogout] = useState(false);
 
-  useEffect(() => {
-    const dados = localStorage.getItem("usuario");
-    if (!dados) {
+useEffect(() => {
+  async function carregarPerfil() {
+    const dadosLocal = localStorage.getItem("placyhub_user_dev");
+    console.log("📦 Dados do localStorage:", dadosLocal);
+    
+    if (!dadosLocal) {
       router.push("/login");
       return;
     }
-    setUsuario(JSON.parse(dados));
-  }, [router]);
 
+    const userLocal = JSON.parse(dadosLocal);
+    console.log("👤 Usuário do localStorage:", userLocal);
+    console.log("🆔 ID do usuário:", userLocal.id);
+
+    if (!userLocal.id) {
+      console.error("❌ ID do usuário não encontrado!");
+      router.push("/login");
+      return;
+    }
+    
+    // Buscar dados do Supabase
+const { data: userData, error } = await supabase
+  .from("users")
+  .select("id, email, name, telefone, cidade, estado, cpf, data_nascimento, foto_url, cep, rua, numero, bairro") // 🔥 ADICIONOU cep, rua, numero, bairro
+  .eq("id", userLocal.id)
+  .single();
+
+    if (error) {
+      console.error("Erro:", error);
+      setUsuario(userLocal);
+      return;
+    }
+
+    console.log("✅ Dados do Supabase:", userData);
+
+ // Montar objeto do usuário
+const usuarioCompleto: Usuario = {
+  id: userData.id,
+  nome: userData.name,
+  email: userData.email,
+  telefone: userData.telefone || "",
+  cpf: userData.cpf || "",
+  dataNascimento: userData.data_nascimento || "",
+  fotoUrl: userData.foto_url || "",
+  endereco: {
+    cep: userData.cep || "",        // 🔥 CARREGAR DO BANCO
+    rua: userData.rua || "",        // 🔥 CARREGAR DO BANCO
+    numero: userData.numero || "",  // 🔥 CARREGAR DO BANCO
+    bairro: userData.bairro || "",  // 🔥 CARREGAR DO BANCO
+    cidade: userData.cidade || "",
+    estado: userData.estado || "",
+  },
+  roles: ["LOCATARIO"]
+};
+
+    setUsuario(usuarioCompleto);
+  }
+
+  carregarPerfil();
+}, [router]);
   if (!usuario) return null;
 
   const isAnfitriao = usuario.roles.includes("ANFITRIAO");
 
-  const handleFotoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return;
-    const url = URL.createObjectURL(e.target.files[0]);
-    setUsuario({ ...usuario, fotoUrl: url });
+const handleFotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files?.[0]) return;
+  if (!usuario) return;
+  
+  const file = e.target.files[0];
+  
+  // Validar tipo e tamanho
+  if (!file.type.startsWith('image/')) {
+    toast.error("Por favor, selecione uma imagem");
+    return;
+  }
+  
+  if (file.size > 2 * 1024 * 1024) { // 2MB
+    toast.error("A imagem deve ter no máximo 2MB");
+    return;
+  }
+  
+  try {
+    toast.loading("Enviando foto...");
+    
+    // Gerar nome único para o arquivo
+    const extensao = file.name.split('.').pop();
+    const nomeArquivo = `${usuario.id}-${Date.now()}.${extensao}`;
+    
+    // Fazer upload para o Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(nomeArquivo, file);
+    
+    if (uploadError) {
+      console.error("Erro no upload:", uploadError);
+      toast.error("Erro ao enviar foto");
+      return;
+    }
+    
+    // Pegar a URL pública
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(nomeArquivo);
+    
+    const fotoUrl = urlData.publicUrl;
+    
+    // Salvar URL no banco de dados
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ foto_url: fotoUrl })
+      .eq("id", usuario.id);
+    
+    if (updateError) {
+      console.error("Erro ao salvar URL:", updateError);
+      toast.error("Erro ao salvar foto");
+      return;
+    }
+    
+updateUser({ fotoUrl });
+    
+    // Atualizar estado local
+    setUsuario({ ...usuario, fotoUrl });
+    toast.dismiss();
     toast.success("Foto de perfil atualizada!");
-  };
+    
+  } catch (err) {
+    console.error("Erro:", err);
+    toast.error("Erro ao enviar foto");
+  }
+};
 
-  const handleSalvar = () => {
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    setEditando(false);
-    toast.success("Informações atualizadas com sucesso!");
-  };
+const handleSalvar = async () => {
+  console.log("🔥 Botão salvar clicado!");
+  
+  if (!usuario) {
+    console.log("❌ Usuário não encontrado");
+    return;
+  }
 
-  const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    router.push("/login");
-  };
+  console.log("📝 Dados a salvar:", {
+    id: usuario.id,
+    telefone: usuario.telefone,
+    cpf: usuario.cpf,
+    data_nascimento: usuario.dataNascimento,
+    cidade: usuario.endereco?.cidade,
+    estado: usuario.endereco?.estado,
+  });
+
+  // Atualizar no Supabase
+  const { error } = await supabase
+    .from("users")
+    .update({
+      telefone: usuario.telefone,
+      cpf: usuario.cpf,
+      data_nascimento: usuario.dataNascimento,
+      cidade: usuario.endereco?.cidade,
+      estado: usuario.endereco?.estado,
+          cep: usuario.endereco?.cep,       
+    rua: usuario.endereco?.rua,       
+    numero: usuario.endereco?.numero, 
+    bairro: usuario.endereco?.bairro,  
+    })
+    .eq("id", usuario.id);
+
+  if (error) {
+    console.error("❌ Erro ao salvar:", error);
+    toast.error("Erro ao salvar dados");
+    return;
+  }
+
+  console.log("✅ Dados salvos com sucesso!");
+  localStorage.setItem("placyhub_user_dev", JSON.stringify(usuario));
+  setEditando(false);
+  toast.success("Informações atualizadas com sucesso!");
+};
+
+ const handleLogout = () => {
+  localStorage.removeItem("placyhub_user_dev");  // 🔥 MUDOU AQUI
+  sessionStorage.clear();
+  router.push("/login");
+};
+
+// Função para formatar texto com primeira letra maiúscula
+const capitalizarTexto = (texto: string) => {
+  if (!texto) return texto;
+  return texto
+    .toLowerCase()
+    .split(' ')
+    .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+    .join(' ');
+};
+
+// Função para formatar rua (mantém números)
+const formatarRua = (texto: string) => {
+  if (!texto) return texto;
+  // Separa números e letras, capitaliza apenas as letras
+  return texto.replace(/([A-Za-zÀ-ÖØ-öø-ÿ]+)/g, (palavra) => 
+    palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase()
+  );
+};
 
   return (
     <div className="p-4 md:p-6 relative bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
@@ -196,14 +367,20 @@ export default function PerfilUsuario() {
           } 
           mask="cep"
         />
-        <Input 
-          label="Rua" 
-          value={usuario.endereco?.rua || ""} 
-          disabled={!editando}
-          onChange={(v: string) =>
-            setUsuario({ ...usuario, endereco: { ...usuario.endereco, rua: v } })
-          } 
-        />
+<Input 
+  label="Rua" 
+  value={usuario.endereco?.rua || ""} 
+  disabled={!editando}
+  onChange={(v: string) =>
+    setUsuario({ 
+      ...usuario, 
+      endereco: { 
+        ...usuario.endereco, 
+        rua: editando ? formatarRua(v) : v  // 🔥 Formata ao digitar
+      } 
+    })
+  } 
+/>
         <Input 
           label="Número" 
           value={usuario.endereco?.numero || ""} 
@@ -212,22 +389,34 @@ export default function PerfilUsuario() {
             setUsuario({ ...usuario, endereco: { ...usuario.endereco, numero: v } })
           } 
         />
-        <Input 
-          label="Bairro" 
-          value={usuario.endereco?.bairro || ""} 
-          disabled={!editando}
-          onChange={(v: string) =>
-            setUsuario({ ...usuario, endereco: { ...usuario.endereco, bairro: v } })
-          } 
-        />
-        <Input 
-          label="Cidade" 
-          value={usuario.endereco?.cidade || ""} 
-          disabled={!editando}
-          onChange={(v: string) =>
-            setUsuario({ ...usuario, endereco: { ...usuario.endereco, cidade: v } })
-          } 
-        />
+  <Input 
+  label="Bairro" 
+  value={usuario.endereco?.bairro || ""} 
+  disabled={!editando}
+  onChange={(v: string) =>
+    setUsuario({ 
+      ...usuario, 
+      endereco: { 
+        ...usuario.endereco, 
+        bairro: editando ? capitalizarTexto(v) : v  // 🔥 Formata ao digitar
+      } 
+    })
+  } 
+/>
+<Input 
+  label="Cidade" 
+  value={usuario.endereco?.cidade || ""} 
+  disabled={!editando}
+  onChange={(v: string) =>
+    setUsuario({ 
+      ...usuario, 
+      endereco: { 
+        ...usuario.endereco, 
+        cidade: editando ? capitalizarTexto(v) : v  // 🔥 Formata ao digitar
+      } 
+    })
+  } 
+/>
         <Input 
           label="Estado" 
           value={usuario.endereco?.estado || ""} 
@@ -300,6 +489,8 @@ export default function PerfilUsuario() {
           text="Veja seus espaços favoritos"
           onClick={() => router.push("/favoritos")} 
         />
+
+
 
         <Card 
           icon={<LogOut size={28} className="text-red-500" />} 

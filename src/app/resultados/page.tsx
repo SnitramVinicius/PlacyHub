@@ -6,9 +6,25 @@ import { useState, useEffect, useRef, TouchEvent } from "react";
 import Link from "next/link";
 import { Heart, Filter, X } from "lucide-react";
 import { toast } from "sonner";
-import { ESPACOS as espacosSimulados, Espaco } from "@/data/espacos";
 import { useAuth } from "@/context/AuthContext";
 import { useFavoritos } from "@/context/FavoritosContext";
+import { supabase } from "@/lib/supabase";
+
+// Interface do espaço
+interface Espaco {
+  id: string;
+  nome: string;
+  preco: number;
+  precoMinimoBuffet?: number | null;
+  avaliacao: number;
+  popularidade: number;
+  cidade: string;
+  bairro: string;
+  duracao: number;
+  imagem: string;
+  buffet: boolean;
+  tipo: string;
+}
 
 // Componente do Drawer arrastável
 function DrawerFiltros({ 
@@ -213,50 +229,181 @@ function ResultadosContent() {
     }
   };
 
+  // Função para buscar espaços do Supabase
   useEffect(() => {
-    setLoading(true);
-
-    const t = setTimeout(() => {
-      let filtrados = espacosSimulados.filter(
-        (espaco) => espaco.cidade.toLowerCase() === cidadeParam.toLowerCase()
-      );
-
-      if (tipo !== "") filtrados = filtrados.filter((e) => e.tipo === tipo);
-
-      if (precoFaixa !== "") {
-        if (precoFaixa === "1000+") {
-          filtrados = filtrados.filter((e) => e.preco > 1000);
-        } else {
-          filtrados = filtrados.filter((e) => e.preco <= Number(precoFaixa));
+    async function fetchSpaces() {
+      setLoading(true);
+      
+      try {
+        // 1. Buscar espaços pela cidade
+        let query = supabase
+          .from("spaces")
+          .select(`
+            *,
+            espaco_categorias(
+              pacotes:espaco_pacotes(
+                precos:espaco_precos_pacote(valor)
+              )
+            )
+          `);
+        
+        // Filtrar por cidade (caso insensível)
+        if (cidadeParam) {
+          // Extrair apenas a cidade (remover ", MS" se houver)
+          const nomeCidade = cidadeParam.split(",")[0].trim();
+          query = query.ilike("cidade", `%${nomeCidade}%`);
         }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Erro ao buscar espaços:", error);
+          setResultados([]);
+          setLoading(false);
+          return;
+        }
+        
+        // 2. Se tiver datas, verificar disponibilidade
+        let espacosDisponiveis = data || [];
+        
+        if (startDate && endDate) {
+          // Buscar reservas que conflitam com o período
+          const { data: reservas, error: reservasError } = await supabase
+            .from("reservas")
+            .select("espaco_id, data_inicio, data_fim")
+            .or(`data_inicio.lte.${endDate},data_fim.gte.${startDate}`);
+          
+          if (!reservasError && reservas) {
+            // Filtrar espaços que NÃO têm reservas no período
+            const espacosComReserva = new Set(reservas.map(r => r.espaco_id));
+            espacosDisponiveis = espacosDisponiveis.filter(
+              (espaco: any) => !espacosComReserva.has(espaco.id)
+            );
+          }
+        }
+        
+        // 3. Mapear os espaços
+        const mappedSpaces: Espaco[] = espacosDisponiveis.map((item: any) => {
+          // Calcular menor preço dos pacotes (para buffets)
+          let precoMinimoBuffet = null;
+          
+          if (item.espaco_categorias && item.espaco_categorias.length > 0) {
+            for (const categoria of item.espaco_categorias) {
+              if (categoria.pacotes && categoria.pacotes.length > 0) {
+                for (const pacote of categoria.pacotes) {
+                  if (pacote.precos && pacote.precos.length > 0) {
+                    for (const preco of pacote.precos) {
+                      const valor = preco.valor;
+                      if (valor && (precoMinimoBuffet === null || valor < precoMinimoBuffet)) {
+                        precoMinimoBuffet = valor;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          
+          const ehBuffet = precoMinimoBuffet !== null;
+          
+          // Obter imagem
+          let imagem = 'https://placehold.co/400x300/3b82f6/white?text=Espaço';
+          if (item.imagens && Array.isArray(item.imagens) && item.imagens.length > 0) {
+            imagem = item.imagens[0];
+          } else if (item.imagem && item.imagem !== '') {
+            imagem = item.imagem;
+          }
+          
+          return {
+            id: item.id,
+            nome: item.nome_espaco,
+            preco: (item.preco || 0) / 100,
+            precoMinimoBuffet: precoMinimoBuffet,
+            avaliacao: item.avaliacao || 5.0,
+            popularidade: item.popularidade || 0,
+            cidade: item.cidade || "",
+            bairro: item.bairro || "",
+            duracao: item.duracao || 4,
+            imagem: imagem,
+            buffet: ehBuffet,
+            tipo: item.tipo_espaco || "",
+          };
+        });
+        
+        // 4. Aplicar filtros adicionais
+        let filtrados = mappedSpaces;
+        
+        // Filtro por tipo
+        if (tipo !== "") {
+          filtrados = filtrados.filter((e) => e.tipo === tipo);
+        }
+        
+        // Filtro por faixa de preço
+        if (precoFaixa !== "") {
+          if (precoFaixa === "1000+") {
+            filtrados = filtrados.filter((e) => {
+              const precoParaComparar = e.buffet ? e.precoMinimoBuffet || 0 : e.preco;
+              return precoParaComparar > 1000;
+            });
+          } else {
+            const valorMaximo = Number(precoFaixa);
+            filtrados = filtrados.filter((e) => {
+              const precoParaComparar = e.buffet ? e.precoMinimoBuffet || 0 : e.preco;
+              return precoParaComparar <= valorMaximo;
+            });
+          }
+        }
+        
+        // 5. Ordenar
+        if (ordenacao === "preco") {
+          filtrados.sort((a, b) => {
+            const precoA = a.buffet ? a.precoMinimoBuffet || 0 : a.preco;
+            const precoB = b.buffet ? b.precoMinimoBuffet || 0 : b.preco;
+            return precoA - precoB;
+          });
+        } else if (ordenacao === "nota") {
+          filtrados.sort((a, b) => b.avaliacao - a.avaliacao);
+        } else {
+          filtrados.sort((a, b) => b.avaliacao - a.avaliacao);
+        }
+        
+        setResultados(filtrados);
+      } catch (err) {
+        console.error("Erro:", err);
+        setResultados([]);
+      } finally {
+        setLoading(false);
       }
-
-      if (ordenacao === "preco") {
-        filtrados.sort((a, b) => a.preco - b.preco);
-      } else if (ordenacao === "nota") {
-        filtrados.sort((a, b) => b.avaliacao - a.avaliacao);
-      } else {
-        filtrados.sort((a, b) => b.avaliacao - a.avaliacao);
-      }
-
-      setResultados(filtrados);
-      setLoading(false);
-    }, 400);
-
-    return () => clearTimeout(t);
-  }, [cidadeParam, ordenacao, tipo, precoFaixa]);
-
+    }
+    
+    fetchSpaces();
+  }, [cidadeParam, startDate, endDate, ordenacao, tipo, precoFaixa]);
+  
   const limparFiltros = () => {
     setTipo("");
     setPrecoFaixa("");
   };
-
+  
+  // Função para obter o texto do preço
+  const getPrecoTexto = (espaco: Espaco) => {
+    if (espaco.buffet && espaco.precoMinimoBuffet) {
+      return `A partir de R$ ${espaco.precoMinimoBuffet.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`;
+    }
+    return `R$ ${espaco.preco.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })} • ${espaco.duracao || 4} horas`;
+  };
+  
   const dataTexto = startDate
     ? endDate
       ? `${startDate} até ${endDate}`
       : startDate
     : "Nenhuma data selecionada";
-
+  
   const tiposEspacos = ["Chácara", "Salão", "Casa de festas", "Sítio", "Outro"];
   const faixasPreco = [
     { valor: "100", label: "Até R$ 100" },
@@ -269,7 +416,7 @@ function ResultadosContent() {
     { valor: "1000", label: "Até R$ 1000" },
     { valor: "1000+", label: "Acima de R$ 1000" },
   ];
-
+  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <div className="w-full px-4 sm:px-6 lg:px-8 pt-4 pb-8 sm:pt-6 sm:pb-10">
@@ -287,7 +434,7 @@ function ResultadosContent() {
             </p>
           </div>
         </div>
-
+        
         {/* Barra de ferramentas - Mobile */}
         <div className="lg:hidden mb-4 max-w-7xl mx-auto">
           <button
@@ -308,7 +455,7 @@ function ResultadosContent() {
             </span>
           </button>
         </div>
-
+        
         {/* Drawer de Filtros Arrastável */}
         <DrawerFiltros
           isOpen={filtroAberto}
@@ -321,7 +468,7 @@ function ResultadosContent() {
           tiposEspacos={tiposEspacos}
           faixasPreco={faixasPreco}
         />
-
+        
         {/* Layout Desktop: Sidebar + Conteúdo */}
         <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
           {/* Sidebar de Filtros - Desktop */}
@@ -338,7 +485,7 @@ function ResultadosContent() {
                   </button>
                 )}
               </div>
-
+              
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Tipo de espaço
@@ -356,7 +503,7 @@ function ResultadosContent() {
                   ))}
                 </select>
               </div>
-
+              
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Faixa de preço
@@ -376,7 +523,7 @@ function ResultadosContent() {
               </div>
             </div>
           </div>
-
+          
           {/* Conteúdo Principal */}
           <div className="flex-1">
             {/* Ordenação e contagem - Desktop */}
@@ -400,7 +547,7 @@ function ResultadosContent() {
                 </div>
               </div>
             )}
-
+            
             {/* Ordenação e contagem - Mobile */}
             {!loading && (
               <div className="lg:hidden flex justify-between items-center mb-4">
@@ -419,7 +566,7 @@ function ResultadosContent() {
                 </select>
               </div>
             )}
-
+            
             {/* Grid de Resultados */}
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
@@ -434,6 +581,11 @@ function ResultadosContent() {
                     <Link key={espaco.id} href={`/espaco/${espaco.id}`}>
                       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 dark:border-slate-700 h-full">
                         <div className="relative">
+                          {espaco.buffet && (
+                            <span className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full z-10">
+                              Buffet
+                            </span>
+                          )}
                           <img
                             src={espaco.imagem}
                             alt={espaco.nome}
@@ -457,7 +609,7 @@ function ResultadosContent() {
                             </div>
                           </button>
                         </div>
-
+                        
                         <div className="p-4">
                           <div className="flex justify-between items-start gap-2 mb-1">
                             <div className="flex-1 min-w-0">
@@ -475,19 +627,18 @@ function ResultadosContent() {
                               </span>
                             </div>
                           </div>
-
-                          <div className="mt-2 flex items-baseline gap-1">
+                          
+                          <div className="mt-2">
                             <span className="text-base font-semibold text-gray-900 dark:text-white">
-                              R$ {espaco.preco}
+                              {getPrecoTexto(espaco)}
                             </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">• 5 horas</span>
                           </div>
                         </div>
                       </div>
                     </Link>
                   ))}
                 </div>
-
+                
                 {resultados.length === 0 && (
                   <div className="text-center py-12 sm:py-20">
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full mb-4">

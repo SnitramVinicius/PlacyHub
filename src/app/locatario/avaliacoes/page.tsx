@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import AvaliacaoModal from "@/components/AvaliacaoModal";
 import { toast } from "sonner";
 
@@ -10,48 +12,256 @@ interface Avaliacao {
   tipo: "feito" | "recebido" | "pendente";
   comentario?: string;
   nota?: number;
-  espaco?: string;
-  data?: string;
+  espaco_nome?: string;
+  espaco_id?: string;
+  reserva_id?: string;
+  data_inicio?: string;
+  created_at?: string;
+  anfitriao_nome?: string;
 }
 
 export default function AvaliacoesPage() {
+  const { user } = useAuth();
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState<Avaliacao | null>(null);
 
   useEffect(() => {
-    const dados: Avaliacao[] = [
-      { id: "1", tipo: "feito", comentario: "Espaço incrível! Muito bem cuidado e localização perfeita.", nota: 5, espaco: "Chácara Recanto do Lago", data: "2025-12-10" },
-      { id: "2", tipo: "recebido", comentario: "Ótimo hóspede! Comunicativo e respeitou todas as regras.", nota: 5, espaco: "Espaço Premium Monte Castelo", data: "2025-12-05" },
-      { id: "3", tipo: "pendente", espaco: "Chácara Recanto do Lago", data: "2025-12-12" },
-    ];
-    setAvaliacoes(dados);
-  }, []);
+    async function carregarAvaliacoes() {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
-  const feitos = avaliacoes.filter(a => a.tipo === "feito");
-  const recebidos = avaliacoes.filter(a => a.tipo === "recebido");
-  const pendentes = avaliacoes.filter(a => a.tipo === "pendente");
+      setLoading(true);
+
+      try {
+        // 1. Buscar reservas FINALIZADAS do usuário (para pendentes)
+        const hoje = new Date().toISOString().split("T")[0];
+        const { data: reservasFinalizadas, error: errorReservas } = await supabase
+          .from("reservas")
+          .select(`
+            id,
+            espaco_id,
+            data_inicio,
+            avaliacao_pulada,
+            spaces (id, nome_espaco)
+          `)
+          .eq("user_id", user.id)
+          .eq("status", "finalizada")
+          .lt("data_inicio", hoje);
+
+        if (errorReservas) {
+          console.error("Erro ao buscar reservas:", errorReservas);
+        }
+
+        // 2. Buscar avaliações FEITAS pelo usuário (cliente avaliando espaços)
+        const { data: avaliacoesFeitas, error: errorFeitas } = await supabase
+          .from("avaliacoes")
+          .select("id, nota, comentario, created_at, reserva_id, espaco_id")
+          .eq("user_id", user.id)
+          .eq("tipo", "cliente_para_espaco");
+
+        if (errorFeitas) {
+          console.error("Erro ao buscar avaliações feitas:", errorFeitas);
+        }
+
+        // 3. Buscar avaliações RECEBIDAS sobre o usuário (anfitrião avaliando cliente)
+        const { data: avaliacoesRecebidas, error: errorRecebidas } = await supabase
+          .from("avaliacoes")
+          .select("id, nota, comentario, created_at, reserva_id, espaco_id, anfitriao_id")
+          .eq("cliente_id", user.id)
+          .eq("tipo", "anfitriao_para_cliente");
+
+        if (errorRecebidas) {
+          console.error("Erro ao buscar avaliações recebidas:", errorRecebidas);
+        }
+
+        // 4. Criar Set de reservas já avaliadas pelo cliente
+        const reservasComAvaliacao = new Set();
+        if (avaliacoesFeitas) {
+          avaliacoesFeitas.forEach((av: any) => {
+            if (av.reserva_id) reservasComAvaliacao.add(av.reserva_id);
+          });
+        }
+
+        // 5. Montar lista de PENDENTES (reservas que o cliente ainda não avaliou)
+        const pendentes: Avaliacao[] = (reservasFinalizadas || [])
+          .filter((r: any) => !reservasComAvaliacao.has(r.id) && !r.avaliacao_pulada)
+          .map((r: any) => ({
+            id: r.id,
+            tipo: "pendente",
+            espaco_nome: r.spaces?.nome_espaco || "Espaço",
+            espaco_id: r.espaco_id,
+            reserva_id: r.id,
+            data_inicio: r.data_inicio,
+          }));
+
+        // 6. Montar lista de AVALIAÇÕES FEITAS (cliente avaliou espaço)
+        const feitas: Avaliacao[] = await Promise.all(
+          (avaliacoesFeitas || []).map(async (av: any) => {
+            let espacoNome = "Espaço";
+            if (av.espaco_id) {
+              const { data: espaco } = await supabase
+                .from("spaces")
+                .select("nome_espaco")
+                .eq("id", av.espaco_id)
+                .single();
+              if (espaco) espacoNome = espaco.nome_espaco;
+            }
+            return {
+              id: av.id,
+              tipo: "feito",
+              nota: av.nota,
+              comentario: av.comentario,
+              espaco_nome: espacoNome,
+              created_at: av.created_at,
+            };
+          })
+        );
+
+        // 7. Montar lista de AVALIAÇÕES RECEBIDAS (anfitrião avaliou cliente)
+        const recebidas: Avaliacao[] = await Promise.all(
+          (avaliacoesRecebidas || []).map(async (av: any) => {
+            let espacoNome = "Espaço";
+            if (av.espaco_id) {
+              const { data: espaco } = await supabase
+                .from("spaces")
+                .select("nome_espaco")
+                .eq("id", av.espaco_id)
+                .single();
+              if (espaco) espacoNome = espaco.nome_espaco;
+            }
+            
+            let anfitriaoNome = "Anfitrião";
+            if (av.anfitriao_id) {
+              const { data: anfitriao } = await supabase
+                .from("users")
+                .select("name")
+                .eq("id", av.anfitriao_id)
+                .single();
+              if (anfitriao) anfitriaoNome = anfitriao.name;
+            }
+            
+            return {
+              id: av.id,
+              tipo: "recebido",
+              nota: av.nota,
+              comentario: av.comentario,
+              espaco_nome: espacoNome,
+              anfitriao_nome: anfitriaoNome,
+              created_at: av.created_at,
+            };
+          })
+        );
+
+        setAvaliacoes([...feitas, ...recebidas, ...pendentes]);
+      } catch (err) {
+        console.error("Erro:", err);
+        toast.error("Erro ao carregar avaliações");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarAvaliacoes();
+  }, [user]);
+
+  async function enviarAvaliacao(nota: number, comentario?: string) {
+    if (!avaliacaoSelecionada || !user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from("avaliacoes")
+        .insert({
+          reserva_id: avaliacaoSelecionada.reserva_id,
+          user_id: user.id,
+          espaco_id: avaliacaoSelecionada.espaco_id,
+          nota: nota,
+          comentario: comentario || null,
+          tipo: "cliente_para_espaco",
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error("Erro ao salvar avaliação:", error);
+        toast.error("Erro ao enviar avaliação");
+        return;
+      }
+
+      setAvaliacoes(prev =>
+        prev.map(av =>
+          av.id === avaliacaoSelecionada.id
+            ? { ...av, tipo: "feito", nota, comentario }
+            : av
+        )
+      );
+
+      toast.success("Avaliação enviada!", {
+        description: "Obrigado por compartilhar sua experiência",
+      });
+    } catch (err) {
+      console.error("Erro:", err);
+      toast.error("Erro ao enviar avaliação");
+    } finally {
+      setModalAberto(false);
+      setAvaliacaoSelecionada(null);
+    }
+  }
+
+  async function pularAvaliacao(reservaId: string) {
+    const { error } = await supabase
+      .from("reservas")
+      .update({ avaliacao_pulada: true })
+      .eq("id", reservaId);
+
+    if (error) {
+      console.error("Erro ao pular avaliação:", error);
+      toast.error("Erro ao pular avaliação");
+      return;
+    }
+
+    setAvaliacoes(prev => prev.filter(av => av.id !== reservaId));
+    toast.success("Avaliação pulada!");
+  }
+
+  async function excluirAvaliacao(avaliacaoId: string) {
+    if (!confirm("Tem certeza que deseja excluir esta avaliação?")) return;
+
+    const { error } = await supabase
+      .from("avaliacoes")
+      .delete()
+      .eq("id", avaliacaoId);
+
+    if (error) {
+      console.error("Erro ao excluir avaliação:", error);
+      toast.error("Erro ao excluir avaliação");
+      return;
+    }
+
+    setAvaliacoes(prev => prev.filter(av => av.id !== avaliacaoId));
+    toast.success("Avaliação excluída!");
+  }
 
   function abrirModal(av: Avaliacao) {
     setAvaliacaoSelecionada(av);
     setModalAberto(true);
   }
 
-  function enviarAvaliacao(nota: number, comentario?: string) {
-    if (!avaliacaoSelecionada) return;
+  const feitos = avaliacoes.filter(a => a.tipo === "feito");
+  const recebidos = avaliacoes.filter(a => a.tipo === "recebido");
+  const pendentes = avaliacoes.filter(a => a.tipo === "pendente");
 
-    setAvaliacoes(prev =>
-      prev.map(av =>
-        av.id === avaliacaoSelecionada.id
-          ? { ...av, tipo: "feito", nota, comentario }
-          : av
-      )
-    );
-
-    setModalAberto(false);
-    setAvaliacaoSelecionada(null);
-    toast.success("Avaliação enviada", { description: "Obrigado por compartilhar sua experiência" });
-  }
+  const formatarData = (dataStr?: string) => {
+    if (!dataStr) return "";
+    const data = new Date(dataStr);
+    return data.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   const renderEstrelas = (nota: number = 0) => {
     return (
@@ -71,15 +281,16 @@ export default function AvaliacoesPage() {
     );
   };
 
-  const formatarData = (dataStr?: string) => {
-    if (!dataStr) return "";
-    const data = new Date(dataStr);
-    return data.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4"></div>
+          <p className="text-gray-500">Carregando avaliações...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
@@ -104,7 +315,7 @@ export default function AvaliacoesPage() {
         {pendentes.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center">
             <p className="text-gray-500 dark:text-gray-400">
-              ✨ Nenhuma avaliação pendente no momento. Parece que é hora de planejar sua próxima aventura!
+              Nenhuma avaliação pendente no momento.
             </p>
           </div>
         ) : (
@@ -116,27 +327,35 @@ export default function AvaliacoesPage() {
               >
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base mb-1">
-                    {p.espaco}
+                    {p.espaco_nome}
                   </h3>
                   <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span>📅 {formatarData(p.data)}</span>
+                    <span>{formatarData(p.data_inicio)}</span>
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => abrirModal(p)}
-                  className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 sm:py-2 rounded-xl font-medium transition flex items-center justify-center gap-2"
-                >
-                  <Star size={18} />
-                  <span>Avaliar agora</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => abrirModal(p)}
+                    className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 sm:py-2 rounded-xl font-medium transition flex items-center justify-center gap-2"
+                  >
+                    <Star size={18} />
+                    <span>Avaliar</span>
+                  </button>
+                  <button
+                    onClick={() => pularAvaliacao(p.id)}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-3 sm:py-2 rounded-xl font-medium transition"
+                  >
+                    Pular
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {/* Comentários feitos por você */}
+      {/* Comentários que você escreveu */}
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-1 h-6 bg-sky-400 rounded-full"></div>
@@ -153,7 +372,7 @@ export default function AvaliacoesPage() {
         {feitos.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center">
             <p className="text-gray-500 dark:text-gray-400">
-              📝 Você ainda não escreveu nenhum comentário. Sua opinião é muito importante!
+              Você ainda não escreveu nenhum comentário.
             </p>
           </div>
         ) : (
@@ -165,15 +384,24 @@ export default function AvaliacoesPage() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                    {f.espaco}
+                    {f.espaco_nome}
                   </h3>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    {formatarData(f.data)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {formatarData(f.created_at)}
+                    </span>
+                    <button
+                      onClick={() => excluirAvaliacao(f.id)}
+                      className="text-red-500 hover:text-red-700 text-sm transition"
+                      title="Excluir avaliação"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="mb-2">
-                  {renderEstrelas(f.nota)}
+                  {renderEstrelas(f.nota || 0)}
                 </div>
                 
                 {f.comentario && (
@@ -204,7 +432,7 @@ export default function AvaliacoesPage() {
         {recebidos.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center">
             <p className="text-gray-500 dark:text-gray-400">
-              👋 Você ainda não recebeu comentários. Seja um ótimo locatário ou anfitrião!
+              Você ainda não recebeu comentários.
             </p>
           </div>
         ) : (
@@ -215,16 +443,21 @@ export default function AvaliacoesPage() {
                 className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                    {r.espaco}
-                  </h3>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                      {r.espaco_nome}
+                    </h3>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Avaliado por: {r.anfitriao_nome}
+                    </p>
+                  </div>
                   <span className="text-xs text-gray-400 dark:text-gray-500">
-                    {formatarData(r.data)}
+                    {formatarData(r.created_at)}
                   </span>
                 </div>
                 
                 <div className="mb-2">
-                  {renderEstrelas(r.nota)}
+                  {renderEstrelas(r.nota || 0)}
                 </div>
                 
                 {r.comentario && (
@@ -242,7 +475,7 @@ export default function AvaliacoesPage() {
       {avaliacaoSelecionada && (
         <AvaliacaoModal
           isOpen={modalAberto}
-          nomeEspaco={avaliacaoSelecionada.espaco || ""}
+          nomeEspaco={avaliacaoSelecionada.espaco_nome || ""}
           onClose={() => setModalAberto(false)}
           onSubmit={enviarAvaliacao}
         />

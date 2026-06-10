@@ -10,14 +10,18 @@ import {
   LogOut,
   Star as StarIcon,
   LayoutDashboard,
+  Bell,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
+import SinoNotificacoes from "@/components/SinoNotificacoes";
+import SinoNotificacoesDesktop from "@/components/SinoNotificacoesDesktop";
 
 const links = [
   { name: "Início", href: "/", icon: Home },
   { name: "Meu Perfil", href: "/locatario/perfil", icon: User }, 
   { name: "Minhas Reservas", href: "/locatario/reservas", icon: CalendarDays },
+  { name: "Notificações", href: "/locatario/notificacoes", icon: Bell},
   { name: "Avaliações", href: "/locatario/avaliacoes", icon: StarIcon },
 ];
 
@@ -50,27 +54,32 @@ export default function UsuarioLayout({
             <img src="/placyhub.png" alt="Logo" className="w-30 h-9 mb-6" />
 
             <nav className="space-y-1">
-              {links.map((link) => {
-                const Icon = link.icon;
-                const isActive = pathname === link.href;
+  {links.map((link) => {
+    // 🔥 SE FOR NOTIFICAÇÕES, USA O COMPONENTE ESPECIAL
+    if (link.name === "Notificações") {
+      return <SinoNotificacoesDesktop key={link.name} />;
+    }
+    
+    const Icon = link.icon;
+    const isActive = pathname === link.href;
 
-                return (
-                  <Link
-                    key={link.name}
-                    href={link.href}
-                    className={clsx(
-                      "flex items-center gap-3 px-4 py-2 rounded-xl transition-all",
-                      isActive
-                        ? "bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-white font-semibold"
-                        : "text-gray-600 dark:text-gray-200 hover:bg-sky-50 dark:hover:bg-sky-600 hover:text-sky-700 dark:hover:text-white"
-                    )}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {link.name}
-                  </Link>
-                );
-              })}
-            </nav>
+    return (
+      <Link
+        key={link.name}
+        href={link.href}
+        className={clsx(
+          "flex items-center gap-3 px-4 py-2 rounded-xl transition-all",
+          isActive
+            ? "bg-sky-100 dark:bg-sky-700 text-sky-700 dark:text-white font-semibold"
+            : "text-gray-600 dark:text-gray-200 hover:bg-sky-50 dark:hover:bg-sky-600 hover:text-sky-700 dark:hover:text-white"
+        )}
+      >
+        <Icon className="w-5 h-5" />
+        {link.name}
+      </Link>
+    );
+  })}
+</nav>
 
             {/* 🔁 Alternar para Anfitrião */}
             {user?.roles?.includes("ANFITRIAO") && (
@@ -115,6 +124,8 @@ export default function UsuarioLayout({
             <CalendarDays size={20} />
             <span>Reservas</span>
           </Link>
+
+<SinoNotificacoes />
 
           <Link
             href="/locatario/avaliacoes"

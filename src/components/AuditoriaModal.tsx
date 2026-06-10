@@ -3,6 +3,7 @@
 import { Image } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const LIMITE_FOTOS_POR_ITEM = 5;
 
@@ -53,15 +54,54 @@ interface Props {
   tipo: "pre" | "pos";
   reserva: ReservaAuditoria;
   auditoriaPre?: Auditoria;
+  auditoriaPos?: Auditoria;
   hoje: Date;
   onClose: () => void;
   onSalvar: (auditoria: Auditoria) => void;
+}
+
+// Função auxiliar para fazer upload de fotos e retornar URLs públicas
+async function uploadFotos(
+  fotosTemporarias: Record<string, File[]>,
+  reservaId: string,
+  tipo: "pre" | "pos"
+): Promise<Record<string, string[]>> {
+  const result: Record<string, string[]> = {};
+
+  for (const [itemId, arquivos] of Object.entries(fotosTemporarias)) {
+    if (!arquivos.length) continue;
+
+    const uploadedUrls: string[] = [];
+    for (const file of arquivos) {
+      const fileName = `vistoria_${reservaId}_${tipo}_${itemId}_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 8)}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("vistorias")
+        .upload(fileName, file, { cacheControl: "3600", upsert: true });
+
+      if (uploadError) {
+        console.error("Erro no upload:", uploadError);
+        throw new Error(`Falha ao enviar foto: ${uploadError.message}`);
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("vistorias")
+        .getPublicUrl(fileName);
+
+      uploadedUrls.push(publicUrlData.publicUrl);
+    }
+    result[itemId] = uploadedUrls;
+  }
+  return result;
 }
 
 export default function AuditoriaModal({
   tipo,
   reserva,
   auditoriaPre,
+  auditoriaPos,
   hoje,
   onClose,
   onSalvar,
@@ -72,31 +112,43 @@ export default function AuditoriaModal({
   // =======================
 // CONTROLE DE DATA DO EVENTO
 // =======================
-const dataEvento = new Date(reserva.dataInicio);
+const dataEvento = new Date(reserva.dataInicio + "T12:00:00");
+const hojeNormalizado = new Date();
+hojeNormalizado.setHours(0, 0, 0, 0);
 dataEvento.setHours(0, 0, 0, 0);
 
-const hojeNormalizado = new Date(hoje);
-hojeNormalizado.setHours(0, 0, 0, 0);
+// Evento já passou? (data do evento < hoje)
+const eventoFinalizado = dataEvento.getTime() < hojeNormalizado.getTime();
 
-// 🔒 Bloqueia no dia do evento OU após
-const eventoEmAndamentoOuFinalizado =
-  hojeNormalizado.getTime() >= dataEvento.getTime();
-
+// Evento é hoje?
+const eventoHoje = dataEvento.getTime() === hojeNormalizado.getTime();
   /* =======================
      STATES
   ======================= */
  
-  const [itensChecklist, setItensChecklist] = useState<ItemChecklist[]>(() => {
-    if (isPre) return reserva.auditoriaPre?.itens || [];
+const [itensChecklist, setItensChecklist] = useState<ItemChecklist[]>(() => {
+  // PRÉ-VISTORIA: usa os itens da própria reserva
+  if (isPre) return reserva.auditoriaPre?.itens || [];
 
-    return (
-      auditoriaPre?.itens.map((item) => ({
-        ...item,
-        estadoPos: item.estadoPos || "ok",
-        observacaoPos: item.observacaoPos || "",
-      })) || []
-    );
+  // PÓS-VISTORIA: usa os itens da PRÉ-vistoria como base
+  const preItens = reserva.auditoriaPre?.itens || [];
+  const posItens = reserva.auditoriaPos?.itens || [];
+  
+  console.log("📋 Itens da pré-vistoria:", preItens);
+  console.log("📋 Itens da pós-vistoria existentes:", posItens);
+  
+  return preItens.map((item) => {
+    // Procura se já existe uma pós-vistoria para este item
+    const itemExistente = posItens.find(i => i.id === item.id);
+    
+    return {
+      ...item,
+      estadoPos: itemExistente?.estadoPos ?? "ok",
+      observacaoPos: itemExistente?.observacaoPos || "",
+      fotosPos: itemExistente?.fotosPos || [],  // ← CARREGA AS FOTOS EXISTENTES
+    };
   });
+});
 
    const existeAvaria = isPos
   ? itensChecklist.some((item) => item.estadoPos === "avaria")
@@ -121,93 +173,95 @@ const [obsAuditoria, setObsAuditoria] = useState(
 const auditoriaExistente =
   isPos && reserva.auditoriaPre?.status;
 
-const somenteLeitura =
-  eventoEmAndamentoOuFinalizado ||
-  (isPos &&
-    reserva.auditoriaPre &&
-    ["aprovada", "encaminhada_analise"].includes(
-      reserva.auditoriaPre.status
-    ));
-
+const somenteLeitura = 
+  (isPre && eventoFinalizado) ||  // Pré: bloqueia se evento já passou
+  (isPos && 
+   reserva.auditoriaPos && 
+   reserva.auditoriaPos.status === "aprovada");
 
     
   /* =======================
      SALVAR
   ======================= */
-  function registrarAuditoria() {
+    async function registrarAuditoria() {
     if (itensChecklist.length === 0) {
       toast("Adicione pelo menos um item ao checklist.");
       return;
     }
 
-const itensFinal = itensChecklist.map((item) => {
-  if (isPre) {
-    const fotosAntigas = item.fotosPre || [];
-    const fotosNovas =
-      fotosTemporarias[item.id]?.map((file) =>
-        URL.createObjectURL(file)
-      ) || [];
+    // Validação das avarias com fotos (já existente)
+    if (isPos) {
+      for (const item of itensChecklist) {
+        if (
+          item.estadoPos === "avaria" &&
+          (!fotosTemporariasPos[item.id]?.length && !item.fotosPos?.length)
+        ) {
+          toast.error(`Adicione pelo menos uma foto da avaria no item: ${item.nome}`);
+          return;
+        }
+      }
+    }
 
-    return {
-      ...item,
-      fotosPre: [...fotosAntigas, ...fotosNovas],
-    };
-  }
+    try {
+      // 1. Fazer upload das fotos temporárias (pré ou pós)
+      let fotosUploaded: Record<string, string[]> = {};
+      if (isPre && Object.keys(fotosTemporarias).length) {
+        fotosUploaded = await uploadFotos(fotosTemporarias, reserva.id, "pre");
+      }
+      if (isPos && Object.keys(fotosTemporariasPos).length) {
+        fotosUploaded = await uploadFotos(fotosTemporariasPos, reserva.id, "pos");
+      }
 
-  // 👇 PÓS EVENTO
-  const fotosAntigas = item.fotosPos || [];
-  const fotosNovas =
-    fotosTemporariasPos[item.id]?.map((file) =>
-      URL.createObjectURL(file)
-    ) || [];
+      // 2. Montar os itens finais, substituindo URLs blob pelas URLs reais
+      const itensFinal = itensChecklist.map((item) => {
+        if (isPre) {
+          const fotosAntigas = item.fotosPre || [];
+          const fotosNovas = fotosUploaded[item.id] || [];
+          return {
+            ...item,
+            fotosPre: [...fotosAntigas, ...fotosNovas],
+          };
+        } else {
+          const fotosAntigas = item.fotosPos || [];
+          const fotosNovas = fotosUploaded[item.id] || [];
+          return {
+            ...item,
+            fotosPos: [...fotosAntigas, ...fotosNovas],
+          };
+        }
+      });
 
-  return {
-    ...item,
-    fotosPos: [...fotosAntigas, ...fotosNovas],
-  };
-});
+      const existeAvaria = isPos
+        ? itensChecklist.some((item) => item.estadoPos === "avaria")
+        : false;
 
-if (isPos) {
-  for (const item of itensChecklist) {
-    if (
-      item.estadoPos === "avaria" &&
-      (!fotosTemporariasPos[item.id]?.length &&
-        !item.fotosPos?.length)
-    ) {
-     toast.error(
-  `Adicione pelo menos uma foto da avaria no item: ${item.nome}`
-);
-      return;
+      const statusAuditoria: StatusAuditoria = isPos
+        ? existeAvaria
+          ? "encaminhada_analise"
+          : "aprovada"
+        : "aprovada";
+
+      // 3. Chamar o callback com os dados finais
+      onSalvar({
+        tipo,
+        itens: itensFinal,
+        observacoesGerais: obsAuditoria,
+        status: statusAuditoria,
+        data: new Date().toISOString(),
+      });
+
+      if (isPos && existeAvaria) {
+        alert(
+          "A vistoria foi encaminhada para análise. Nossa equipe irá avaliar as evidências e entraremos em contato dentro de 72hs"
+        );
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Erro no upload ou salvamento:", error);
+      toast.error("Erro ao processar as fotos. Tente novamente.");
     }
   }
-}
-    const existeAvaria = isPos
-  ? itensChecklist.some((item) => item.estadoPos === "avaria")
-  : false;
-
-const statusAuditoria: StatusAuditoria = isPos
-  ? existeAvaria
-    ? "encaminhada_analise"
-    : "aprovada"
-  : "aprovada";
-
-onSalvar({
-  tipo,
-  itens: itensFinal,
-  observacoesGerais: obsAuditoria,
-  status: statusAuditoria,
-  data: new Date().toISOString(),
-});
-
-if (isPos && existeAvaria) {
-  alert(
-    "A vistoria foi encaminhada para análise. Nossa equipe irá avaliar as evidências e entraremos em contato dentro de 72hs"
-  );
-}
-
-onClose();
-  }
-
 const placeholderObservacoes = isPre
   ? "Ex: Espaço entregue conforme checklist, limpo e em boas condições para uso."
   : existeAvaria
@@ -242,10 +296,15 @@ const placeholderObservacoes = isPre
     </div>
 )}
 
-{eventoEmAndamentoOuFinalizado && (
+{isPre && eventoFinalizado && (
   <div className="mx-6 mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
-    ⚠️ O evento está em andamento ou já foi finalizado.  
-    Esta vistoria está disponível apenas para visualização.
+    ⚠️ O evento já foi finalizado. A pré-vistoria está disponível apenas para visualização.
+  </div>
+)}
+
+{eventoHoje && (
+  <div className="mx-6 mt-4 rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800">
+    ℹ️ O evento está acontecendo hoje. A vistoria pode ser realizada normalmente.
   </div>
 )}
 
@@ -309,109 +368,206 @@ const placeholderObservacoes = isPre
                 {item.quantidade} {item.nome}
               </p>
 
-              {/* PÓS EVENTO */}
-              {isPos && (
-                <>
-                  <select
-                  disabled={somenteLeitura}
-                    value={item.estadoPos || "ok"}
-                   onChange={(e) => {
-  const novoEstado = e.target.value as "ok" | "avaria";
+{/* PÓS EVENTO - MESMO ESTILO DA PRÉ-VISTORIA */}
+{isPos && (
+  <>
+    {/* Mostra o estado da PRÉ-vistoria como referência */}
+    <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-2 rounded-lg">
+       <strong>Pré-vistoria:</strong> {item.estadoPre === "ok" ? "✓ OK" : "⚠️ Avaria"}
+      {item.estadoPre === "avaria" && item.observacaoPre && (
+        <div className="mt-1 text-gray-600 dark:text-gray-400">
+          Observação original: {item.observacaoPre}
+        </div>
+      )}
+      {/* Mostra quantas fotos foram tiradas na pré-vistoria */}
+      {(item.fotosPre?.length || 0) > 0 && (
+        <div className="mt-1 text-gray-500">
+           {item.fotosPre?.length} foto(s) na pré-vistoria
+        </div>
+      )}
+    </div>
 
-  setItensChecklist((prev) => {
-    const atualizados = prev.map((i) =>
-      i.id === item.id ? { ...i, estadoPos: novoEstado } : i
-    );
-
-    const temAvaria = atualizados.some(
-      (i) => i.estadoPos === "avaria"
-    );
-
-    return atualizados;
-  });
-
-  setAuditoriaAlterada(true);
-}}
-
-                    className="border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  >
-                    <option value="ok">Sem avarias</option>
-                    <option value="avaria">Com avaria</option>
-                  </select>
-
-                 {item.estadoPos === "avaria" && (
-  <div className="space-y-2">
-    <textarea
-    disabled={somenteLeitura}
-      placeholder="Descreva a avaria encontrada"
-      value={item.observacaoPos || ""}
-      onChange={(e) => {
+    {/* BOTÃO DE RADIO: Teve avaria ou não? */}
+<div className="flex gap-4">
+  <label className="flex items-center gap-2">
+    <input
+      type="radio"
+      name={`teve-avaria-${item.id}`}
+      checked={item.estadoPos === "ok"}
+      onChange={() => {
+        console.log("📝 Marcando OK para:", item.nome);
         setItensChecklist((prev) =>
           prev.map((i) =>
-            i.id === item.id
-              ? { ...i, observacaoPos: e.target.value }
+            i.id === item.id 
+              ? { ...i, estadoPos: "ok", observacaoPos: "", fotosPos: [] } 
               : i
           )
         );
         setAuditoriaAlterada(true);
       }}
-     className="w-full border border-gray-200 dark:border-gray-600 rounded-lg p-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      // ← TEMPORARIAMENTE FORÇANDO false PARA TESTAR
     />
+    <span className="text-sm">✓ OK - Sem avarias</span>
+  </label>
+  <label className="flex items-center gap-2">
+    <input
+      type="radio"
+      name={`teve-avaria-${item.id}`}
+      checked={item.estadoPos === "avaria"}
+      onChange={() => {
+        console.log("📝 Marcando AVARIA para:", item.nome);
+        setItensChecklist((prev) =>
+          prev.map((i) =>
+            i.id === item.id ? { ...i, estadoPos: "avaria" } : i
+          )
+        );
+        setAuditoriaAlterada(true);
+      }}
+      // ← TEMPORARIAMENTE FORÇANDO false PARA TESTAR
+    />
+    <span className="text-sm">⚠️ Teve avaria</span>
+  </label>
+</div>
 
-    {/* UPLOAD DE FOTOS DA AVARIA */}
-    {!somenteLeitura && (
-    <label>
+    {/* SE TEVE AVARIA, MOSTRA CAMPOS PARA REGISTRAR */}
+    {item.estadoPos === "avaria" && (
+      <div className="space-y-3 pl-4 border-l-2 border-red-300">
+        {/* Alerta de comparação */}
+        {item.estadoPre === "ok" && (
+          <div className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+            ⚠️ Atenção: Este item estava OK na pré-vistoria e agora apresenta avaria!
+          </div>
+        )}
+        
+        {/* Campo de descrição da avaria */}
+        <textarea
+  placeholder="Descreva o que aconteceu com este item (ex: quebrou 2 cadeiras, mesa riscada, etc.)"
+  value={item.observacaoPos || ""}
+  onChange={(e) => {
+    console.log("✏️ Digitando no item:", item.nome, e.target.value);
+    setItensChecklist((prev) =>
+      prev.map((i) =>
+        i.id === item.id ? { ...i, observacaoPos: e.target.value } : i
+      )
+    );
+    setAuditoriaAlterada(true);
+  }}
+  className="w-full border border-red-300 dark:border-red-700 rounded-lg p-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+  rows={2}
+/>
+
+        {/* Upload de fotos da avaria */}
+{!somenteLeitura && (
+  <div>
+    <label className="inline-flex items-center gap-2 text-xs px-3 py-1 border border-red-300 rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20">
+      <Image size={14} />
+      Adicionar fotos da avaria
       <input
         type="file"
         accept="image/*"
         multiple
         className="hidden"
         onChange={(e) => {
-          const arquivos = Array.from(e.target.files || []).slice(
-            0,
-            LIMITE_FOTOS_POR_ITEM
-          );
-
+          const arquivos = Array.from(e.target.files || []).slice(0, LIMITE_FOTOS_POR_ITEM);
+          console.log(`📸 Adicionando ${arquivos.length} foto(s) para o item:`, item.nome);
+          
           setFotosTemporariasPos((prev) => ({
             ...prev,
-            [item.id]: arquivos,
+            [item.id]: [...(prev[item.id] || []), ...arquivos],
           }));
-
+          
           setAuditoriaAlterada(true);
         }}
       />
-      <span className="inline-flex items-center gap-2 text-xs px-3 py-1 border rounded-lg cursor-pointer">
-        <Image size={14} />
-        Adicionar fotos da avaria
-      </span>
     </label>
-    )}
-
-    {/* PREVIEW DAS FOTOS */}
-<div className="flex gap-2 flex-wrap">
-  {/* Fotos já salvas */}
-  {(item.fotosPos || []).map((foto, idx) => (
-    <img
-      key={`saved-${idx}`}
-      src={foto}
-      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-    />
-  ))}
-
-  {/* Fotos temporárias (preview imediato) */}
-  {(fotosTemporariasPos[item.id] || []).map((file, idx) => (
-    <img
-      key={`temp-${idx}`}
-      src={URL.createObjectURL(file)}
-      className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-    />
-  ))}
-</div>
+    <p className="text-xs text-gray-400 mt-1">
+      Adicione fotos que comprovem a avaria (máx {LIMITE_FOTOS_POR_ITEM} fotos)
+    </p>
   </div>
 )}
-                </>
-              )}
 
+        {/* Preview das fotos da avaria */}
+       {/* Preview das fotos da avaria */}
+<div className="flex gap-2 flex-wrap">
+  {/* Fotos já salvas do banco */}
+  {(item.fotosPos || []).map((foto, idx) => (
+    <div key={`saved-${idx}`} className="relative group">
+      <img
+        src={foto}
+        className="w-16 h-16 object-cover rounded-lg border border-red-300"
+      />
+      {!somenteLeitura && (
+        <button
+          onClick={() => {
+            const novasFotos = (item.fotosPos || []).filter((_, i) => i !== idx);
+            setItensChecklist((prev) =>
+              prev.map((i) =>
+                i.id === item.id ? { ...i, fotosPos: novasFotos } : i
+              )
+            );
+            setAuditoriaAlterada(true);
+          }}
+          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  ))}
+  
+  {/* Fotos temporárias (pré-visualização antes de salvar) */}
+  {(fotosTemporariasPos[item.id] || []).map((file, idx) => (
+    <div key={`temp-${idx}`} className="relative group">
+      <img
+        src={URL.createObjectURL(file)}
+        className="w-16 h-16 object-cover rounded-lg border border-red-300"
+      />
+      {!somenteLeitura && (
+        <button
+          onClick={() => {
+            setFotosTemporariasPos((prev) => ({
+              ...prev,
+              [item.id]: prev[item.id].filter((_, i) => i !== idx),
+            }));
+            setAuditoriaAlterada(true);
+          }}
+          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  ))}
+</div>
+
+{((item.fotosPos ?? []).length > 0 ||
+  (fotosTemporariasPos[item.id] ?? []).length > 0) && (
+  <p className="text-xs text-green-600">
+    ✓ {(item.fotosPos ?? []).length} foto(s) salvas + {(fotosTemporariasPos[item.id] ?? []).length} nova(s)
+  </p>
+)}
+
+        {/* Contador de caracteres */}
+        <p className="text-xs text-gray-400">
+          {item.observacaoPos?.length || 0}/500 caracteres
+        </p>
+      </div>
+    )}
+
+    {/* Se não teve avaria, mostra mensagem sucinta */}
+    {item.estadoPos === "ok" && item.estadoPre === "ok" && (
+      <div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
+        ✓ Item confirmado sem avarias.
+      </div>
+    )}
+
+    {item.estadoPos === "ok" && item.estadoPre === "avaria" && (
+      <div className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
+        ✓ Item já estava com avaria na pré-vistoria e continua sem alterações.
+      </div>
+    )}
+  </>
+)}
               {/* PRÉ EVENTO */}
               {isPre && (
                 <>
@@ -472,6 +628,9 @@ const placeholderObservacoes = isPre
               )}
             </div>
           ))}
+
+
+
 
           {/* OBSERVAÇÕES */}
           <textarea

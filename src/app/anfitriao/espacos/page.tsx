@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit3, PauseCircle, CalendarDays, Trash2, MapPin, Users, Package } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface Espaco {
   id: string;
@@ -51,27 +53,123 @@ interface Espaco {
 export default function Espacos() {
   const router = useRouter();
   const [espacos, setEspacos] = useState<Espaco[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const salvos = JSON.parse(localStorage.getItem("espacos") || "[]");
-    setEspacos(salvos);
-  }, []);
-
-  const excluirEspaco = (id: string) => {
-    if (confirm("Tem certeza que deseja excluir este espaço?")) {
-      const novosEspacos = espacos.filter((e) => e.id !== id);
-      setEspacos(novosEspacos);
-      localStorage.setItem("espacos", JSON.stringify(novosEspacos));
+useEffect(() => {
+  const buscarEspacos = async () => {
+    setLoading(true);
+    
+    // 🔥 PEGAR O USUÁRIO LOGADO
+    const userData = localStorage.getItem("placyhub_user_dev");
+    if (!userData) {
+      console.log("Usuário não logado");
+      setEspacos([]);
+      setLoading(false);
+      return;
     }
+
+    const user = JSON.parse(userData);
+    console.log("Usuário logado ID:", user.id);
+
+    // 🔥 BUSCAR APENAS ESPAÇOS DESTE USUÁRIO
+    const { data, error } = await supabase
+      .from("spaces")
+      .select("*")
+      .eq("user_id", user.id);
+
+    console.log("ESPACOS DO BANCO:", data);
+    console.log("ERRO:", error);
+
+    if (error) {
+      console.log(error);
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
+      const formatados = data.map((e: any) => {
+        // Função para extrair fotos de qualquer campo (string JSON ou array)
+        const extrairFotos = (campo: any): string[] => {
+          if (!campo) return [];
+          if (Array.isArray(campo)) return campo;
+          if (typeof campo === 'string') {
+            try {
+              const parsed = JSON.parse(campo);
+              if (Array.isArray(parsed)) return parsed;
+            } catch (e) { /* ignora erro */ }
+          }
+          return [];
+        };
+
+        // Tenta extrair fotos dos campos possíveis (em ordem de prioridade)
+        const fotosArray =
+          extrairFotos(e.fotos).length > 0 ? extrairFotos(e.fotos) :
+          extrairFotos(e.imagens).length > 0 ? extrairFotos(e.imagens) :
+          e.imagem ? [e.imagem] : [];
+
+        return {
+          ...e,
+          valor: e.preco ? e.preco / 100 : null,
+          fotos: fotosArray,
+        };
+      });
+
+      setEspacos(formatados);
+    }
+    
+    setLoading(false);
   };
 
-  const alternarDisponibilidade = (id: string) => {
-    const atualizados = espacos.map((e) =>
-      e.id === id ? { ...e, disponivel: !e.disponivel } : e
+  buscarEspacos();
+}, []);
+
+const excluirEspaco = async (id: string) => {
+  if (confirm("Tem certeza que deseja excluir este espaço? Esta ação não pode ser desfeita.")) {
+    try {
+      const { error } = await supabase
+        .from("spaces")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Atualizar lista local após exclusão no banco
+      setEspacos(prev => prev.filter(e => e.id !== id));
+      toast.success("Espaço excluído com sucesso!");
+    } catch (error) {
+      console.error("Erro ao excluir:", error);
+      toast.error("Erro ao excluir espaço");
+    }
+  }
+};
+
+const alternarDisponibilidade = async (id: string) => {
+  const espaco = espacos.find(e => e.id === id);
+  if (!espaco) return;
+
+  const novoStatus = !espaco.disponivel;
+  
+  try {
+    const { error } = await supabase
+      .from("spaces")
+      .update({ disponivel: novoStatus })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    // Atualizar estado local
+    setEspacos(prev =>
+      prev.map(e =>
+        e.id === id ? { ...e, disponivel: novoStatus } : e
+      )
     );
-    setEspacos(atualizados);
-    localStorage.setItem("espacos", JSON.stringify(atualizados));
-  };
+    
+    toast.success(`Espaço ${novoStatus ? "ativado" : "pausado"} com sucesso!`);
+  } catch (error) {
+    console.error("Erro ao alterar disponibilidade:", error);
+    toast.error("Erro ao alterar status do espaço");
+  }
+};
 
   const formatarPreco = (valor: number) => {
     return valor.toLocaleString("pt-BR", {
@@ -96,8 +194,13 @@ export default function Espacos() {
         </Link>
       </div>
 
-      {/* Lista de espaços */}
-      {espacos.length === 0 ? (
+
+{/* Loading */}
+{loading ? (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+  </div>
+) : espacos.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center">
           <p className="text-gray-500 dark:text-gray-400">
             🏠 Você ainda não cadastrou nenhum espaço.
@@ -112,10 +215,13 @@ export default function Espacos() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {espacos.map((espaco) => {
-            const imagemCapa =
-              espaco.fotos && espaco.fotos.length > 0
-                ? `/espacos/${espaco.fotos[0]}`
-                : "/img/placeholder-espaco.jpg";
+  console.log("ESPACO COMPLETO:", espaco);
+  console.log("FOTOS:", espaco.fotos);
+
+  const imagemCapa =
+  espaco.fotos && espaco.fotos.length > 0
+    ? espaco.fotos[0]   // sem timestamp, apenas a URL
+    : "https://via.placeholder.com/400x300?text=Sem+Imagem";
 
             return (
               <div
@@ -141,18 +247,7 @@ export default function Espacos() {
                     >
                       {espaco.disponivel ? "Disponível" : "Indisponível"}
                     </span>
-                    
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium shadow-lg ${
-                        espaco.tipo_reserva === "automatica"
-                          ? "bg-sky-500 text-white"
-                          : "bg-amber-500 text-white"
-                      }`}
-                    >
-                      {espaco.tipo_reserva === "automatica"
-                        ? "Auto"
-                        : "Manual"}
-                    </span>
+                  
                   </div>
                 </div>
 

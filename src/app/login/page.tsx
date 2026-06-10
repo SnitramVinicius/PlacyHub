@@ -1,14 +1,14 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 // Componente interno que usa useSearchParams
 function LoginForm() {
@@ -20,8 +20,9 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false); // 🔥 Estado de loading
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!email || !senha) {
@@ -29,32 +30,56 @@ function LoginForm() {
       return;
     }
 
-    setTimeout(() => {
-      const nomeTemporario = email.split("@")[0];
-      const nomeFormatado =
-        nomeTemporario.charAt(0).toUpperCase() + nomeTemporario.slice(1);
+    setLoading(true); // 🔥 Desabilita botão enquanto processa
 
-      login({
-        name: nomeFormatado,
-        email,
-        roles: ["LOCATARIO"],
-        telefone: "",
-        cidade: "",
-        estado: "",
-        cpf: "",
-      });
-
-      router.push(redirectTo);
-    }, 600);
+    try {
+      const success = await login(email, senha);
+      
+      if (success) {
+        router.push(redirectTo);
+      } else {
+        // O toast de erro já vem do AuthContext
+      }
+    } catch (error) {
+      toast.error("Erro ao fazer login");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLoginGoogle = () => {
-    toast("Login com Google ainda não implementado");
-  };
+const handleLoginGoogle = async () => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/callback`,
+      },
+    });
+    
+    if (error) throw error;
+    if (data.url) window.location.href = data.url;
+  } catch (error) {
+    console.error("Erro no login com Google:", error);
+    toast.error("Erro ao fazer login com Google");
+  }
+};
 
-  const handleLoginFacebook = () => {
-    toast("Login com Facebook ainda não implementado");
-  };
+const handleLoginFacebook = async () => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/callback`,
+      },
+    });
+    
+    if (error) throw error;
+    if (data.url) window.location.href = data.url;
+  } catch (error) {
+    console.error("Erro no login com Facebook:", error);
+    toast.error("Erro ao fazer login com Facebook");
+  }
+};
 
   const handleVoltarHome = () => {
     router.push("/");
@@ -62,7 +87,6 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-
       {/* Logo no topo */}
       <div className="flex justify-center pt-8 pb-4">
         <Link href="/">
@@ -89,6 +113,7 @@ function LoginForm() {
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 
                 focus:outline-none focus:border-[#02b0f0] focus:ring-2 focus:ring-[#02b0f0]/20
                 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              disabled={loading}
             />
 
             <input
@@ -99,39 +124,50 @@ function LoginForm() {
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 
                 focus:outline-none focus:border-[#02b0f0] focus:ring-2 focus:ring-[#02b0f0]/20
                 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              disabled={loading}
             />
 
-            <a
+            <Link
               href="/esqueci-senha"
               className="text-sm text-[#02b0f0] hover:underline text-right"
             >
               Esqueceu sua senha?
-            </a>
+            </Link>
 
             <button
               type="submit"
-              className="bg-[#02b0f0] hover:bg-[#0292cb] text-white py-2 rounded-lg transition"
+              disabled={loading}
+              className="bg-[#02b0f0] hover:bg-[#0292cb] text-white py-2 rounded-lg transition 
+                disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Entrar
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
             </button>
 
             <div className="text-sm text-center mt-4 text-gray-600 dark:text-gray-400">
               Não tem uma conta?{" "}
-              <a
+              <Link
                 href="/cadastro/locatario"
                 className="text-[#02b0f0] hover:underline font-medium"
               >
                 Criar conta
-              </a>
+              </Link>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={handleLoginGoogle}
+                disabled={loading}
                 className="flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600 
                   py-2 px-4 rounded-lg w-full hover:bg-gray-50 dark:hover:bg-gray-700 transition
-                  text-gray-700 dark:text-gray-200"
+                  text-gray-700 dark:text-gray-200 disabled:opacity-50"
               >
                 <FcGoogle size={20} /> Google
               </button>
@@ -139,15 +175,16 @@ function LoginForm() {
               <button
                 type="button"
                 onClick={handleLoginFacebook}
+                disabled={loading}
                 className="flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600 
                   py-2 px-4 rounded-lg w-full hover:bg-gray-50 dark:hover:bg-gray-700 transition
-                  text-gray-700 dark:text-gray-200"
+                  text-gray-700 dark:text-gray-200 disabled:opacity-50"
               >
                 <FaFacebook size={20} color="#1877F2" /> Facebook
               </button>
             </div>
 
-            {/* Botão Voltar para Home dentro do formulário */}
+            {/* Botão Voltar para Home */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"

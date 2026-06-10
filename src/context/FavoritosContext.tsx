@@ -1,45 +1,22 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, ReactNode } from "react";
+import { useFavoritos as useFavoritosHook } from "@/hooks/useFavoritos";
 
 interface FavoritosContextType {
   favoritos: string[];
-  toggleFavorito: (id: string) => void;
+  loading: boolean;
+  toggleFavorito: (id: string) => Promise<void>;
+  clearAll: () => Promise<void>;
 }
 
-const FavoritosContext = createContext<FavoritosContextType>({
-  favoritos: [],
-  toggleFavorito: () => {},
-});
+const FavoritosContext = createContext<FavoritosContextType>({} as FavoritosContextType);
 
-export function FavoritosProvider({ children }: { children: React.ReactNode }) {
-  const [favoritos, setFavoritos] = useState<string[]>([]);
-
-  // Carregar favoritos do localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("placyhub_favoritos");
-      if (raw) setFavoritos(JSON.parse(raw));
-    } catch {}
-  }, []);
-
-  // Salvar no localStorage sempre que mudar
-  const toggleFavorito = (id: string) => {
-    setFavoritos((prev) => {
-      const updated = prev.includes(id)
-        ? prev.filter((f) => f !== id)
-        : [...prev, id];
-
-      try {
-        localStorage.setItem("placyhub_favoritos", JSON.stringify(updated));
-      } catch {}
-
-      return updated;
-    });
-  };
-
+export function FavoritosProvider({ children }: { children: ReactNode }) {
+  const favoritosData = useFavoritosHook();
+  
   return (
-    <FavoritosContext.Provider value={{ favoritos, toggleFavorito }}>
+    <FavoritosContext.Provider value={favoritosData}>
       {children}
     </FavoritosContext.Provider>
   );

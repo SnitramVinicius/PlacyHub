@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
+import SinoNavbar from "@/components/SinoNavbar";
 
 registerLocale("pt-BR", ptBR);
 
@@ -53,6 +54,8 @@ const lastScrollY = useRef(0);
   // Funções utilitárias (não são Hooks, podem ficar aqui)
   const normalize = (str: string) =>
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+
+  
 
   // ============================================
   // TODOS OS useEffect DEVEM VIR AQUI
@@ -462,34 +465,45 @@ useEffect(() => {
                 </button>
               )}
 
-              {user ? (
-                <>
-                  <button
-                    onClick={() => router.push("/locatario/perfil")}
-                    className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold hover:shadow-md transition-shadow text-sm md:text-base
-                      ${isPainelAnfitriao 
-                        ? "bg-sky-500 text-white hover:bg-sky-600" 
-                        : "bg-gray-300 text-white"
-                      }`}
-                  >
-                    {user.name[0].toUpperCase()}
-                  </button>
+           {user ? (
+  <>
+    {/* 🔥 NOTIFICAÇÕES COM CONTADOR 🔥 */}
+    <SinoNavbar />
 
-                  <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="p-1.5 md:p-2 border rounded-full hover:shadow-md transition-shadow flex items-center gap-2"
-                  >
-                    <Menu size={18} />
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  className="px-3 md:px-4 py-1.5 md:py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
-                >
-                  Entrar
-                </Link>
-              )}
+    <button
+      onClick={() => router.push("/locatario/perfil")}
+      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold hover:shadow-md transition-shadow text-sm md:text-base overflow-hidden
+        ${isPainelAnfitriao 
+          ? "bg-sky-500 text-white hover:bg-sky-600" 
+          : "bg-gray-300 text-white"
+        }`}
+    >
+      {user.fotoUrl ? (
+        <img 
+          src={user.fotoUrl} 
+          alt={user.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        user.name ? user.name[0].toUpperCase() : "?"
+      )}
+    </button>
+
+    <button
+      onClick={() => setIsOpen(!isOpen)}
+      className="p-1.5 md:p-2 border rounded-full hover:shadow-md transition-shadow flex items-center gap-2"
+    >
+      <Menu size={18} />
+    </button>
+  </>
+) : (
+  <Link
+    href="/login"
+    className="px-3 md:px-4 py-1.5 md:py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
+  >
+    Entrar
+  </Link>
+)}
             </div>
           )}
         </div>
@@ -676,17 +690,25 @@ useEffect(() => {
             </button>
           )}
 
-          <button
-            onClick={() => router.push("/locatario/perfil")}
-            className={`flex flex-col items-center text-xs ${
-              isPainelAnfitriao 
-                ? "text-sky-500 dark:text-sky-400 font-semibold" 
-                : "text-gray-600 dark:text-gray-400"
-            }`}
-          >
-            <User size={20} />
-            <span>Perfil</span>
-          </button>
+         <button
+  onClick={() => router.push("/locatario/perfil")}
+  className={`flex flex-col items-center text-xs ${
+    isPainelAnfitriao 
+      ? "text-sky-500 dark:text-sky-400 font-semibold" 
+      : "text-gray-600 dark:text-gray-400"
+  }`}
+>
+  {user.fotoUrl ? (
+    <img 
+      src={user.fotoUrl} 
+      alt={user.name}
+      className="w-5 h-5 rounded-full object-cover"
+    />
+  ) : (
+    <User size={20} />
+  )}
+  <span>Perfil</span>
+</button>
         </>
       )}
     </div>

@@ -3,35 +3,31 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation"; // Adicione esta importação
 import Link from "next/link";
-import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import { ESPACOS } from "@/data/espacos";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useFavoritos } from "@/context/FavoritosContext";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
-import "react-datepicker/dist/react-datepicker.css";
 import { useParams } from "next/navigation";
 import { obterValorParaData } from "@/utils/precificacao";
 import { calcularValorPeriodo } from "@/utils/precificacao";
 
 registerLocale("pt-BR", ptBR);
 
-const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
+// const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
 
 export default function EspacoPage() {
   const router = useRouter(); // Adicione esta linha
   const params = useParams();
   const id = params?.id as string;
 
-  const espaco = ESPACOS.find((e) => e.id === id);
+  const [espaco, setEspaco] = useState<any>(null);
+const [loading, setLoading] = useState(true);
 
-  if (!espaco) {
-    return <p className="text-center mt-10">Espaço não encontrado.</p>;
-  }
 
-  const isBuffet = !!espaco.buffet;
 
   const getMenorPrecoBuffet = (espaco: any) => {
     let menor = Infinity;
@@ -65,26 +61,7 @@ export default function EspacoPage() {
 
 
   const [modalImagemAberto, setModalImagemAberto] = useState(false);
-  const precoBaseDinamico = startReserva
-    ? obterValorParaData(startReserva, espaco)
-    : espaco.preco ?? 0;
 
-  const precoSelecionado = isBuffet
-    ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
-    : precoBaseDinamico;
-
-  const diasReserva =
-    startReserva && endReserva
-      ? Math.max(
-          1,
-          Math.ceil((endReserva.getTime() - startReserva.getTime()) / (1000 * 60 * 60 * 24))
-        )
-      : 0;
-
-  const totalCalculado =
-    startReserva && endReserva
-      ? calcularValorPeriodo(startReserva, endReserva, espaco)
-      : 0;
 
   const calendarRef = useRef<HTMLDivElement>(null);
   const [editandoReserva, setEditandoReserva] = useState(false);
@@ -92,31 +69,259 @@ export default function EspacoPage() {
   const [avaliacoes, setAvaliacoes] = useState<
     { usuario: string; nota: number; comentario: string; data: string }[]
   >([]);
-  const notaMedia = avaliacoes.length
-    ? avaliacoes.reduce((acc, a) => acc + a.nota, 0) / avaliacoes.length
-    : 0;
+ const notaMedia = avaliacoes.length
+  ? avaliacoes.reduce((acc, a) => acc + a.nota, 0) / avaliacoes.length
+  : espaco?.avaliacao || 5.0;
+
+// Buscar avaliações reais do Supabase
+useEffect(() => {
+  async function buscarAvaliacoes() {
+    if (!espaco?.id) return;
+
+    // Primeiro, buscar as avaliações do espaço
+   const { data: avaliacoesData, error: avaliacoesError } = await supabase
+  .from("avaliacoes")
+  .select("id, nota, comentario, created_at, user_id")
+  .eq("espaco_id", espaco.id)
+  .eq("tipo", "cliente_para_espaco")
+  .order("created_at", { ascending: false });
+
+    if (avaliacoesError) {
+      console.error("Erro ao buscar avaliações:", avaliacoesError);
+      return;
+    }
+
+    if (!avaliacoesData || avaliacoesData.length === 0) {
+      setAvaliacoes([]);
+      return;
+    }
+
+    // Buscar os nomes dos usuários separadamente
+    const userIds = [...new Set(avaliacoesData.map(av => av.user_id))];
+    const { data: usersData, error: usersError } = await supabase
+      .from("users")
+      .select("id, name")
+      .in("id", userIds);
+
+    if (usersError) {
+      console.error("Erro ao buscar usuários:", usersError);
+      // Se não conseguir buscar nomes, usa "Usuário" como padrão
+      const avaliacoesFormatadas = avaliacoesData.map((av: any) => ({
+        usuario: "Usuário",
+        nota: av.nota,
+        comentario: av.comentario,
+        data: new Date(av.created_at).toLocaleDateString("pt-BR"),
+      }));
+      setAvaliacoes(avaliacoesFormatadas);
+      return;
+    }
+
+    // Criar um mapa de usuários
+    const userMap = new Map();
+    usersData?.forEach((user: any) => {
+      userMap.set(user.id, user.name);
+    });
+
+    // Formatar as avaliações
+    const avaliacoesFormatadas = avaliacoesData.map((av: any) => ({
+      usuario: userMap.get(av.user_id) || "Usuário",
+      nota: av.nota,
+      comentario: av.comentario,
+      data: new Date(av.created_at).toLocaleDateString("pt-BR"),
+    }));
+
+    setAvaliacoes(avaliacoesFormatadas);
+  }
+
+  buscarAvaliacoes();
+}, [espaco?.id]);
+
+useEffect(() => {
+  async function carregarDatasBloqueadas() {
+    if (!espaco?.id) return;
+
+    try {
+      // Buscar bloqueios manuais
+      const { data: bloqueios, error: bloqueiosError } = await supabase
+        .from("bloqueios")
+        .select("data_inicio, data_fim, espaco_id")
+        .or(`espaco_id.eq.${espaco.id},espaco_id.is.null`);
+
+      if (bloqueiosError) throw bloqueiosError;
+
+      // 🔥 CORRIGIDO: Buscar reservas que NÃO estão canceladas
+      const { data: reservas, error: reservasError } = await supabase
+        .from("reservas")
+        .select("data_inicio, data_fim")
+        .eq("espaco_id", espaco.id)
+        .eq("pagamento_status", "approved")
+        .neq("status", "cancelada");  // ← EXCLUI RESERVAS CANCELADAS
+
+      if (reservasError) throw reservasError;
+
+      const datas: string[] = [];
+
+      const expandirPeriodo = (inicio: string, fim: string) => {
+        const atual = new Date(inicio + "T12:00:00");
+        const final = new Date(fim + "T12:00:00");
+
+        while (atual <= final) {
+          datas.push(atual.toISOString().split("T")[0]);
+          atual.setDate(atual.getDate() + 1);
+        }
+      };
+
+      bloqueios?.forEach((b) =>
+        expandirPeriodo(b.data_inicio, b.data_fim)
+      );
+
+      reservas?.forEach((r) =>
+        expandirPeriodo(r.data_inicio, r.data_fim)
+      );
+
+      console.log("DATAS BLOQUEADAS:", datas);
+      setDatasBloqueadas([...new Set(datas)]);
+    } catch (error) {
+      console.error("Erro ao carregar bloqueios:", error);
+    }
+  }
+
+  carregarDatasBloqueadas();
+}, [espaco?.id]);
 
   useEffect(() => {
-    setAvaliacoes([
-      { usuario: "Maria", nota: 5, comentario: "Excelente espaço!", data: "2025-12-01" },
-      { usuario: "João", nota: 4, comentario: "Gostei muito!", data: "2025-12-03" },
-      { usuario: "Ana", nota: 3, comentario: "Bom, mas poderia melhorar.", data: "2025-12-04" },
-    ]);
-  }, [espaco?.id]);
+async function carregarEspaco() {
+  if (!id) return;
 
-  useEffect(() => {
-    setDatasBloqueadas([
-      "2026-03-10",
-      "2026-03-15",
-      "2026-03-20",
-    ]);
-  }, []);
+  setLoading(true);
+
+  const { data, error } = await supabase
+    .from("spaces")
+    .select(`
+      *,
+      espaco_servicos (
+        nome,
+        preco
+      ),
+      espaco_regras (
+        texto
+      ),
+      espaco_facilidades (
+        texto
+      ),
+      espaco_buffet (
+        nivel,
+        descricao,
+        preco_base
+      ),
+      espaco_categorias (
+        id,
+        nome,
+        ordem,
+        pacotes:espaco_pacotes (
+          id,
+          nome,
+          descricao,
+          info_adicional,
+          ordem,
+          duracao,
+          itens:espaco_itens_pacote (
+            titulo,
+            descricao,
+            ordem
+          ),
+          precos:espaco_precos_pacote (
+            convidados,
+            valor,
+            ordem
+          )
+        )
+      )
+    `)
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Erro ao carregar espaço:", error);
+    setLoading(false);
+    return;
+  }
+
+
+  
+// Transformar os dados do buffet para o formato esperado
+const buffetData = data.espaco_buffet && Object.keys(data.espaco_buffet).length > 0 ? {
+  descricao: data.espaco_buffet.descricao,
+  nivel: data.espaco_buffet.nivel,
+  precoBase: data.espaco_buffet.preco_base,
+  tiposFesta: data.espaco_categorias?.map((cat: any) => ({
+    nome: cat.nome,
+    pacotes: cat.pacotes?.map((pact: any) => ({
+      nome: pact.nome,
+      descricao: pact.descricao,
+      duracao: pact.duracao || "4 horas",
+      itensInclusos: pact.itens?.map((item: any) => 
+        item.descricao ? `${item.titulo}: ${item.descricao}` : item.titulo
+      ) || [],
+      valores: pact.precos?.map((preco: any) => ({
+        convidados: preco.convidados,
+        preco: preco.valor
+      })) || []
+    })) || []
+  })) || []
+} : null;
+
+  setEspaco({
+    ...data,
+    imagens: data.imagens || [],
+    facilidades: data.espaco_facilidades?.map((f: any) => f.texto) || [],
+    regras: data.espaco_regras?.map((r: any) => r.texto) || [],
+    servicosAdicionais: data.espaco_servicos?.map((s: any) => `${s.nome} - R$ ${s.preco}`) || [],
+    buffet: buffetData,  // 🔥 Adicionar os dados do buffet
+  });
+
+  setLoading(false);
+}
+
+  carregarEspaco();
+}, [id]);
 
   const [activeCalendar, setActiveCalendar] = useState(false);
 
-  useEffect(() => {
-    if (!activeCalendar) return;
+const getDayClassName = (date: Date) => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
+  const dataAtual = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+
+  const dataStr = `${dataAtual.getFullYear()}-${String(
+    dataAtual.getMonth() + 1
+  ).padStart(2, "0")}-${String(dataAtual.getDate()).padStart(2, "0")}`;
+
+  const bloqueada = datasBloqueadas.includes(dataStr);
+  const passada = dataAtual < hoje;
+
+  if (bloqueada) {
+    return "!bg-gray-500 !text-white cursor-not-allowed rounded-full";
+  }
+
+  if (passada) {
+    return "!bg-gray-200 !text-gray-400 cursor-not-allowed rounded-full";
+  }
+
+  return "hover:bg-blue-100 rounded-full";
+};
+
+  useEffect(() => {
+  if (!activeCalendar) return;
+
+  // Pequeno delay para evitar que o clique que ABRIU o calendário
+  // seja interpretado como clique fora
+  const timeoutId = setTimeout(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setActiveCalendar(false);
@@ -130,11 +335,17 @@ export default function EspacoPage() {
     document.addEventListener("mousedown", handleClickOutside);
     window.addEventListener("scroll", handleScroll, true);
 
+    // Cleanup para esses event listeners
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [activeCalendar]);
+  }, 10);
+
+  return () => {
+    clearTimeout(timeoutId);
+  };
+}, [activeCalendar]);
 
   useEffect(() => {
   document.body.style.overflow =
@@ -195,9 +406,6 @@ const handleSwipe = () => {
     imagemAnterior();
   }
 };
-
-// junta imagem principal + galeria
-const imagens = [espaco.imagem, ...(espaco.imagens || [])];
 
   useEffect(() => {
     const handleResize = () => {
@@ -261,113 +469,187 @@ useEffect(() => {
         return;
       }
 
-      if (qtdPessoas > espaco.capacidade) {
-        toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
-        return;
-      }
+      const capacidadeMaxima = espaco?.capacidade || 100;
+  if (qtdPessoas > capacidadeMaxima) {
+    toast.error(`Máximo permitido: ${capacidadeMaxima} pessoas`);
+    return;
+  }
     }
 
     setModalReservaAberto(true);
   };
 
-  const handleConfirmarReserva = async () => {
-    if (!startReserva) {
-      toast.error("Selecione a data do evento!");
-      return;
-    }
+const handleConfirmarReserva = async () => {
+  if (!startReserva) {
+    toast.error("Selecione a data do evento!");
+    return;
+  }
 
-    const dataFormatada = startReserva.toISOString().split("T")[0];
+  const dataFormatada = startReserva.toISOString().split("T")[0];
 
-    if (datasBloqueadas.includes(dataFormatada)) {
-      toast.error("Essa data já está reservada ou bloqueada.");
-      return;
-    }
+  if (datasBloqueadas.includes(dataFormatada)) {
+    toast.error("Essa data já está reservada ou bloqueada.");
+    return;
+  }
 
-    if (eventoMultiDia && startReserva && endReserva) {
-      let dataAtual = new Date(startReserva);
-
-      while (dataAtual <= endReserva) {
-        const dataString = dataAtual.toISOString().split("T")[0];
-
-        if (datasBloqueadas.includes(dataString)) {
-          toast.error("O período selecionado contém datas indisponíveis.");
-          return;
-        }
-
-        dataAtual.setDate(dataAtual.getDate() + 1);
-      }
-    }
-
-    if (isBuffet && !valorSelecionado) {
-      toast.error("Selecione um pacote antes de continuar!");
-      return;
-    }
-
-    if (!isBuffet) {
-      if (!qtdPessoas || qtdPessoas < 1) {
-        toast.error("Informe a quantidade de pessoas!");
+  if (eventoMultiDia && startReserva && endReserva) {
+    let dataAtual = new Date(startReserva);
+    while (dataAtual <= endReserva) {
+      const dataString = dataAtual.toISOString().split("T")[0];
+      if (datasBloqueadas.includes(dataString)) {
+        toast.error("O período selecionado contém datas indisponíveis.");
         return;
       }
-
-      if (qtdPessoas > espaco.capacidade) {
-        toast.error(`Máximo permitido: ${espaco.capacidade} pessoas`);
-        return;
-      }
+      dataAtual.setDate(dataAtual.getDate() + 1);
     }
+  }
 
-    setReservando(true);
+  if (isBuffet && !valorSelecionado) {
+    toast.error("Selecione um pacote antes de continuar!");
+    return;
+  }
+
+  if (!isBuffet) {
+    if (!qtdPessoas || qtdPessoas < 1) {
+      toast.error("Informe a quantidade de pessoas!");
+      return;
+    }
+      const capacidadeMaxima = espaco?.capacidade || 100;
+  if (qtdPessoas > capacidadeMaxima) {
+    toast.error(`Máximo permitido: ${capacidadeMaxima} pessoas`);
+    return;
+  }
+  }
+
+  setReservando(true);
+
+  try {
+    const total = isBuffet
+      ? precoSelecionado
+      : startReserva && endReserva
+        ? calcularValorPeriodo(startReserva, endReserva, espaco)
+        : 0;
+
+// 🔥 ADICIONE O CONSOLE AQUI (ANTES DE SALVAR) 🔥
+    console.log("📝 Dados da reserva a serem salvos:", {
+      espaco_id: espaco.id,
+      user_id: user?.id,
+      data_inicio: startReserva.toISOString().split("T")[0],
+      data_fim: endReserva ? endReserva.toISOString().split("T")[0] : startReserva.toISOString().split("T")[0],
+      status: "pendente",
+      qtd_pessoas: qtdPessoas,
+      valor_total: total,
+      created_at: new Date().toISOString(),
+    });
 
 
-    
-    try {
-      const total = isBuffet
-        ? precoSelecionado
-        : startReserva && endReserva
-          ? calcularValorPeriodo(startReserva, endReserva, espaco)
-          : 0;
+    // 🔥 1. SALVAR RESERVA NO SUPABASE
+    const { data: reservaData, error: reservaError } = await supabase
+      .from("reservas")
+      .insert({
+        espaco_id: espaco.id,
+        user_id: user?.id,
+        data_inicio: startReserva.toISOString().split("T")[0],
+        data_fim: endReserva ? endReserva.toISOString().split("T")[0] : startReserva.toISOString().split("T")[0],
+        status: "pendente",
+        qtd_pessoas: qtdPessoas,
+        valor_total: total,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
-      const response = await fetch("/api/pagamento", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          total,
-          espacoId: espaco.id,
-          nomeEspaco: espaco.nome,
-          dataInicio: startReserva.toISOString(),
-          dataFim: endReserva ? endReserva.toISOString() : startReserva.toISOString(),
-          diasReserva,
-          qtdPessoas,
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("Erro API:", text);
-        toast.error("Erro ao criar pagamento. Tente novamente.");
-        return;
-      }
-
-      const result = await response.json();
-
-      if (result.url) {
-        window.location.href = result.url;
-      } else {
-        toast.error("Erro ao criar pagamento. Tente novamente.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao criar pagamento. Tente novamente.");
-    } finally {
+    if (reservaError) {
+      console.error("Erro ao salvar reserva:", reservaError);
+      toast.error("Erro ao criar reserva. Tente novamente.");
       setReservando(false);
-      setModalReservaAberto(false);
+      return;
     }
-  };
 
-  if (!espaco) return <p className="text-center mt-10">Espaço não encontrado.</p>;
+    console.log("✅ Reserva salva:", reservaData);
 
-  const reservaCompleta = isBuffet
-    ? startReserva && valorSelecionado
-    : startReserva && qtdPessoas > 0;
+    // 🔥 2. CRIAR PAGAMENTO COM O ID DA RESERVA
+    const response = await fetch("/api/pagamento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        total,
+        espacoId: espaco.id,
+        nomeEspaco: espaco.nome,
+        dataInicio: startReserva.toISOString(),
+        dataFim: endReserva ? endReserva.toISOString() : startReserva.toISOString(),
+        diasReserva,
+        qtdPessoas,
+        reservaId: reservaData.id, // 🔥 Envia o ID da reserva
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Erro API:", text);
+      toast.error("Erro ao criar pagamento. Tente novamente.");
+      return;
+    }
+
+    const result = await response.json();
+
+    if (result.url) {
+      window.location.href = result.url;
+    } else {
+      toast.error("Erro ao criar pagamento. Tente novamente.");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Erro ao criar reserva. Tente novamente.");
+  } finally {
+    setReservando(false);
+    setModalReservaAberto(false);
+  }
+};
+  if (loading) {
+  return (
+    <p className="text-center mt-10">
+      Carregando espaço...
+    </p>
+  );
+}
+
+if (!espaco) {
+  return (
+    <p className="text-center mt-10">
+      Espaço não encontrado.
+    </p>
+  );
+}
+ // ✅ 1. PRIMEIRO: isBuffet
+const isBuffet = !!espaco.buffet;
+
+const precoBaseDinamico = startReserva
+  ? obterValorParaData(startReserva, espaco)
+  : (espaco.preco ?? 0) / 100;  // 🔥 DIVIDIR POR 100
+
+const precoSelecionado = isBuffet
+  ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
+  : precoBaseDinamico;
+
+const diasReserva = startReserva && endReserva
+  ? Math.max(1, Math.ceil((endReserva.getTime() - startReserva.getTime()) / (1000 * 60 * 60 * 24)))
+  : 0;
+
+const totalCalculado = startReserva && endReserva
+  ? calcularValorPeriodo(startReserva, endReserva, espaco)
+  : 0;
+
+// ✅ 3. DEPOIS: imagens
+const imagens = [
+  ...(espaco.imagem ? [espaco.imagem] : []),
+  ...(espaco.imagens || []),
+];
+
+// ✅ 4. DEPOIS: reservaCompleta
+const reservaCompleta = isBuffet
+  ? startReserva && valorSelecionado
+  : startReserva && qtdPessoas > 0;
 
   // Função para voltar para a página anterior
   const handleVoltar = () => {
@@ -396,17 +678,7 @@ const selecionarImagem = (index: number) => {
       <div className="w-full mb-8 flex justify-end">
         <button
           onClick={handleVoltar}
-          className="flex items-center justify-center
-          w-10 h-10 rounded-full
-          bg-white dark:bg-slate-800
-          border border-gray-200 dark:border-slate-700
-          text-gray-500 dark:text-gray-400
-          hover:bg-gray-50 dark:hover:bg-slate-700
-          hover:border-gray-300 dark:hover:border-slate-600
-          hover:text-gray-700 dark:hover:text-gray-200
-          hover:shadow-sm
-          transition-all duration-300
-          group"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-700 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-300 group"
           aria-label="Voltar"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
@@ -635,11 +907,13 @@ const selecionarImagem = (index: number) => {
   selectsRange
   startDate={startReserva ?? undefined}
   endDate={endReserva ?? undefined}
-  excludeDates={
-    Array.isArray(datasBloqueadas)
-      ? datasBloqueadas.map((data) => new Date(data + "T00:00:00"))
-      : []
-  }
+  filterDate={(date) => {
+  const dataStr = `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+  return !datasBloqueadas.includes(dataStr);
+}}
   onChange={(update: [Date | null, Date | null]) => {
     setRangeReserva(update);
 
@@ -650,31 +924,48 @@ const selecionarImagem = (index: number) => {
   inline
   locale="pt-BR"
   minDate={new Date()}
+   dayClassName={getDayClassName}
 />
                     </div>
 
                     {/* Hora e quantidade de pessoas */}
                     <div className="flex flex-col gap-4">
 {!isBuffet && (
+  <div>
+    <label className="block text-sm font-semibold mb-1">
+      Qtd. Pessoas
+    </label>
 
-                      <div>
-                        <label className="block text-gray-700 dark:text-gray-200 font-medium mb-1">Quantidade de pessoas</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={espaco.capacidade}
-                          value={qtdPessoas}
-                          onChange={(e) => {
-                            let v = Number(e.target.value);
-                            if (v < 1) v = 1;
-                            if (v > espaco.capacidade) v = espaco.capacidade;
-                            setQtdPessoas(v);
-                          }}
-                          className="w-full px-3 py-2 border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
-                          placeholder={`máx. ${espaco.capacidade}`}
-                        />
-                      </div>
-                      )}
+
+   <input
+      type="number"
+      min={1}
+      max={espaco?.capacidade || 100}
+      value={qtdPessoas === 0 ? "" : qtdPessoas}
+      onChange={(e) => {
+        let v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+        
+        if (e.target.value === "") {
+          setQtdPessoas(0);
+          return;
+        }
+        
+        if (isNaN(v)) v = 0;
+        if (v < 0) v = 0;
+        
+        setQtdPessoas(v);
+      }}
+      onBlur={(e) => {
+        let v = qtdPessoas;
+        if (v < 1 || isNaN(v)) v = 1;
+        
+        setQtdPessoas(v);
+      }}
+      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
+      placeholder={`máx. ${espaco?.capacidade || 100} pessoas`}
+    />
+  </div>
+)}
                     </div>
                   </div>
 
@@ -836,21 +1127,10 @@ const selecionarImagem = (index: number) => {
           {/* DESCRIÇÃO */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">Descrição</h2>
-            <p className="text-gray-700 dark:text-gray-200 leading-relaxed ">{espaco.descricao ?? descricaoPadrao}</p>
+           <p className="text-gray-700 dark:text-gray-200 leading-relaxed break-words">{espaco.descricao ?? descricaoPadrao}</p>
             <p className="text-gray-600 dark:text-gray-300 mt-2 ">
               {espaco.cidade} — {espaco.bairro}
             </p>
-
-            <div className="flex items-center gap-1 mt-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={20}
-                  className={i < Math.floor(espaco.avaliacao) ? "text-yellow-500" : "text-gray-300"}
-                  fill={i < Math.floor(espaco.avaliacao) ? "#facc15" : "none"}
-                />
-              ))}
-            </div>
           </section>
           
 
@@ -868,7 +1148,7 @@ const selecionarImagem = (index: number) => {
           Facilidades incluídas
         </h2>
         <ul className="space-y-1 text-gray-700 dark:text-gray-200 ">
-          {espaco.facilidades.map((item, i) => (
+          {(espaco.facilidades || []).map((item: any, i: number) => (
             <li key={i}>• {item}</li>
           ))}
         </ul>
@@ -883,7 +1163,7 @@ const selecionarImagem = (index: number) => {
           Regras do local
         </h2>
         <ul className="space-y-1 text-gray-700 dark:text-gray-200 ">
-          {espaco.regras.map((item, i) => (
+          {(espaco.regras || []).map((item: any, i: number) => (
             <li key={i}>• {item}</li>
           ))}
         </ul>
@@ -894,17 +1174,16 @@ const selecionarImagem = (index: number) => {
 
 ) : null}
 
-          {/* SERVIÇOS ADICIONAIS */}
-          {espaco.servicosAdicionais && (
-            <section>
-              <h2 className="text-2xl font-semibold mb-3">Serviços adicionais</h2>
-              <ul className="list-disc text-gray-700 dark:text-gray-200 ml-6 ">
-                {espaco.servicosAdicionais.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </section>
-          )}
+     {espaco.servicosAdicionais && espaco.servicosAdicionais.length > 0 && (
+  <section>
+    <h2 className="text-2xl font-semibold mb-3">Serviços adicionais</h2>
+    <ul className="list-disc text-gray-700 dark:text-gray-200 ml-6 ">
+      {(espaco.servicosAdicionais || []).map((item: any, i: number) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  </section>
+)}
 
           {isBuffet && (
  <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 space-y-6">
@@ -914,7 +1193,7 @@ const selecionarImagem = (index: number) => {
     {espaco.buffet?.descricao}
   </p>
 
-  {espaco.buffet?.tiposFesta.map((tipo, i) => {
+ {(espaco.buffet?.tiposFesta || []).map((tipo: any, i: number) => {
     const aberto = tipoAberto === tipo.nome;
 
     return (
@@ -943,7 +1222,7 @@ const selecionarImagem = (index: number) => {
         {/* CONTEÚDO (só aparece se estiver aberto) */}
         {aberto && (
           <div className="p-5 space-y-4">
-            {tipo.pacotes.map((pacote, j) => (
+            {(tipo.pacotes || []).map((pacote: any, j: number) => (
               <div
                 key={j}
                 className="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 space-y-3"
@@ -958,25 +1237,38 @@ const selecionarImagem = (index: number) => {
                     </p>
                   </div>
 
-                  <span className="text-sm bg-[#02aeee] text-white px-3 py-1 rounded-full">
-                    {pacote.duracao}
-                  </span>
+                    <div className="flex justify-between items-start">
+  <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1">
+    <Clock size={12} />
+    {pacote.duracao}
+  </span>
+</div>
                 </div>
 
-                {/* Itens inclusos */}
-                <div>
-                  <p className="font-medium text-sm mb-1 text-gray-800 dark:text-gray-100 ">Inclui:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {pacote.itensInclusos.map((item, k) => (
-                      <span
-                        key={k}
-                        className="text-xs bg-white dark:bg-slate-800 border dark:border-slate-600 px-2 py-1 rounded-full"
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+ {/* Itens inclusos */}
+<div>
+  <p className="font-medium text-sm mb-2 text-gray-800 dark:text-gray-100">Inclui:</p>
+  <div className="flex flex-col gap-2">
+    {pacote.itensInclusos.map((item: any, k: number) => {
+      // Verifica se o item é um objeto (com titulo e descricao)
+      if (typeof item === 'object' && item !== null) {
+        return (
+          <div key={k} className="flex flex-col bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg p-2">
+            <span className="font-semibold text-sm">{item.titulo}</span>
+            <span className="text-xs text-gray-500 mt-0.5">{item.descricao}</span>
+          </div>
+        );
+      } else {
+        // Fallback para o formato antigo (string)
+        return (
+          <div key={k} className="bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-lg p-2">
+            <span className="text-sm">{item}</span>
+          </div>
+        );
+      }
+    })}
+  </div>
+</div>
 
                 {/* Valores */}
                 <div className="border-t pt-3">
@@ -984,13 +1276,13 @@ const selecionarImagem = (index: number) => {
                     Valores:
                   </p>
 
-                  <div className="space-y-2">
-                    {pacote.valores
-                      .sort(
-                        (a, b) =>
-                          a.convidados - b.convidados
-                      )
-                      .map((valor, x) => {
+                 <div className="space-y-2">
+  {(pacote.valores || [])
+    .sort(
+      (a: any, b: any) =>
+        a.convidados - b.convidados
+    )
+    .map((valor: any, x: number) => {
                         const selecionado =
                           pacoteSelecionado?.nome ===
                             pacote.nome &&
@@ -1050,9 +1342,8 @@ const selecionarImagem = (index: number) => {
 
         {/* Nota Média */}
 <div className="flex items-center gap-4 mb-6">
-  {/* Número grande */}
   <div className="text-4xl font-bold text-[#02aeee]">
-    {espaco.avaliacao.toFixed(1)}
+    {notaMedia.toFixed(1)}
   </div>
 
   {/* Estrelas + quantidade */}
@@ -1105,37 +1396,82 @@ const selecionarImagem = (index: number) => {
 
           </section>
 
-          {/* MAPA */}
-          {/* <Mapa
-  espacos={[
-    {
-      ...espaco,
-      latitude: espaco.latitude ?? -20.48,
-      longitude: espaco.longitude ?? -54.64,
-    },
-  ]}
-/> */}
+{/* MAPA - VERSÃO COMPLETA COM FALLBACK */}
+{/* <div className="mt-10">
+  {espaco.latitude && espaco.longitude ? (
+    <>
+      <h2 className="text-2xl font-semibold mb-4">Localização</h2>
+      <MapaEspacos
+        espacos={[
+          {
+            id: espaco.id,
+            nome: espaco.nome,
+            endereco: `${espaco.endereco || espaco.cidade || ""}, ${espaco.bairro || ""}`,
+            latitude: Number(espaco.latitude),
+            longitude: Number(espaco.longitude),
+          },
+        ]}
+      />
+    </>
+  ) : (
+    <div className="bg-gray-100 dark:bg-slate-800 rounded-2xl p-8 text-center">
+      <p className="text-gray-500 dark:text-gray-400">
+        🗺️ Mapa indisponível para este espaço.
+      </p>
+    </div>
+  )}
+</div> */}
         </div>
 
         {/* CARD LATERAL */}
         <aside className="hidden md:block md:col-span-1">
           <div className="sticky top-28 bg-white dark:bg-slate-800 shadow-xl rounded-2xl p-7 border border-gray-200 dark:border-slate-700 space-y-6 relative">
 
-                <>
+           <>
 {isBuffet ? (
-  <p className="text-3xl font-bold text-[#02aeee]">
-    A partir de R$ {getMenorPrecoBuffet(espaco).toFixed(2)}
-  </p>
+  // ========== BUFFET ==========
+  <div>
+    <p className="text-3xl font-bold text-[#02aeee]">
+      {(valorSelecionado?.preco || getMenorPrecoBuffet(espaco)).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      })}
+    </p>
+    {valorSelecionado && (
+      <p className="text-xs text-gray-500 mt-1">
+        {pacoteSelecionado?.nome} • {valorSelecionado.convidados} convidados
+      </p>
+    )}
+    {!valorSelecionado && (
+      <p className="text-xs text-gray-500 mt-1">
+        Selecione um pacote
+      </p>
+    )}
+  </div>
 ) : (
-  <p className="text-3xl font-bold text-[#02aeee]">
-    R$ {precoBaseDinamico.toFixed(2)}
-  </p>
+  // ========== ESPAÇO NORMAL ==========
+  <div>
+    <p className="text-3xl font-bold text-[#02aeee]">
+      {precoBaseDinamico.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      })}
+    </p>
+    {diasReserva > 0 && (
+      <p className="text-xs text-gray-500 mt-1">
+        Total para {diasReserva} {diasReserva === 1 ? "dia" : "dias"}
+      </p>
+    )}
+  </div>
 )}
                   <div>
                  <label className="font-semibold text-sm">Data do evento</label>
 
 <div
-  onClick={() => setActiveCalendar(!activeCalendar)}
+  onClick={(e) => {
+    e.stopPropagation();
+    setActiveCalendar(!activeCalendar);
+  }}
   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg cursor-pointer bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
 >
   {!startReserva ? (
@@ -1160,13 +1496,13 @@ const selecionarImagem = (index: number) => {
         inline
         locale="pt-BR"
         minDate={new Date()}
-        excludeDates={
-          Array.isArray(datasBloqueadas)
-            ? datasBloqueadas.map(
-                (data) => new Date(data + "T00:00:00")
-              )
-            : []
-        }
+        filterDate={(date) => {
+  const dataStr = `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+  return !datasBloqueadas.includes(dataStr);
+}}
         selectsRange
         startDate={startReserva ?? undefined}
         endDate={endReserva ?? undefined}
@@ -1174,19 +1510,20 @@ const selecionarImagem = (index: number) => {
           setRangeReserva(update);
           if (update[1]) setActiveCalendar(false);
         }}
+         dayClassName={getDayClassName}
       />
     ) : (
       <DatePicker
         inline
         locale="pt-BR"
         minDate={new Date()}
-        excludeDates={
-          Array.isArray(datasBloqueadas)
-            ? datasBloqueadas.map(
-                (data) => new Date(data + "T00:00:00")
-              )
-            : []
-        }
+        filterDate={(date) => {
+  const dataStr = `${date.getFullYear()}-${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+  return !datasBloqueadas.includes(dataStr);
+}}
         selected={startReserva ?? undefined}
         onChange={(date: Date | null) => {
           if (date) {
@@ -1194,6 +1531,7 @@ const selecionarImagem = (index: number) => {
             setActiveCalendar(false);
           }
         }}
+         dayClassName={getDayClassName}
       />
     )}
   </div>
@@ -1228,7 +1566,7 @@ const selecionarImagem = (index: number) => {
 
     <input
       type="number"
-      value={qtdPessoas}
+      value={valorSelecionado?.convidados || qtdPessoas}
       disabled
       className="w-full px-3 py-2 border border-gray-200 bg-gray-100 text-gray-500 rounded-lg text-sm cursor-not-allowed"
     />
@@ -1238,24 +1576,37 @@ const selecionarImagem = (index: number) => {
     </p>
   </div>
 ) : (
+  // ========== ESPAÇO NORMAL ==========
   <div>
     <label className="block text-sm font-semibold mb-1">
       Qtd. Pessoas
     </label>
 
-    <input
+
+     <input
       type="number"
       min={1}
-      max={espaco.capacidade}
-      value={qtdPessoas}
+      max={espaco?.capacidade || 1000}
+      value={qtdPessoas === 0 ? "" : qtdPessoas}
       onChange={(e) => {
-        let v = Number(e.target.value);
-        if (v < 1) v = 1;
-        if (v > espaco.capacidade) v = espaco.capacidade;
+        let v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+        
+        if (e.target.value === "") {
+          setQtdPessoas(0);
+          return;
+        }
+        
+        if (isNaN(v)) v = 0;
+        if (v < 0) v = 0;
+        
         setQtdPessoas(v);
       }}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-900 rounded-lg text-sm"
-      placeholder={`máx. ${espaco.capacidade}`}
+      onBlur={(e) => {
+        let v = qtdPessoas;
+        if (v < 1 || isNaN(v)) v = 1;
+               setQtdPessoas(v);
+      }}
+      className="w-full border p-3 rounded-xl"
     />
   </div>
 )}
@@ -1294,6 +1645,7 @@ const selecionarImagem = (index: number) => {
     onChange={(update: any) => {
       setRangeReserva(update);
     }}
+     dayClassName={getDayClassName}
   />
 ) : (
   <DatePicker
@@ -1304,6 +1656,7 @@ const selecionarImagem = (index: number) => {
     onChange={(date: Date | null) => {
       if (date) setRangeReserva([date, date]);
     }}
+     dayClassName={getDayClassName}
   />
 )}
 
@@ -1319,19 +1672,42 @@ const selecionarImagem = (index: number) => {
       </div>
 
       {/* PESSOAS */}
-      {!isBuffet && (
-        <div className="mb-4">
-          <p className="font-medium mb-2">Quantidade de pessoas</p>
-          <input
-            type="number"
-            min={1}
-            max={espaco.capacidade}
-           value={qtdPessoas === 0 ? "" : qtdPessoas}
-            onChange={(e) => setQtdPessoas(Number(e.target.value))}
-            className="w-full border p-3 rounded-xl"
-          />
-        </div>
-      )}
+    {!isBuffet && (
+  <div className="mb-4">
+    <p className="font-medium mb-2">Quantidade de pessoas</p>
+    <input
+      type="number"
+      min={1}
+      max={espaco?.capacidade || 1000}
+      value={qtdPessoas === 0 ? "" : qtdPessoas}
+      onChange={(e) => {
+        const valor = e.target.value;
+        
+        // Se estiver vazio, deixa como string vazia (mostra placeholder)
+        if (valor === "") {
+          setQtdPessoas(0);
+          return;
+        }
+        
+        let v = parseInt(valor, 10);
+        if (isNaN(v)) v = 0;
+        
+        setQtdPessoas(v);
+      }}
+      onBlur={() => {
+        // Quando sair do campo, se for 0 ou inválido, volta para 1
+        if (qtdPessoas < 1 || isNaN(qtdPessoas)) {
+          setQtdPessoas(1);
+        }
+        // Se for maior que a capacidade, ajusta
+        if (espaco?.capacidade && qtdPessoas > espaco.capacidade) {
+          setQtdPessoas(espaco.capacidade);
+        }
+      }}
+      className="w-full border p-3 rounded-xl"
+    />
+  </div>
+)}
 
       {/* BOTÃO CONFIRMAR */}
       <button

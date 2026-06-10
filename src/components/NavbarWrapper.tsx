@@ -32,6 +32,7 @@ export default function NavbarWrapper() {
     "/app/suporte-locador",
     "/locatario/avaliacoes",
     "/anfitriao",
+    "/locatario",
     "/login",
     "/esqueci-senha",
     "/cadastro/locatario",
@@ -47,7 +48,8 @@ export default function NavbarWrapper() {
     "/footer/termos",
     "/footer/privacidade",
     "/footer/contato",
-    "/footer/cancelamento"
+    "/footer/cancelamento",
+    "/reset-password"
 
   ];
 

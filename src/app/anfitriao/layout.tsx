@@ -13,6 +13,7 @@ import {
   Wallet,
   User,
   LogOut,
+  Star,  // ← NOVO
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
@@ -22,11 +23,10 @@ const links = [
   { name: "Espaços", href: "/anfitriao/espacos", icon: Building2 },
   { name: "Reservas", href: "/anfitriao/reservas", icon: CalendarDays },
   { name: "Histórico de Reservas", href: "/anfitriao/historico", icon: CalendarCheck },
+  { name: "Avaliações", href: "/anfitriao/avaliacoes", icon: Star },  // ← NOVO
   { name: "Financeiro", href: "/anfitriao/financeiro", icon: Wallet },
   { name: "Perfil", href: "/locatario/perfil", icon: User },
 ];
-
-console.log("🔥 LAYOUT ANFITRIAO EXECUTOU");
 
 export default function AnfitriaoLayout({
   children,
@@ -49,36 +49,21 @@ export default function AnfitriaoLayout({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  /* ===================== PROTEÇÃO CENTRAL ===================== */
- /* ===================== DEBUG + PROTEÇÃO ===================== */
-useEffect(() => {
-  console.log("====== DEBUG ANFITRIAO ======");
-  console.log("loading:", loading);
-  console.log("user:", user);
-  console.log("roles:", user?.roles);
-  console.log("isAnfitriao:", isAnfitriao);
+  // Proteção de rota
+  useEffect(() => {
+    if (loading) return;
 
-  if (loading) {
-    console.log("⏳ Ainda carregando...");
-    return;
-  }
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
 
-  if (!user) {
-    console.log("❌ REDIRECT: usuário NÃO existe");
-    router.replace("/login");
-    return;
-  }
+    if (!user.roles?.includes("ANFITRIAO")) {
+      router.replace("/");
+      return;
+    }
+  }, [loading, user, isAnfitriao, router]);
 
-  if (!user.roles?.includes("ANFITRIAO")) {
-    console.log("❌ REDIRECT: NÃO é anfitrião");
-    router.replace("/");
-    return;
-  }
-
-  console.log("✅ ACESSO LIBERADO AO PAINEL");
-}, [loading, user, isAnfitriao, router]);
-
-  /* ===================== LOADING STATE ===================== */
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
@@ -89,7 +74,6 @@ useEffect(() => {
 
   if (!user || !isAnfitriao) return null;
 
-  /* ===================== LAYOUT ===================== */
   return (
     <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
       {/* Sidebar - Desktop */}
@@ -121,11 +105,10 @@ useEffect(() => {
               })}
             </nav>
           </div>
-
         </aside>
       )}
 
-      {/* Conteúdo principal - com padding ajustado para mobile */}
+      {/* Conteúdo principal */}
       <main className={clsx(
         "flex-1 transition-all text-gray-900 dark:text-gray-100",
         isMobile ? "pb-20 px-4" : "ml-64 p-8"
@@ -133,7 +116,7 @@ useEffect(() => {
         {children}
       </main>
 
-      {/* Menu inferior - Mobile (único menu em mobile) */}
+      {/* Menu inferior - Mobile */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-around z-40">
           <Link
@@ -166,6 +149,14 @@ useEffect(() => {
           >
             <CalendarCheck size={20} />
             <span>Histórico</span>
+          </Link>
+
+          <Link
+            href="/anfitriao/avaliacoes"
+            className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
+          >
+            <Star size={20} />
+            <span>Avaliações</span>
           </Link>
 
           <Link

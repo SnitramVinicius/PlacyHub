@@ -1,3 +1,10 @@
+// utils/precificacao.ts
+
+// Função auxiliar para converter centavos para reais
+function converterParaReais(valorEmCentavos: number): number {
+  return valorEmCentavos / 100;
+}
+
 export function obterValorParaData(data: Date, espaco: any): number {
   const dataString = data.toISOString().split("T")[0];
   const diaSemana = data.getDay(); // 0 = domingo
@@ -11,7 +18,8 @@ export function obterValorParaData(data: Date, espaco: any): number {
   );
 
   if (dataEspecial) {
-    return dataEspecial.valor;
+    // 🔥 CONVERTE centavos para reais
+    return converterParaReais(dataEspecial.valor);
   }
 
   // 2️⃣ Se não tiver data específica, verifica GRUPO RECORRENTE
@@ -20,11 +28,12 @@ export function obterValorParaData(data: Date, espaco: any): number {
   );
 
   if (grupoEncontrado) {
-    return grupoEncontrado.valor;
+    // 🔥 CONVERTE centavos para reais
+    return converterParaReais(grupoEncontrado.valor);
   }
 
-  // 3️⃣ Se não tiver nada, usa preço padrão
-  return espaco.preco;
+  // 3️⃣ Se não tiver nada, usa preço padrão (convertendo centavos para reais)
+  return converterParaReais(espaco.preco ?? 0);
 }
 
 export function calcularValorPeriodo(
