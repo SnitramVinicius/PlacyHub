@@ -5,15 +5,20 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // 🔥 FUNÇÃO CORRETA PARA ENVIO DE EMAIL DE RECUPERAÇÃO
 export async function sendResetPasswordEmail(to: string, resetLink: string, userName: string) {
   try {
-    const result = await resend.emails.send({
-      from: 'PlacyHub <onboarding@resend.dev>', // Email temporário para teste
+    const { data, error } = await resend.emails.send({
+      from: 'PlacyHub <onboarding@resend.dev>',
       to,
       subject: '🔐 Redefinição de Senha - PlacyHub',
       html: getResetPasswordEmailTemplate(resetLink, userName),
     });
     
-    console.log(`📧 Email enviado para ${to}:`, result.id);
-    return { success: true, data: result };
+    if (error) {
+      console.error('❌ Erro ao enviar email:', error);
+      return { success: false, error };
+    }
+    
+    console.log(`📧 Email enviado para ${to}:`, data?.id);
+    return { success: true, data };
   } catch (error) {
     console.error('❌ Erro ao enviar email:', error);
     return { success: false, error };
@@ -82,7 +87,6 @@ export function getResetPasswordEmailTemplate(resetLink: string, userName: strin
           <p>© ${new Date().getFullYear()} PlacyHub - Aluguel de espaços para eventos</p>
         </div>
       </div>
-    </body>
     </html>
   `;
 }
