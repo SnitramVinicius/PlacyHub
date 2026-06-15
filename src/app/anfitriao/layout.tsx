@@ -111,13 +111,13 @@ export default function AnfitriaoLayout({
       {/* Conteúdo principal */}
       <main className={clsx(
         "flex-1 transition-all text-gray-900 dark:text-gray-100",
-        isMobile ? "pb-20 px-4" : "ml-64 p-8"
+        isMobile ? "px-4" : "ml-64 p-8"
       )}>
         {children}
       </main>
 
       {/* Menu inferior - Mobile */}
-      {isMobile && (
+      {/* {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-around z-40">
           <Link
             href="/anfitriao"
@@ -175,7 +175,7 @@ export default function AnfitriaoLayout({
             <span>Perfil</span>
           </Link>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

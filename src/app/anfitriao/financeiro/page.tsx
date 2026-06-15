@@ -83,192 +83,183 @@ function calcularReembolso(reserva: any): number {
     }
   }, [user]);
 
-  async function buscarDadosFinanceiros() {
-    if (!user?.id) return;
+async function buscarDadosFinanceiros() {
+  if (!user?.id) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const { data: espacos, error: errorEspacos } = await supabase
-        .from("spaces")
-        .select("id, nome_espaco")
-        .eq("user_id", user.id);
+  try {
+    const { data: espacos, error: errorEspacos } = await supabase
+      .from("spaces")
+      .select("id, nome_espaco")
+      .eq("user_id", user.id);
 
-      if (errorEspacos) throw errorEspacos;
+    if (errorEspacos) throw errorEspacos;
 
-      if (!espacos || espacos.length === 0) {
-        setDadosPorMes({});
-        setLoading(false);
-        return;
-      }
+    if (!espacos || espacos.length === 0) {
+      setDadosPorMes({});
+      setLoading(false);
+      return;
+    }
 
-      const espacosIds = espacos.map(e => e.id);
-      const espacosMap = new Map(espacos.map(e => [e.id, e.nome_espaco]));
+    const espacosIds = espacos.map(e => e.id);
+    const espacosMap = new Map(espacos.map(e => [e.id, e.nome_espaco]));
 
-      const { data: reservas, error: errorReservas } = await supabase
-        .from("reservas")
-        .select("*")
-        .in("espaco_id", espacosIds)
-        .order("created_at", { ascending: false });
+    const { data: reservas, error: errorReservas } = await supabase
+      .from("reservas")
+      .select("*")
+      .in("espaco_id", espacosIds)
+      .order("created_at", { ascending: false });
 
-      if (errorReservas) throw errorReservas;
+    if (errorReservas) throw errorReservas;
 
-      if (!reservas || reservas.length === 0) {
-        setDadosPorMes({});
-        setLoading(false);
-        return;
-      }
+    if (!reservas || reservas.length === 0) {
+      setDadosPorMes({});
+      setLoading(false);
+      return;
+    }
 
-      const dados: Record<string, DadosFinanceirosMes> = {};
+    const dados: Record<string, DadosFinanceirosMes> = {};
 
-      for (const reserva of reservas) {
-        const dataReserva = new Date(reserva.created_at);
-        const mesAno = `${dataReserva.toLocaleString("pt-BR", { month: "long" })} ${dataReserva.getFullYear()}`;
-        const mesKey = mesAno.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const reserva of reservas) {
+      // Criar chave no formato "maio 2026" (sem acentos e minúsculo)
+      const dataReserva = new Date(reserva.created_at);
+      const mesNome = dataReserva.toLocaleString("pt-BR", { month: "long" }).toLowerCase();
+      const mesSemAcento = mesNome
+        .replace(/ç/g, "c")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      const ano = dataReserva.getFullYear();
+      const mesKey = `${mesSemAcento} ${ano}`;
 
       if (!dados[mesKey]) {
-  dados[mesKey] = {
-    totalRecebido: 0,
-    aReceber: 0,
-    taxas: 0,
-    estornos: 0,
-    saldoTransferido: 0,
-    retidoCancelamentos: 0,
-    transacoes: [],
-  };
-}
+        dados[mesKey] = {
+          totalRecebido: 0,
+          aReceber: 0,
+          taxas: 0,
+          estornos: 0,
+          saldoTransferido: 0,
+          retidoCancelamentos: 0,
+          transacoes: [],
+        };
+      }
 
-        const valorBruto = reserva.valor_total || 0;
-        const taxa = valorBruto * TAXA_PLATAFORMA;
-        const valorLiquido = valorBruto - taxa;
+      const valorBruto = reserva.valor_total || 0;
+      const taxa = valorBruto * TAXA_PLATAFORMA;
+      const valorLiquido = valorBruto - taxa;
 
-       let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
+      let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
 
-if (reserva.status === "cancelada") {
-  statusTransacao = "Cancelado";
-} else if (reserva.pagamento_status === "approved") {
-  statusTransacao = "Confirmado";
-}
+      if (reserva.status === "cancelada") {
+        statusTransacao = "Cancelado";
+      } else if (reserva.pagamento_status === "approved") {
+        statusTransacao = "Confirmado";
+      }
 
-        // ============================================
-        // NOVA LÓGICA DE CANCELAMENTO COM POLÍTICA
-        // ============================================
-        if (reserva.status === "cancelada" && reserva.pagamento_status === "approved") {
-          const percentualReembolso = calcularReembolso(reserva);
-          const valorReembolsado = valorBruto * percentualReembolso;
-          const valorRetido = valorBruto - valorReembolsado;
-          const descricao = getDescricaoReembolso(percentualReembolso);
-          
-          dados[mesKey].estornos += valorReembolsado;
-dados[mesKey].retidoCancelamentos += valorRetido;
-          
-          dados[mesKey].transacoes.push({
-            id: reserva.id,
-            espaco: espacosMap.get(reserva.espaco_id) || "Espaço",
-            espaco_id: reserva.espaco_id,
-            data: new Date(reserva.created_at).toLocaleDateString("pt-BR"),
-            dataEvento: new Date(reserva.data_inicio).toLocaleDateString("pt-BR"),
-            status: "Cancelado",
-            tipo: "Estorno",
-            metodo: "Reembolso",
-            valorBruto: valorBruto,
-            valorLiquido: -valorReembolsado,
-            taxa: taxa,
-            dataLiberacao: "-",
-            observacao: descricao,
-          });
-          continue;
-        }
-
-        // Reservas NÃO canceladas
-        if (reserva.pagamento_status === "approved") {
-          dados[mesKey].totalRecebido += valorBruto;
-          dados[mesKey].taxas += taxa;
-        }
-
-        if (reserva.pagamento_status !== "approved" && reserva.status !== "cancelada") {
-          dados[mesKey].aReceber += valorBruto;
-        }
-
-        const dataEvento = new Date(reserva.data_inicio);
-        const dataLiberacao = new Date(dataEvento);
-        dataLiberacao.setDate(dataEvento.getDate() + 3);
-
+      // Cancelamento com reembolso
+      if (reserva.status === "cancelada" && reserva.pagamento_status === "approved") {
+        const percentualReembolso = calcularReembolso(reserva);
+        const valorReembolsado = valorBruto * percentualReembolso;
+        const valorRetido = valorBruto - valorReembolsado;
+        const descricao = getDescricaoReembolso(percentualReembolso);
+        
+        dados[mesKey].estornos += valorReembolsado;
+        dados[mesKey].retidoCancelamentos += valorRetido;
+        
         dados[mesKey].transacoes.push({
           id: reserva.id,
           espaco: espacosMap.get(reserva.espaco_id) || "Espaço",
           espaco_id: reserva.espaco_id,
           data: new Date(reserva.created_at).toLocaleDateString("pt-BR"),
           dataEvento: new Date(reserva.data_inicio).toLocaleDateString("pt-BR"),
-          status: statusTransacao,
-          tipo: "Reserva",
-          metodo: reserva.pagamento_status === "approved" ? "Cartão/Pix" : "Aguardando",
+          status: "Cancelado",
+          tipo: "Estorno",
+          metodo: "Reembolso",
           valorBruto: valorBruto,
-          valorLiquido: reserva.pagamento_status === "approved" ? valorLiquido : 0,
-          taxa: reserva.pagamento_status === "approved" ? taxa : 0,
-          dataLiberacao: reserva.pagamento_status === "approved" ? dataLiberacao.toLocaleDateString("pt-BR") : "-",
+          valorLiquido: -valorReembolsado,
+          taxa: taxa,
+          dataLiberacao: "-",
+          observacao: descricao,
         });
+        continue;
       }
 
-      for (const mesKey in dados) {
-  const transacoesLiberadas = dados[mesKey].transacoes.filter((t) => {
-    if (t.status !== "Confirmado") return false;
+      // Reservas NÃO canceladas
+      if (reserva.pagamento_status === "approved") {
+        dados[mesKey].totalRecebido += valorBruto;
+        dados[mesKey].taxas += taxa;
+      }
 
-    if (t.dataLiberacao === "-") return false;
+      if (reserva.pagamento_status !== "approved" && reserva.status !== "cancelada") {
+        dados[mesKey].aReceber += valorBruto;
+      }
 
-    const [dia, mes, ano] = t.dataLiberacao.split("/");
-    const dataLiberacao = new Date(`${ano}-${mes}-${dia}`);
+      const dataEvento = new Date(reserva.data_inicio);
+      const dataLiberacao = new Date(dataEvento);
+      dataLiberacao.setDate(dataEvento.getDate() + 3);
 
-    return dataLiberacao <= new Date();
-  });
+      dados[mesKey].transacoes.push({
+        id: reserva.id,
+        espaco: espacosMap.get(reserva.espaco_id) || "Espaço",
+        espaco_id: reserva.espaco_id,
+        data: new Date(reserva.created_at).toLocaleDateString("pt-BR"),
+        dataEvento: new Date(reserva.data_inicio).toLocaleDateString("pt-BR"),
+        status: statusTransacao,
+        tipo: "Reserva",
+        metodo: reserva.pagamento_status === "approved" ? "Cartão/Pix" : "Aguardando",
+        valorBruto: valorBruto,
+        valorLiquido: reserva.pagamento_status === "approved" ? valorLiquido : 0,
+        taxa: reserva.pagamento_status === "approved" ? taxa : 0,
+        dataLiberacao: reserva.pagamento_status === "approved" ? dataLiberacao.toLocaleDateString("pt-BR") : "-",
+      });
+    }
 
-  dados[mesKey].saldoTransferido = transacoesLiberadas.reduce(
-    (acc, t) => acc + t.valorLiquido,
-    0
-  );
-}
+    // Calcular saldo transferido
+    for (const mesKey in dados) {
+      const transacoesLiberadas = dados[mesKey].transacoes.filter((t) => {
+        if (t.status !== "Confirmado") return false;
+        if (t.dataLiberacao === "-") return false;
+        const [dia, mes, ano] = t.dataLiberacao.split("/");
+        const dataLiberacao = new Date(`${ano}-${mes}-${dia}`);
+        return dataLiberacao <= new Date();
+      });
+      dados[mesKey].saldoTransferido = transacoesLiberadas.reduce(
+        (acc, t) => acc + t.valorLiquido,
+        0
+      );
+    }
 
     setDadosPorMes(dados);
 
-const ordemMeses = [
-  "janeiro",
-  "fevereiro",
-  "marco",
-  "abril",
-  "maio",
-  "junho",
-  "julho",
-  "agosto",
-  "setembro",
-  "outubro",
-  "novembro",
-  "dezembro",
-];
+    // Ordenar meses cronologicamente
+    const ordemMeses = [
+      "janeiro", "fevereiro", "marco", "abril", "maio", "junho",
+      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    ];
 
-const meses = Object.keys(dados).sort((a, b) => {
-  const [mesA, anoA] = a.split(" ");
-  const [mesB, anoB] = b.split(" ");
+    const meses = Object.keys(dados).sort((a, b) => {
+      const [mesA, anoA] = a.split(" ");
+      const [mesB, anoB] = b.split(" ");
+      
+      if (anoA !== anoB) {
+        return Number(anoA) - Number(anoB);
+      }
+      return ordemMeses.indexOf(mesA) - ordemMeses.indexOf(mesB);
+    });
 
-  if (anoA !== anoB) {
-    return Number(anoA) - Number(anoB);
-  }
+    setMesesDisponiveis(meses);
 
-  return ordemMeses.indexOf(mesA) - ordemMeses.indexOf(mesB);
-});
-
-setMesesDisponiveis(meses);
-
-if (meses.length > 0 && !mesSelecionado) {
-  setMesSelecionado(meses[0]);
-}
-
-    } catch (error) {
-      console.error("Erro ao buscar dados financeiros:", error);
-      toast.error("Erro ao carregar dados financeiros");
-    } finally {
-      setLoading(false);
+    if (meses.length > 0 && !mesSelecionado) {
+      setMesSelecionado(meses[0]);
     }
+
+  } catch (error) {
+    console.error("Erro ao buscar dados financeiros:", error);
+    toast.error("Erro ao carregar dados financeiros");
+  } finally {
+    setLoading(false);
   }
+}
 
 const mesAtual = dadosPorMes[mesSelecionado] || {
   totalRecebido: 0,
@@ -280,9 +271,10 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
   transacoes: [],
 };
 
-  const saldoDisponivel =
-  (mesAtual.totalRecebido - mesAtual.taxas)
-  - mesAtual.estornos
+const saldoDisponivel =
+  mesAtual.totalRecebido 
+  - mesAtual.taxas 
+  - mesAtual.estornos 
   - mesAtual.saldoTransferido;
 
   const ultimos6Meses = mesesDisponiveis.slice(-6);
@@ -291,7 +283,14 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
 
   const formatarNomeMes = (mesKey: string) => {
     const [mes, ano] = mesKey.split(" ");
-    return mes.charAt(0).toUpperCase() + mes.slice(1) + " " + ano;
+    const mesesMap: Record<string, string> = {
+      "janeiro": "Janeiro", "fevereiro": "Fevereiro", "marco": "Março",
+      "abril": "Abril", "maio": "Maio", "junho": "Junho",
+      "julho": "Julho", "agosto": "Agosto", "setembro": "Setembro",
+      "outubro": "Outubro", "novembro": "Novembro", "dezembro": "Dezembro"
+    };
+    const mesFormatado = mesesMap[mes] || mes.charAt(0).toUpperCase() + mes.slice(1);
+    return `${mesFormatado} ${ano}`;
   };
 
   if (loading) {
@@ -310,13 +309,13 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
         
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          Painel Financeiro do Anfitrião
+          💰 Painel Financeiro do Anfitrião
         </h1>
 
         {/* Gráfico */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 mb-4">
           <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            Resumo de Ganhos Mensais
+            📈 Resumo de Ganhos Mensais
           </h2>
 
           {ultimos6Meses.length === 0 ? (
@@ -330,11 +329,18 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
                   const larguraMin = Math.max(largura, 8);
                   const nomeMesCompleto = mesKey.split(" ")[0];
                   const ano = mesKey.split(" ")[1];
+                  const mesesMap: Record<string, string> = {
+                    "janeiro": "Jan", "fevereiro": "Fev", "marco": "Mar",
+                    "abril": "Abr", "maio": "Mai", "junho": "Jun",
+                    "julho": "Jul", "agosto": "Ago", "setembro": "Set",
+                    "outubro": "Out", "novembro": "Nov", "dezembro": "Dez"
+                  };
+                  const mesAbrev = mesesMap[nomeMesCompleto] || nomeMesCompleto;
 
                   return (
                     <div key={mesKey} className="flex items-center gap-3">
-                      <div className="w-28 text-sm font-medium text-gray-600 dark:text-gray-400">
-                        {nomeMesCompleto} {ano}
+                      <div className="w-16 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {mesAbrev} {ano}
                       </div>
 
                       <div className="flex-1">
@@ -370,45 +376,10 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
           )}
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Total Recebido</p>
-            <p className="text-base font-bold text-green-600">R$ {mesAtual.totalRecebido.toFixed(2)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">A Receber</p>
-            <p className="text-base font-bold text-yellow-600">R$ {mesAtual.aReceber.toFixed(2)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Taxas ({TAXA_PLATAFORMA * 100}%)</p>
-            <p className="text-base font-bold text-red-600">R$ {mesAtual.taxas.toFixed(2)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Estornos</p>
-            <p className="text-base font-bold text-red-500">R$ {mesAtual.estornos.toFixed(2)}</p>
-          </div>
-
-<div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm">
-  <p className="text-xs text-gray-500 mb-1">Retido por cancelamentos</p>
-  <p className="text-base font-bold text-orange-600">
-    R$ {mesAtual.retidoCancelamentos.toFixed(2)}
-  </p>
-</div>
-
-          <div className="col-span-2 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Repasses feitos</p>
-            <p className="text-base font-bold text-sky-600">R$ {mesAtual.saldoTransferido.toFixed(2)}</p>
-          </div>
-        </div>
-
         {/* Seletor de Mês */}
         {mesesDisponiveis.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-3 mb-4">
-            <label className="text-sm text-gray-600 block mb-1">Mês</label>
+            <label className="text-sm text-gray-600 block mb-1">📅 Mês</label>
             <select
               className="w-full bg-transparent text-gray-900 dark:text-gray-100 font-medium focus:outline-none"
               value={mesSelecionado}
@@ -423,17 +394,93 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
           </div>
         )}
 
-        {/* Saldo */}
-        <div className="bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 p-4 rounded-xl mb-6 border border-sky-200 dark:border-sky-900">
-          <p className="text-sm text-gray-600 mb-1">Saldo disponível</p>
-          <p className="text-2xl font-bold text-sky-600">R$ {saldoDisponivel.toFixed(2)}</p>
-          <p className="text-xs text-gray-500 mt-1">* Valor líquido após taxas, estornos e repasses</p>
+        {/* Cards com explicação */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          
+          {/* Card: Total de Vendas */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+            <p className="text-xs text-gray-500 uppercase tracking-flex">💰 Total de Vendas</p>
+            <p className="text-2xl font-bold text-green-600 mt-1">R$ {mesAtual.totalRecebido.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">Soma de todas as reservas confirmadas</p>
+          </div>
+
+          {/* Card: Taxas da Plataforma */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-red-500">
+            <p className="text-xs text-gray-500 uppercase tracking-flex">🏢 Taxa da PlacyHub</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">- R$ {mesAtual.taxas.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">{TAXA_PLATAFORMA * 100}% sobre o valor das reservas</p>
+          </div>
+
+          {/* Card: Cancelamentos */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+            <p className="text-xs text-gray-500 uppercase tracking-flex">⚠️ Cancelamentos</p>
+            <p className="text-2xl font-bold text-orange-600 mt-1">- R$ {mesAtual.retidoCancelamentos.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">Valor retido por cancelamentos (sem reembolso)</p>
+          </div>
+
+          {/* Card: Já Recebido */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-sky-500">
+            <p className="text-xs text-gray-500 uppercase tracking-flex">✅ Já Recebido</p>
+            <p className="text-2xl font-bold text-sky-600 mt-1">R$ {mesAtual.saldoTransferido.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">Valores já transferidos para sua conta</p>
+          </div>
+
+          {/* Card: A Receber */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
+            <p className="text-xs text-gray-500 uppercase tracking-flex">⏳ A Receber</p>
+            <p className="text-2xl font-bold text-yellow-600 mt-1">R$ {mesAtual.aReceber.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">Reservas confirmadas que ainda serão liberadas</p>
+          </div>
+
+          {/* Card: Estornos (se houver) */}
+          {mesAtual.estornos > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-red-400">
+              <p className="text-xs text-gray-500 uppercase tracking-flex">↩️ Estornos</p>
+              <p className="text-2xl font-bold text-red-500 mt-1">- R$ {mesAtual.estornos.toFixed(2)}</p>
+              <p className="text-xs text-gray-400 mt-1">Reembolsos feitos para clientes</p>
+            </div>
+          )}
+        </div>
+
+        {/* Legenda explicativa */}
+        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 mb-6 border border-blue-200 dark:border-blue-800">
+          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">📌 Entenda os valores:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-400">
+            <div>💰 <strong>Total de Vendas:</strong> Soma de todas as reservas pagas</div>
+            <div>🏢 <strong>Taxa:</strong> Comissão da PlacyHub ({TAXA_PLATAFORMA * 100}%)</div>
+            <div>⚠️ <strong>Cancelamentos:</strong> Valor retido quando cliente cancelou sem direito a reembolso</div>
+            <div>✅ <strong>Já Recebido:</strong> Valores já transferidos para sua conta</div>
+            <div>⏳ <strong>A Receber:</strong> Reservas confirmadas que ainda serão liberadas</div>
+            <div>💰 <strong>Saldo Disponível:</strong> Valor que pode ser sacado agora</div>
+          </div>
+        </div>
+
+        {/* Saldo - Destaque principal */}
+        <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-6 mb-8 shadow-lg">
+          <div className="text-center">
+            <p className="text-white/80 text-sm uppercase tracking-wide mb-1">💰 Saldo Disponível para Saque</p>
+            <p className="text-4xl md:text-5xl font-bold text-white">R$ {saldoDisponivel.toFixed(2)}</p>
+            <div className="flex justify-center gap-6 mt-4 text-xs text-white/70">
+              <div className="text-center">
+                <p className="font-semibold text-white">R$ {mesAtual.totalRecebido.toFixed(2)}</p>
+                <p>Vendas</p>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-white">- R$ {mesAtual.taxas.toFixed(2)}</p>
+                <p>Taxas</p>
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-white">- R$ {mesAtual.saldoTransferido.toFixed(2)}</p>
+                <p>Já recebido</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Transações */}
         <div className="mb-20">
           <h3 className="text-base font-semibold text-gray-800 mb-3">
-            Transações - {mesSelecionado ? formatarNomeMes(mesSelecionado) : ""}
+            📋 Transações - {mesSelecionado ? formatarNomeMes(mesSelecionado) : ""}
           </h3>
 
           {mesAtual.transacoes.length === 0 ? (
@@ -459,14 +506,15 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
                       transacao.status === "Pendente" ? "bg-yellow-100 text-yellow-700" :
                       "bg-red-100 text-red-700"
                     }`}>
-                      {transacao.status}
+                      {transacao.status === "Confirmado" ? "✅ Confirmado" : 
+                       transacao.status === "Pendente" ? "⏳ Pendente" : "❌ Cancelado"}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
                     <div>
                       <p className="text-xs text-gray-500">Tipo</p>
-                      <p className="font-medium">{transacao.tipo}</p>
+                      <p className="font-medium">{transacao.tipo === "Reserva" ? "🏷️ Reserva" : "↩️ Estorno"}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Método</p>
@@ -489,7 +537,7 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Liberação</p>
-                      <p className="font-medium">{transacao.dataLiberacao}</p>
+                      <p className="font-medium">{transacao.dataLiberacao !== "-" ? `📅 ${transacao.dataLiberacao}` : "⏳ Aguardando"}</p>
                     </div>
                   </div>
                 </div>

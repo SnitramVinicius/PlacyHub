@@ -228,7 +228,7 @@ useEffect(() => {
   return (
     <>
       {/* NAVBAR - SÓ APARECE EM DESKTOP OU QUANDO NÃO É FAVORITOS EM MOBILE */}
-      {(!isMobile || (isMobile && !isFavoritosPage)) && (
+      {!isMobile && (
         <div
           className={`fixed top-0 left-0 w-full z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 md:px-12
             transition-all duration-[480ms] ease-[cubic-bezier(0.16,1,0.3,1)] backdrop-blur-xl
@@ -248,7 +248,7 @@ useEffect(() => {
           {/* SEARCH - Só aparece em desktop quando NÃO é favoritos */}
           <div className="flex justify-center flex-1 relative px-2 md:px-4" ref={searchRef}>
             {/* MOBILE - Botão de busca simplificado (NUNCA aparece em favoritos) */}
-            {isMobile && !showMobileSearch && !isFavoritosPage && (
+            {/* {isMobile && !showMobileSearch && !isFavoritosPage && (
               <button
                 onClick={() => setShowMobileSearch(true)}
                 className="w-full flex items-center justify-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 shadow-sm border border-gray-200"
@@ -256,7 +256,7 @@ useEffect(() => {
                 <Search size={18} className="text-gray-500" />
                 <span className="text-sm text-gray-500">Onde e quando?</span>
               </button>
-            )}
+            )} */}
 
             {/* MOBILE - Tela de busca expandida (COM BOTÃO DE FECHAR) */}
             {isMobile && showMobileSearch && (
@@ -621,99 +621,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* RODAPÉ MOBILE */}
-{isMobile && !showMobileSearch && (
- <div
-  className={`fixed left-0 w-full h-16 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-800 flex items-center justify-center z-50 transition-transform duration-300
-  ${showMobileNav ? "translate-y-0" : "translate-y-full"}`}
-  style={{ bottom: 0 }}
->
-    <div className="flex items-center justify-around w-full px-2">
-      <button
-        onClick={handleExploreClick}
-        className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
-      >
-        <Search size={20} />
-        <span>Explorar</span>
-      </button>
-
-      {!user && (
-        <button
-          onClick={() => router.push("/login")}
-          className="flex flex-col items-center text-xs text-sky-500 dark:text-sky-400 font-semibold"
-        >
-          <User size={20} />
-          <span>Entrar</span>
-        </button>
-      )}
-
-      {user && (
-        <>
-          {!isAnfitriao && (
-            <button
-              onClick={() => {
-                if (!user) {
-                  router.push("/login?redirect=/virar-anfitriao");
-                } else {
-                  router.push("/virar-anfitriao");
-                }
-              }}
-              className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
-            >
-              <Home size={20} />
-              <span>Anunciar</span>
-            </button>
-          )}
-          <button
-            onClick={() => router.push("/favoritos")}
-            className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
-          >
-            <Heart size={20} />
-            <span>Favoritos</span>
-          </button>
-
-          <button
-            onClick={() => router.push("/locatario/reservas")}
-            className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
-          >
-            <Calendar size={20} />
-            <span>Reservas</span>
-          </button>
-
-          {isAnfitriao && (
-            <button
-              onClick={() => router.push("/anfitriao")}
-              className="flex flex-col items-center text-xs text-gray-600 dark:text-gray-400"
-            >
-              <LayoutDashboard size={20} />
-              <span>Anfitrião</span>
-            </button>
-          )}
-
-         <button
-  onClick={() => router.push("/locatario/perfil")}
-  className={`flex flex-col items-center text-xs ${
-    isPainelAnfitriao 
-      ? "text-sky-500 dark:text-sky-400 font-semibold" 
-      : "text-gray-600 dark:text-gray-400"
-  }`}
->
-  {user.fotoUrl ? (
-    <img 
-      src={user.fotoUrl} 
-      alt={user.name}
-      className="w-5 h-5 rounded-full object-cover"
-    />
-  ) : (
-    <User size={20} />
-  )}
-  <span>Perfil</span>
-</button>
-        </>
-      )}
-    </div>
-  </div>
-)}
 
       <style jsx>{`
         @keyframes fadeIn {

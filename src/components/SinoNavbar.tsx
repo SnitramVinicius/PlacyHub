@@ -12,43 +12,39 @@ export default function SinoNavbar() {
   const [naoLidas, setNaoLidas] = useState(0);
 
   useEffect(() => {
-  if (!user?.id) return;
+    if (!user?.id) return;
 
-  async function buscarNaoLidas() {
-    const { count, error } = await supabase
-      .from("notificacoes")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("usuario_id", user?.id)
-      .eq("lida", false);
+    let isMounted = true;
 
-    if (!error && count !== null) {
-      setNaoLidas(count);
+    async function buscarNaoLidas() {
+      try {
+        const { count, error } = await supabase
+          .from("notificacoes")
+          .select("*", { count: "exact", head: true })
+          .eq("usuario_id", user!.id)
+          .eq("lida", false);
+
+        if (!error && count !== null && isMounted) {
+          setNaoLidas(count);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar notificações:", err);
+      }
     }
-  }
 
-  buscarNaoLidas();
+    // Buscar inicial
+    buscarNaoLidas();
 
-  const canal = supabase
-    .channel("notificacoes-channel")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "notificacoes",
-        filter: `usuario_id=eq.${user.id}`,
-      },
-      () => buscarNaoLidas()
-    )
-    .subscribe();
+    // Buscar a cada 30 segundos (polling simples e estável)
+    const interval = setInterval(() => {
+      buscarNaoLidas();
+    }, 30000);
 
-  return () => {
-    supabase.removeChannel(canal);
-  };
-}, [user]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
 
   return (
     <button

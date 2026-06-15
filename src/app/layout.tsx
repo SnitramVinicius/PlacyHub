@@ -4,6 +4,7 @@ import "./globals.css";
 import "react-datepicker/dist/react-datepicker.css";
 import { AuthProvider } from "@/context/AuthContext";
 import NavbarWrapper from "@/components/NavbarWrapper";
+import MobileTopBar from "@/components/MobileTopBar";
 import { Toaster } from "sonner";
 import { FavoritosProvider } from "@/context/FavoritosContext";
 import { TemaProvider } from "@/context/TemaContext";
@@ -21,7 +22,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-br" suppressHydrationWarning>
-      
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -38,18 +38,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body>
-        <TemaProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <TemaProvider>
             <FavoritosProvider>
+              {/* Navbar Desktop (não aparece em mobile) */}
               <Suspense fallback={null}>
-  <NavbarWrapper />
-</Suspense>
+                <NavbarWrapper />
+              </Suspense>
+              
+              {/* Mobile Top Bar (aparece apenas em mobile) */}
+              <MobileTopBar />
+              
               {children}
               <Toaster />
               <HelpButton />
             </FavoritosProvider>
-          </AuthProvider>
-        </TemaProvider>
+          </TemaProvider>
+        </AuthProvider>
       </body>
     </html>
   );

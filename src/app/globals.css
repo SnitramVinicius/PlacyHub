@@ -176,11 +176,11 @@ a,
 }
 /* Dias da semana */
 .react-datepicker__day-name {
- color: #6b7280;
+  color: #6b7280;
   font-weight: 400;
-  width: 2.5rem;
-  height: 2.25rem;
-  line-height: 2.25rem;
+  width: clamp(1.8rem, 7vw, 2.5rem);
+  height: clamp(1.8rem, 7vw, 2.25rem);
+  line-height: clamp(1.8rem, 7vw, 2.25rem);
   font-size: 0.75rem;
   text-transform: uppercase;
 }
@@ -190,15 +190,14 @@ a,
 
 /* Dias */
 .react-datepicker__day {
-  width: 2.5rem;
-  height: 2.5rem;
-  line-height: 2.5rem;
-  margin: 0 0.125rem;
+  width: clamp(1.8rem, 7vw, 2.5rem);
+  height: clamp(1.8rem, 7vw, 2.5rem);
+  line-height: clamp(1.8rem, 7vw, 2.5rem);
+  margin: 0;
   border-radius: 50%;
   color: var(--foreground);
   transition: background-color 0.1s;
 }
-
 /* Selecionado */
 .react-datepicker__day--selected {
    background-color: #02b0f0 !important;
@@ -290,3 +289,4 @@ a,
 .animate-slideUp {
   animation: slideUp 0.3s ease;
 }
+
