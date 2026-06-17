@@ -922,6 +922,34 @@ const verificarRemarcacao = (dataEvento: string) => {
 {/* Ações */}
 <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
   
+  {/* 🔥 RESERVA PENDENTE - Mostra botão REMOVER */}
+  {reserva.status === "pendente" && (
+    <>
+      <button
+        onClick={async () => {
+          const { error } = await supabase
+            .from("reservas")
+            .delete()
+            .eq("id", reserva.id);
+          
+          if (!error) {
+            setReservas(prev => prev.filter(r => r.id !== reserva.id));
+            toast.success("Reserva pendente removida");
+          } else {
+            toast.error("Erro ao remover reserva");
+          }
+        }}
+        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold 
+          bg-red-100 hover:bg-red-200 text-red-600 
+          dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400"
+      >
+        <XCircle size={16} />
+        Remover
+      </button>
+    </>
+  )}
+
+
 {/* 🔥 Botão Ver proposta (quando anfitrião propôs reagendamento) */}
   {reserva.status === "reagendamento_proposto" && (
     <button
@@ -963,7 +991,7 @@ const verificarRemarcacao = (dataEvento: string) => {
 )}
 
   {/* Botão Cancelar com regras */}
-  {reserva.status !== "cancelada" && reserva.status !== "finalizada" && (() => {
+  {reserva.status !== "cancelada" && reserva.status !== "finalizada" && reserva.status !== "pendente" && (() => {
     const regra = verificarCancelamento(reserva.data_inicio, reserva.created_at);
     
     return (
@@ -981,6 +1009,7 @@ const verificarRemarcacao = (dataEvento: string) => {
       </button>
     );
   })()}
+
 
   {/* Botão Avaliar */}
   {reserva.status === "finalizada" && !reserva.avaliada && (
