@@ -1,10 +1,23 @@
 import MercadoPagoConfig, { Preference } from "mercadopago";
 
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_TOKEN!,
+  accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
+console.log("================================");
+console.log("FUNÇÃO NETLIFY EXECUTADA");
+console.log("TOKEN:", !!process.env.MP_ACCESS_TOKEN);
+console.log("================================");
+
 export const handler = async (event: any) => {
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      teste: "NETLIFY_FUNCTION"
+    }),
+  };
+
   try {
     const {
       total,
