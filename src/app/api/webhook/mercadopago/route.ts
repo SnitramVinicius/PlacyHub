@@ -1,120 +1,5 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// ============================================
-// FUNÇÕES AUXILIARES
-// ============================================
-
-async function podeEnviarEmail(usuarioId: string, tipo: string): Promise<boolean> {
-  if (!usuarioId) return false;
-
-  try {
-    const { data, error } = await supabase
-      .from("user_notificacoes_settings")
-      .select("email")
-      .eq("user_id", usuarioId)
-      .eq("tipo", tipo)
-      .single();
-
-    if (error && error.code === "PGRST116") {
-      return true; // Se não tem configuração, envia por padrão
-    }
-
-    if (error) {
-      console.error("Erro ao verificar preferência:", error);
-      return true;
-    }
-
-    return data?.email !== false;
-  } catch (error) {
-    console.error("Erro ao verificar preferência:", error);
-    return true;
-  }
-}
-
-async function getEmailUsuario(usuarioId: string): Promise<string | null> {
-  try {
-    const { data, error } = await supabase
-      .from("users")
-      .select("email, name")
-      .eq("id", usuarioId)
-      .single();
-
-    if (error) {
-      console.error("Erro ao buscar email do usuário:", error);
-      return null;
-    }
-
-    return data?.email || null;
-  } catch (error) {
-    console.error("Erro ao buscar email do usuário:", error);
-    return null;
-  }
-}
-
-async function enviarEmailReservaConfirmada(destinatario: string, nome: string, reserva: any, tipo: "cliente" | "anfitriao") {
-  const dataFormatada = new Date(reserva.data_inicio).toLocaleDateString("pt-BR");
-  
-  if (tipo === "cliente") {
-    return await resend.emails.send({
-      from: 'PlacyHub <onboarding@resend.dev>',
-      to: destinatario,
-      subject: '✅ Pagamento confirmado!',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head><meta charset="utf-8"><title>Pagamento confirmado</title></head>
-        <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <h1 style="color:#02b0f0;">✅ Pagamento Confirmado!</h1>
-          <p>Olá <strong>${nome}</strong>!</p>
-          <p>Seu pagamento para o espaço <strong>${reserva.spaces.nome}</strong> foi confirmado.</p>
-          <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
-            <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
-            <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
-            <p><strong>💰 Valor:</strong> R$ ${reserva.valor_total.toFixed(2)}</p>
-          </div>
-          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/locatario/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver minhas reservas</a></p>
-          <hr>
-          <p style="color:#666;font-size:12px;">PlacyHub - Aluguel de espaços para eventos</p>
-        </body>
-        </html>
-      `,
-    });
-  } else {
-    return await resend.emails.send({
-      from: 'PlacyHub <onboarding@resend.dev>',
-      to: destinatario,
-      subject: '🎉 Nova reserva confirmada!',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head><meta charset="utf-8"><title>Nova reserva</title></head>
-        <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <h1 style="color:#02b0f0;">🎉 Nova Reserva Confirmada!</h1>
-          <p>Olá <strong>${nome}</strong>!</p>
-          <p>Você recebeu uma nova reserva para o espaço <strong>${reserva.spaces.nome}</strong>.</p>
-          <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
-            <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
-            <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
-            <p><strong>💰 Valor:</strong> R$ ${reserva.valor_total.toFixed(2)}</p>
-            <p><strong>💵 Valor líquido (após taxas):</strong> R$ ${(reserva.valor_total * 0.9).toFixed(2)}</p>
-          </div>
-          <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/anfitriao/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver reservas</a></p>
-          <hr>
-          <p style="color:#666;font-size:12px;">PlacyHub - Aluguel de espaços para eventos</p>
-        </body>
-        </html>
-      `,
-    });
-  }
-}
-
-// ============================================
-// WEBHOOK PRINCIPAL
-// ============================================
 
 export async function POST(request: Request) {
   try {
@@ -164,7 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No reservation id" }, { status: 400 });
     }
     
-    // 🔥 Buscar dados completos da reserva
+    // 🔥 Buscar dados completos da reserva (antes de atualizar)
     const { data: reservaCompleta, error: reservaCompletaError } = await supabase
       .from("reservas")
       .select(`
@@ -203,9 +88,13 @@ export async function POST(request: Request) {
     }
     
     // ============================================
-    // APENAS PARA PAGAMENTOS APROVADOS
+    // 🔥 NOVA FUNCIONALIDADE: Criar registro na tabela repasse
+    // ============================================
+       // ============================================
+    // 🔥 NOVA FUNCIONALIDADE: Criar notificações e repasse
     // ============================================
     if (payment.status === "approved") {
+      // Usar os dados que já buscamos (reservaCompleta) ou buscar novamente
       const { data: reserva, error: reservaError } = reservaCompleta && !reservaCompletaError
         ? { data: reservaCompleta, error: null }
         : await supabase
@@ -218,13 +107,9 @@ export async function POST(request: Request) {
             .single();
       
       if (!reservaError && reserva) {
+        // 🔥 1. NOTIFICAÇÃO PARA O ANFITRIÃO
         const dataFormatada = new Date(reserva.data_inicio).toLocaleDateString("pt-BR");
         
-        // ============================================
-        // 1. NOTIFICAÇÃO NO SISTEMA (tabela notificacoes)
-        // ============================================
-        
-        // Para o ANFITRIÃO
         const { error: notifAnfitriaoError } = await supabase
           .from("notificacoes")
           .insert({
@@ -250,10 +135,10 @@ export async function POST(request: Request) {
         if (notifAnfitriaoError) {
           console.error("❌ Erro ao criar notificação para anfitrião:", notifAnfitriaoError);
         } else {
-          console.log("✅ Notificação no sistema enviada para o ANFITRIÃO");
+          console.log("✅ Notificação enviada para o ANFITRIÃO");
         }
         
-        // Para o CLIENTE
+        // 🔥 2. NOTIFICAÇÃO PARA O LOCATÁRIO (CLIENTE)
         const { error: notifClienteError } = await supabase
           .from("notificacoes")
           .insert({
@@ -278,79 +163,16 @@ export async function POST(request: Request) {
         if (notifClienteError) {
           console.error("❌ Erro ao criar notificação para cliente:", notifClienteError);
         } else {
-          console.log("✅ Notificação no sistema enviada para o CLIENTE");
+          console.log("✅ Notificação enviada para o CLIENTE");
         }
         
-        // ============================================
-        // 2. ENVIO DE EMAIL (respeitando preferências)
-        // ============================================
-        
-        // 🔥 Email para o CLIENTE
-        const podeEmailCliente = await podeEnviarEmail(reserva.user_id, "pagamentos");
-        console.log(`📧 Cliente (${reserva.user_id}) pode receber email de pagamentos? ${podeEmailCliente}`);
-        
-        if (podeEmailCliente) {
-          const emailCliente = await getEmailUsuario(reserva.user_id);
-          if (emailCliente) {
-            try {
-              const result = await enviarEmailReservaConfirmada(
-                emailCliente,
-                reserva.spaces.nome || "Cliente",
-                reserva,
-                "cliente"
-              );
-              if (result.error) {
-                console.error("❌ Erro ao enviar email para cliente:", result.error);
-              } else {
-                console.log(`✅ Email de pagamento enviado para ${emailCliente}`);
-              }
-            } catch (emailError) {
-              console.error("❌ Erro ao enviar email para cliente:", emailError);
-            }
-          } else {
-            console.log(`⚠️ Cliente ${reserva.user_id} não tem email cadastrado`);
-          }
-        } else {
-          console.log(`⏭️ Cliente optou por NÃO receber emails de pagamentos`);
-        }
-        
-        // 🔥 Email para o ANFITRIÃO
-        const podeEmailAnfitriao = await podeEnviarEmail(reserva.spaces.user_id, "reservas");
-        console.log(`📧 Anfitrião (${reserva.spaces.user_id}) pode receber email de reservas? ${podeEmailAnfitriao}`);
-        
-        if (podeEmailAnfitriao) {
-          const emailAnfitriao = await getEmailUsuario(reserva.spaces.user_id);
-          if (emailAnfitriao) {
-            try {
-              const result = await enviarEmailReservaConfirmada(
-                emailAnfitriao,
-                reserva.spaces.nome || "Anfitrião",
-                reserva,
-                "anfitriao"
-              );
-              if (result.error) {
-                console.error("❌ Erro ao enviar email para anfitrião:", result.error);
-              } else {
-                console.log(`✅ Email de nova reserva enviado para ${emailAnfitriao}`);
-              }
-            } catch (emailError) {
-              console.error("❌ Erro ao enviar email para anfitrião:", emailError);
-            }
-          } else {
-            console.log(`⚠️ Anfitrião ${reserva.spaces.user_id} não tem email cadastrado`);
-          }
-        } else {
-          console.log(`⏭️ Anfitrião optou por NÃO receber emails de reservas`);
-        }
-        
-        // ============================================
-        // 3. CRIAR REPASSE
-        // ============================================
-        const TAXA_PLATAFORMA = 0.10;
+        // 🔥 3. CRIAR REPASSE (seu código original)
+        const TAXA_PLATAFORMA = 0.10; // 10%
         const valorBruto = reserva.valor_total;
         const taxa = valorBruto * TAXA_PLATAFORMA;
         const valorLiquido = valorBruto - taxa;
         
+        // Verificar se já existe repasse para esta reserva
         const { data: repasseExistente } = await supabase
           .from("repasse")
           .select("id")
