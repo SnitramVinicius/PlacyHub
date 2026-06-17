@@ -6,6 +6,11 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
+console.log("MP_ACCESS_TOKEN existe?", !!process.env.MP_ACCESS_TOKEN);
+console.log(
+  "MP_ACCESS_TOKEN início:",
+  process.env.MP_ACCESS_TOKEN?.substring(0, 20)
+);
 export const POST = async (req: NextRequest) => {
   try {
     const {
@@ -77,19 +82,38 @@ export const POST = async (req: NextRequest) => {
 
 console.log("BODY ENVIADO:", JSON.stringify(body, null, 2));
 
+console.log("=================================");
+console.log("TOKEN EXISTE?", !!process.env.MP_ACCESS_TOKEN);
+
+console.log(
+  "TOKEN:",
+  process.env.MP_ACCESS_TOKEN?.substring(0, 25)
+);
+
+console.log("BASE URL:", process.env.NEXT_PUBLIC_BASE_URL);
+console.log("=================================");
+
 const result = await preference.create({ body });
 
 console.log("RESULTADO MP:", result);
 
 return NextResponse.json({ url: result.init_point });
-  } catch (err: any) {
-    console.error("ERRO MERCADO PAGO:", JSON.stringify(err, null, 2));
-    return NextResponse.json(
-      {
-        error: "Erro ao criar preferência",
-        details: err.message || err,
-      },
-      { status: 500 }
-    );
-  }
+} catch (err: any) {
+  console.error("ERRO COMPLETO MP:");
+  console.error(err);
+
+  console.error("MESSAGE:", err?.message);
+  console.error("STATUS:", err?.status);
+  console.error("CAUSE:", err?.cause);
+  console.error("RESPONSE:", err?.response?.data);
+
+  return NextResponse.json(
+    {
+      error: "Erro ao criar preferência",
+      details: err?.message || "Erro desconhecido",
+      status: err?.status || null,
+    },
+    { status: 500 }
+  );
+}
 };
