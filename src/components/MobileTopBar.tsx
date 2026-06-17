@@ -30,6 +30,7 @@ export default function MobileTopBar() {
 
   const normalize = (str: string) =>
     str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+const [showBenefitsModal, setShowBenefitsModal] = useState(false);
 
   useEffect(() => {
     async function loadCities() {
@@ -95,11 +96,19 @@ export default function MobileTopBar() {
   // ============================================
   
   // Links base (para todos)
-  const baseLinks = [
-    { name: "Início", href: "/", icon: <Home size={18} />, id: "home" },
-    { name: "Favoritos", href: "/favoritos", icon: <Heart size={18} />, id: "favoritos" },
-    { name: "Meu Perfil", href: "/locatario/perfil", icon: <User size={18} />, id: "meu-perfil" },
-  ];
+const baseLinks = [
+  { name: "Início", href: "/", icon: <Home size={18} />, id: "home" },
+];
+
+if (user) {
+  baseLinks.unshift(
+    { name: "Meu Perfil", href: "/locatario/perfil", icon: <User size={18} />, id: "meu-perfil" }
+  );
+
+  baseLinks.push(
+    { name: "Favoritos", href: "/favoritos", icon: <Heart size={18} />, id: "favoritos" }
+  );
+}
 
   // Reservas (duas opções para anfitrião)
   const reservasLinks = [
@@ -121,14 +130,19 @@ export default function MobileTopBar() {
     { name: " Financeiro", href: "/anfitriao/financeiro", icon: <TrendingUp size={18} />, id: "financeiro" },
   ];
 
-  // Montar links finais
-  let menuLinks = [...baseLinks];
-  menuLinks = [...menuLinks, ...reservasLinks];
-  menuLinks = [...menuLinks, ...avaliacoesLinks];
+let menuLinks = [...baseLinks];
 
-  if (isAnfitriao) {
-    menuLinks = [...menuLinks, ...anfitriaoLinks];
-  }
+if (user) {
+  menuLinks = [
+    ...menuLinks,
+    ...reservasLinks,
+    ...avaliacoesLinks,
+  ];
+}
+
+if (isAnfitriao) {
+  menuLinks = [...menuLinks, ...anfitriaoLinks];
+}
 
   const fecharMenu = () => {
     setMenuAberto(false);
@@ -260,171 +274,230 @@ export default function MobileTopBar() {
         </div>
       )}
 
-      {/* Menu Lateral (Drawer) */}
-      <div
-        className={`fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl z-50 transition-transform duration-300 ease-in-out ${
-          menuAberto ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="font-semibold text-gray-900 dark:text-white">{menuTitle}</h2>
-          <button onClick={fecharMenu} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-            <X size={22} className="text-gray-600 dark:text-gray-400" />
-          </button>
-        </div>
+     {/* Menu Lateral - TELA CHEIA */}
+<div
+  className={`fixed inset-0 bg-white dark:bg-gray-900 z-50 transition-transform duration-300 ease-in-out ${
+    menuAberto ? "translate-x-0" : "translate-x-full"
+  }`}
+>
+  {/* Header do menu */}
+  <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-10">
+    <h2 className="font-semibold text-gray-900 dark:text-white text-lg">
+      {menuTitle}
+    </h2>
+    <button onClick={fecharMenu} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+      <X size={24} className="text-gray-600 dark:text-gray-400" />
+    </button>
+  </div>
 
-        <div className="p-4 max-h-[calc(100vh-80px)] overflow-y-auto">
-         {user ? (
-  <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-    <div className="flex items-center gap-3">
-      {/* Avatar com foto do perfil */}
-      <div className="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center text-white font-bold text-lg overflow-hidden">
-        {user.fotoUrl ? (
-          <img 
-            src={user.fotoUrl} 
-            alt={user.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          user.name?.[0]?.toUpperCase() || "U"
-        )}
-      </div>
-      <div>
-        <p className="font-medium text-gray-900 dark:text-white text-sm">
-          {user.name?.split(" ")[0] || "Usuário"}
-        </p>
-        <p className="text-xs text-gray-500 truncate max-w-[180px]">{user.email}</p>
+  {/* Conteúdo do menu com scroll - usando flex para empurrar o logout para baixo */}
+  <div className="flex flex-col h-[calc(100vh-70px)] overflow-y-auto">
+    <div className="flex-1 p-4">
+      {/* Avatar do usuário */}
+      {user ? (
+        <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+              {user.fotoUrl ? (
+                <img 
+                  src={user.fotoUrl} 
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user.name?.[0]?.toUpperCase() || "U"
+              )}
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 dark:text-white text-base">
+                {user.name?.split(" ")[0] || "Usuário"}
+              </p>
+              <p className="text-xs text-gray-500 truncate max-w-[200px]">{user.email}</p>
+              {isAnfitriao && (
+                <span className="inline-block mt-1 text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">
+                  Anfitrião
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+          <Link href="/login" onClick={fecharMenu} className="block w-full text-center bg-sky-500 text-white py-3 rounded-lg text-sm font-medium">
+            Entrar / Cadastrar
+          </Link>
+        </div>
+      )}
+
+      {/* Links do menu */}
+      <nav className="space-y-1">
+        {/* Seção Geral */}
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-2 mb-2 px-2">
+          Geral
+        </div>
+        {baseLinks.map((link) => {
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.id}
+              href={link.href}
+              onClick={fecharMenu}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors ${
+                isActive
+                  ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              {link.icon}
+              <span>{link.name}</span>
+            </Link>
+          );
+        })}
+
+       {user && reservasLinks.map((link) => {
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.id}
+              href={link.href}
+              onClick={fecharMenu}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors ${
+                isActive
+                  ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              {link.icon}
+              <span>{link.name}</span>
+            </Link>
+          );
+        })}
+
+        {user && avaliacoesLinks.map((link) => {
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.id}
+              href={link.href}
+              onClick={fecharMenu}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors ${
+                isActive
+                  ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              {link.icon}
+              <span>{link.name}</span>
+            </Link>
+          );
+        })}
+
+{!isAnfitriao && (
+  <button
+    onClick={() => setShowBenefitsModal(true)}
+    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors w-full text-left ${
+      pathname === "/virar-anfitriao"
+        ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
+        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+    }`}
+  >
+    <LayoutDashboard size={18} />
+    <span>Anunciar</span>
+  </button>
+)}
+
+        {/* Seção do Anfitrião */}
         {isAnfitriao && (
-          <span className="inline-block mt-1 text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">
-            Anfitrião
-          </span>
+          <>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-2 mb-2 px-2">
+              Gestão do Anfitrião
+            </div>
+            {anfitriaoLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.id}
+                  href={link.href}
+                  onClick={fecharMenu}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors ${
+                    isActive
+                      ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {link.icon}
+                  <span>{link.name}</span>
+                </Link>
+              );
+            })}
+          </>
         )}
+      </nav>
+    </div>
+
+
+
+    {/* Botão Sair - SEMPRE NO FINAL */}
+    {user && (
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 sticky bottom-0">
+        <button
+          onClick={() => {
+            logout();
+            fecharMenu();
+          }}
+          className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-base text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <LogOut size={20} />
+          <span>Sair da conta</span>
+        </button>
       </div>
+    )}
+  </div>
+</div>
+
+{/* MODAL BENEFÍCIOS */}
+{showBenefitsModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-6 md:p-8 max-w-lg w-full relative animate-fadeIn">
+      <button
+        onClick={() => setShowBenefitsModal(false)}
+        className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition text-xl"
+      >
+        ×
+      </button>
+
+      <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+        Ganhe dinheiro alugando seu espaço
+      </h2>
+
+      <p className="text-gray-600 mb-4 text-sm md:text-base">
+        Transforme seu salão, sítio ou área de festas em uma fonte de renda dentro do PlacyHub.
+      </p>
+
+      <ul className="space-y-3 text-gray-700 dark:text-gray-300 text-sm md:text-base">
+        <li>✔ Visibilidade para milhares de pessoas.</li>
+        <li>✔ Controle total de agenda, preços e regras.</li>
+        <li>✔ Painel exclusivo para anfitriões.</li>
+        <li>✔ Suporte completo.</li>
+      </ul>
+
+      <button
+        onClick={() => {
+          setShowBenefitsModal(false);
+          if (!user) {
+            router.push("/login?redirect=/virar-anfitriao");
+          } else {
+            router.push("/virar-anfitriao");
+          }
+        }}
+        className="mt-6 block w-full text-center bg-sky-500 text-white py-3 rounded-xl hover:bg-sky-600 transition font-medium"
+      >
+        Quero cadastrar meu espaço
+      </button>
     </div>
   </div>
-) : (
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-              <Link href="/login" onClick={fecharMenu} className="block w-full text-center bg-sky-500 text-white py-2 rounded-lg text-sm font-medium">
-                Entrar / Cadastrar
-              </Link>
-            </div>
-          )}
-
-          <nav className="space-y-2">
-            {/* Seção Geral */}
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-2 mb-2">
-              Geral
-            </div>
-            {baseLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.id}
-                  href={link.href}
-                  onClick={fecharMenu}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {link.icon}
-                  <span>{link.name}</span>
-                </Link>
-              );
-            })}
-
-            {/* Seção Reservas */}
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-2">
-               Reservas
-            </div>
-            {reservasLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.id}
-                  href={link.href}
-                  onClick={fecharMenu}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {link.icon}
-                  <span>{link.name}</span>
-                </Link>
-              );
-            })}
-
-            {/* Seção Avaliações */}
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-2">
-              Avaliações
-            </div>
-            {avaliacoesLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.id}
-                  href={link.href}
-                  onClick={fecharMenu}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isActive
-                      ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {link.icon}
-                  <span>{link.name}</span>
-                </Link>
-              );
-            })}
-
-            {/* Seção do Anfitrião (apenas para quem é anfitrião) */}
-            {isAnfitriao && (
-              <>
-                <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-2 mb-2">
-                  Gestão do Anfitrião
-                </div>
-                {anfitriaoLinks.map((link) => {
-                  const isActive = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.id}
-                      href={link.href}
-                      onClick={fecharMenu}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        isActive
-                          ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      {link.icon}
-                      <span>{link.name}</span>
-                    </Link>
-                  );
-                })}
-              </>
-            )}
-          </nav>
-
-          {user && (
-            <div className="border-t border-gray-200 dark:border-gray-700 mt-6 pt-4">
-              <button
-                onClick={() => {
-                  logout();
-                  fecharMenu();
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-              >
-                <LogOut size={18} />
-                <span>Sair da conta</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+)}
 
       {menuAberto && (
         <div className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300" onClick={fecharMenu} />
