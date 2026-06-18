@@ -93,6 +93,11 @@ console.log(
 console.log("BASE URL:", process.env.NEXT_PUBLIC_BASE_URL);
 console.log("=================================");
 
+console.log(
+  "WEBHOOK URL:",
+  `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`
+);
+
 const result = await preference.create({ body });
 
 console.log("RESULTADO MP:", result);
