@@ -168,9 +168,13 @@ export async function POST(request: Request) {
     const { data: reservaCompleta, error: reservaCompletaError } = await supabase
       .from("reservas")
       .select(`
-        *,
-        spaces:espaco_id (nome, user_id, imagem)
-      `)
+  *,
+  spaces:espaco_id (
+    nome_espaco,
+    user_id,
+    imagem
+  )
+`)
       .eq("id", reservaId)
       .single();
     
@@ -211,9 +215,13 @@ export async function POST(request: Request) {
         : await supabase
             .from("reservas")
             .select(`
-              *,
-              spaces:espaco_id (nome, user_id, imagem)
-            `)
+  *,
+  spaces:espaco_id (
+    nome_espaco,
+    user_id,
+    imagem
+  )
+`)
             .eq("id", reservaId)
             .single();
       
@@ -372,18 +380,18 @@ export async function POST(request: Request) {
         
         if (!repasseExistente) {
           const { error: repasseError } = await supabase
-            .from("repasse")
-            .insert({
-              reserva_id: reservaId,
-              anfitriao_id: reserva.user_id,
-              valor_bruto: valorBruto,
-              taxa_plataforma: taxa,
-              valor_liquido: valorLiquido,
-              status: "pendente",
-              data_solicitacao: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
+  .from("repasse")
+  .insert({
+    reserva_id: reservaId,
+    anfitriao_id: reserva.spaces.user_id,
+    valor_bruto: valorBruto,
+    taxa_plataforma: taxa,
+    valor_liquido: valorLiquido,
+    status: "pendente",
+    data_solicitacao: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
           
           if (repasseError) {
             console.error("❌ Erro ao criar repasse:", repasseError);
