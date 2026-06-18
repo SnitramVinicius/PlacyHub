@@ -35,7 +35,7 @@ async function podeEnviarEmail(usuarioId: string, tipo: string): Promise<boolean
   }
 }
 
-async function getEmailUsuario(usuarioId: string): Promise<string | null> {
+async function getDadosUsuario(usuarioId: string) {
   try {
     const { data, error } = await supabase
       .from("users")
@@ -44,13 +44,13 @@ async function getEmailUsuario(usuarioId: string): Promise<string | null> {
       .single();
 
     if (error) {
-      console.error("Erro ao buscar email do usuário:", error);
+      console.error("Erro ao buscar usuário:", error);
       return null;
     }
 
-    return data?.email || null;
+    return data;
   } catch (error) {
-    console.error("Erro ao buscar email do usuário:", error);
+    console.error("Erro ao buscar usuário:", error);
     return null;
   }
 }
@@ -232,8 +232,8 @@ export async function POST(request: Request) {
         console.log("🔍 1 - Webhook processado para reserva:", reservaId);
         console.log("🔍 2 - Status do pagamento:", payment.status);
         console.log("🔍 3 - Dados da reserva:", reserva);
-        console.log("🔍 4 - Email do cliente:", await getEmailUsuario(reserva.user_id));
-        console.log("🔍 5 - Email do anfitrião:", await getEmailUsuario(reserva.spaces?.user_id));
+        console.log("🔍 4 - Cliente:", await getDadosUsuario(reserva.user_id));
+console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_id));
         console.log("🔍 6 - Preferência cliente (pagamentos):", await podeEnviarEmail(reserva.user_id, "pagamentos"));
         console.log("🔍 7 - Preferência anfitrião (reservas):", await podeEnviarEmail(reserva.spaces?.user_id, "reservas"));
         
@@ -309,24 +309,28 @@ export async function POST(request: Request) {
         console.log(`📧 Cliente (${reserva.user_id}) pode receber email de pagamentos? ${podeEmailCliente}`);
         
         if (podeEmailCliente) {
-          const emailCliente = await getEmailUsuario(reserva.user_id);
-          console.log(`📧 Email do cliente: ${emailCliente}`);
-          if (emailCliente) {
-            try {
-              const result = await enviarEmailReservaConfirmada(
-                emailCliente,
-                reserva.spaces.nome_espaco || "Cliente",
-                reserva,
-                "cliente"
-              );
-              if (result.error) {
-                console.error("❌ Erro ao enviar email para cliente:", result.error);
-              } else {
-                console.log(`✅ Email de pagamento enviado para ${emailCliente}`);
-              }
-            } catch (emailError) {
-              console.error("❌ Erro ao enviar email para cliente:", emailError);
-            }
+          const cliente = await getDadosUsuario(reserva.user_id);
+
+console.log(`📧 Email do cliente: ${cliente?.email}`);
+
+if (cliente?.email) {
+  try {
+    const result = await enviarEmailReservaConfirmada(
+      cliente.email,
+      cliente.name || "Cliente",
+      reserva,
+      "cliente"
+    );
+
+    if (result.error) {
+      console.error("❌ Erro ao enviar email para cliente:", result.error);
+    } else {
+      console.log(`✅ Email de pagamento enviado para ${cliente.email}`);
+    }
+  } catch (emailError) {
+    console.error("❌ Erro ao enviar email para cliente:", emailError);
+  }
+
           } else {
             console.log(`⚠️ Cliente ${reserva.user_id} não tem email cadastrado`);
           }
@@ -339,27 +343,30 @@ export async function POST(request: Request) {
         console.log(`📧 Anfitrião (${reserva.spaces.user_id}) pode receber email de reservas? ${podeEmailAnfitriao}`);
         
         if (podeEmailAnfitriao) {
-          const emailAnfitriao = await getEmailUsuario(reserva.spaces.user_id);
-          console.log(`📧 Email do anfitrião: ${emailAnfitriao}`);
-          if (emailAnfitriao) {
-            try {
-              const result = await enviarEmailReservaConfirmada(
-                emailAnfitriao,
-                reserva.spaces.nome_espaco || "Anfitrião",
-                reserva,
-                "anfitriao"
-              );
-              if (result.error) {
-                console.error("❌ Erro ao enviar email para anfitrião:", result.error);
-              } else {
-                console.log(`✅ Email de nova reserva enviado para ${emailAnfitriao}`);
-              }
-            } catch (emailError) {
-              console.error("❌ Erro ao enviar email para anfitrião:", emailError);
-            }
-          } else {
-            console.log(`⚠️ Anfitrião ${reserva.spaces.user_id} não tem email cadastrado`);
-          }
+          const anfitriao = await getDadosUsuario(reserva.spaces.user_id);
+
+console.log(`📧 Email do anfitrião: ${anfitriao?.email}`);
+
+if (anfitriao?.email) {
+  try {
+    const result = await enviarEmailReservaConfirmada(
+      anfitriao.email,
+      anfitriao.name || "Anfitrião",
+      reserva,
+      "anfitriao"
+    );
+
+    if (result.error) {
+      console.error("❌ Erro ao enviar email para anfitrião:", result.error);
+    } else {
+      console.log(`✅ Email de nova reserva enviado para ${anfitriao.email}`);
+    }
+  } catch (emailError) {
+    console.error("❌ Erro ao enviar email para anfitrião:", emailError);
+  }
+} else {
+  console.log(`⚠️ Anfitrião ${reserva.spaces.user_id} não tem email cadastrado`);
+}
         } else {
           console.log(`⏭️ Anfitrião optou por NÃO receber emails de reservas`);
         }
@@ -367,10 +374,11 @@ export async function POST(request: Request) {
         // ============================================
         // 3. CRIAR REPASSE
         // ============================================
-        const TAXA_PLATAFORMA = 0.10;
-        const valorBruto = reserva.valor_total;
-        const taxa = valorBruto * TAXA_PLATAFORMA;
-        const valorLiquido = valorBruto - taxa;
+        const TAXA_ANFITRIAO = 0.05;
+
+const valorBruto = reserva.valor_total;
+const taxa = valorBruto * TAXA_ANFITRIAO;
+const valorLiquido = valorBruto - taxa;
         
         const { data: repasseExistente } = await supabase
           .from("repasse")
@@ -379,7 +387,7 @@ export async function POST(request: Request) {
           .single();
         
         if (!repasseExistente) {
-          const { error: repasseError } = await supabase
+         const { error: repasseError } = await supabase
   .from("repasse")
   .insert({
     reserva_id: reservaId,
