@@ -70,7 +70,7 @@ async function enviarEmailReservaConfirmada(destinatario: string, nome: string, 
         <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h1 style="color:#02b0f0;">✅ Pagamento Confirmado!</h1>
           <p>Olá <strong>${nome}</strong>!</p>
-          <p>Seu pagamento para o espaço <strong>${reserva.spaces.nome}</strong> foi confirmado.</p>
+          <p>Seu pagamento para o espaço <strong>${reserva.spaces.nome_espaco}</strong> foi confirmado.</p>
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
@@ -95,7 +95,7 @@ async function enviarEmailReservaConfirmada(destinatario: string, nome: string, 
         <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h1 style="color:#02b0f0;">🎉 Nova Reserva Confirmada!</h1>
           <p>Olá <strong>${nome}</strong>!</p>
-          <p>Você recebeu uma nova reserva para o espaço <strong>${reserva.spaces.nome}</strong>.</p>
+          <p>Você recebeu uma nova reserva para o espaço <strong>${reserva.spaces.nome_espaco}</strong>.</p>
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
@@ -242,13 +242,13 @@ export async function POST(request: Request) {
             usuario_id: reserva.spaces.user_id,
             tipo: "reserva",
             titulo: "Nova reserva confirmada! 🎉",
-            mensagem: `Um cliente acabou de confirmar o pagamento para o espaço ${reserva.spaces.nome} no dia ${dataFormatada} para ${reserva.qtd_pessoas} pessoas. Acesse para mais detalhes.`,
+            mensagem: `Um cliente acabou de confirmar o pagamento para o espaço ${reserva.spaces.nome_espaco} no dia ${dataFormatada} para ${reserva.qtd_pessoas} pessoas. Acesse para mais detalhes.`,
             lida: false,
             link: `/anfitriao/reservas`,
             dados_extra: {
               reserva_id: reserva.id,
               espaco_id: reserva.espaco_id,
-              espaco_nome: reserva.spaces.nome,
+              espaco_nome: reserva.spaces.nome_espaco,
               data_inicio: reserva.data_inicio,
               data_fim: reserva.data_fim,
               qtd_pessoas: reserva.qtd_pessoas,
@@ -271,13 +271,13 @@ export async function POST(request: Request) {
             usuario_id: reserva.user_id,
             tipo: "reserva",
             titulo: "Pagamento confirmado! ✅",
-            mensagem: `Seu pagamento para ${reserva.spaces.nome} foi confirmado. Sua reserva está garantida para o dia ${dataFormatada} para ${reserva.qtd_pessoas} pessoas.`,
+            mensagem: `Seu pagamento para ${reserva.spaces.nome_espaco} foi confirmado. Sua reserva está garantida para o dia ${dataFormatada} para ${reserva.qtd_pessoas} pessoas.`,
             lida: false,
             link: `/locatario/reservas`,
             dados_extra: {
               reserva_id: reserva.id,
               espaco_id: reserva.espaco_id,
-              espaco_nome: reserva.spaces.nome,
+              espaco_nome: reserva.spaces.nome_espaco,
               data_inicio: reserva.data_inicio,
               data_fim: reserva.data_fim,
               qtd_pessoas: reserva.qtd_pessoas,
@@ -307,7 +307,7 @@ export async function POST(request: Request) {
             try {
               const result = await enviarEmailReservaConfirmada(
                 emailCliente,
-                reserva.spaces.nome || "Cliente",
+                reserva.spaces.nome_espaco || "Cliente",
                 reserva,
                 "cliente"
               );
@@ -337,7 +337,7 @@ export async function POST(request: Request) {
             try {
               const result = await enviarEmailReservaConfirmada(
                 emailAnfitriao,
-                reserva.spaces.nome || "Anfitrião",
+                reserva.spaces.nome_espaco || "Anfitrião",
                 reserva,
                 "anfitriao"
               );
