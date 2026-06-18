@@ -274,7 +274,7 @@ if (isAnfitriao) {
         </div>
       )}
 
-     {/* Menu Lateral - TELA CHEIA */}
+    {/* Menu Lateral - TELA CHEIA */}
 <div
   className={`fixed inset-0 bg-white dark:bg-gray-900 z-50 transition-transform duration-300 ease-in-out ${
     menuAberto ? "translate-x-0" : "translate-x-full"
@@ -290,9 +290,9 @@ if (isAnfitriao) {
     </button>
   </div>
 
-  {/* Conteúdo do menu com scroll - usando flex para empurrar o logout para baixo */}
-  <div className="flex flex-col h-[calc(100vh-70px)] overflow-y-auto">
-    <div className="flex-1 p-4">
+  {/* Conteúdo do menu - TODO O CONTEÚDO DENTRO DE UM ÚNICO SCROLL */}
+  <div className="h-[calc(100vh-70px)] overflow-y-auto">
+    <div className="p-4 pb-24">
       {/* Avatar do usuário */}
       {user ? (
         <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
@@ -354,7 +354,7 @@ if (isAnfitriao) {
           );
         })}
 
-       {user && reservasLinks.map((link) => {
+        {user && reservasLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
             <Link
@@ -392,19 +392,19 @@ if (isAnfitriao) {
           );
         })}
 
-{!isAnfitriao && (
-  <button
-    onClick={() => setShowBenefitsModal(true)}
-    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors w-full text-left ${
-      pathname === "/virar-anfitriao"
-        ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
-        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-    }`}
-  >
-    <LayoutDashboard size={18} />
-    <span>Anunciar</span>
-  </button>
-)}
+        {!isAnfitriao && (
+          <button
+            onClick={() => setShowBenefitsModal(true)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base transition-colors w-full text-left ${
+              pathname === "/virar-anfitriao"
+                ? "bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 font-medium"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            }`}
+          >
+            <LayoutDashboard size={18} />
+            <span>Anunciar</span>
+          </button>
+        )}
 
         {/* Seção do Anfitrião */}
         {isAnfitriao && (
@@ -436,11 +436,9 @@ if (isAnfitriao) {
       </nav>
     </div>
 
-
-
-    {/* Botão Sair - SEMPRE NO FINAL */}
+    {/* Botão Sair - FIXO NO FINAL (não rola com o conteúdo) */}
     {user && (
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 sticky bottom-0">
+      <div className="sticky bottom-0 border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900">
         <button
           onClick={() => {
             logout();
