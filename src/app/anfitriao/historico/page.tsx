@@ -270,7 +270,7 @@ export default function HistoricoReservas() {
             horario: formatarHorario(reserva.data_inicio, reserva.data_fim, isBuffet),
             cliente: clienteData?.name || "Cliente não identificado",
             local: `${espacoData?.cidade || ""} - ${espacoData?.bairro || ""}`,
-            valor: reserva.valor_total || 0,
+            valor: (reserva.valor_total || 0) / 1.02,
             status: reserva.status === "cancelada" ? "Cancelada" :
               (reserva.status === "finalizada" || (reserva.status === "confirmada" && new Date(reserva.data_inicio) < new Date())) ? "Finalizada" :
                 reserva.status === "confirmada" ? "Confirmada" :

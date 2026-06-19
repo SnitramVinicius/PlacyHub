@@ -144,9 +144,16 @@ async function buscarDadosFinanceiros() {
         };
       }
 
-      const valorBruto = reserva.valor_total || 0;
-      const taxa = valorBruto * TAXA_PLATAFORMA;
-      const valorLiquido = valorBruto - taxa;
+const valorPagoCliente = reserva.valor_total || 0;
+
+// Remove os 2% pagos pelo locatário
+const valorReserva = valorPagoCliente / 1.02;
+
+// Taxa de 10% do anfitrião
+const taxa = valorReserva * TAXA_PLATAFORMA;
+
+// Valor líquido do anfitrião
+const valorLiquido = valorReserva - taxa;
 
       let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
 
@@ -159,8 +166,8 @@ async function buscarDadosFinanceiros() {
       // Cancelamento com reembolso
       if (reserva.status === "cancelada" && reserva.pagamento_status === "approved") {
         const percentualReembolso = calcularReembolso(reserva);
-        const valorReembolsado = valorBruto * percentualReembolso;
-        const valorRetido = valorBruto - valorReembolsado;
+        const valorReembolsado = valorReserva * percentualReembolso;
+const valorRetido = valorReserva - valorReembolsado;
         const descricao = getDescricaoReembolso(percentualReembolso);
         
         dados[mesKey].estornos += valorReembolsado;
@@ -175,7 +182,7 @@ async function buscarDadosFinanceiros() {
           status: "Cancelado",
           tipo: "Estorno",
           metodo: "Reembolso",
-          valorBruto: valorBruto,
+          valorBruto: valorReserva,
           valorLiquido: -valorReembolsado,
           taxa: taxa,
           dataLiberacao: "-",
@@ -186,12 +193,12 @@ async function buscarDadosFinanceiros() {
 
       // Reservas NÃO canceladas
       if (reserva.pagamento_status === "approved") {
-        dados[mesKey].totalRecebido += valorBruto;
+        dados[mesKey].totalRecebido += valorReserva;
         dados[mesKey].taxas += taxa;
       }
 
       if (reserva.pagamento_status !== "approved" && reserva.status !== "cancelada") {
-        dados[mesKey].aReceber += valorBruto;
+        dados[mesKey].aReceber += valorReserva;
       }
 
       const dataEvento = new Date(reserva.data_inicio);
@@ -207,7 +214,7 @@ async function buscarDadosFinanceiros() {
         status: statusTransacao,
         tipo: "Reserva",
         metodo: reserva.pagamento_status === "approved" ? "Cartão/Pix" : "Aguardando",
-        valorBruto: valorBruto,
+       valorBruto: valorReserva,
         valorLiquido: reserva.pagamento_status === "approved" ? valorLiquido : 0,
         taxa: reserva.pagamento_status === "approved" ? taxa : 0,
         dataLiberacao: reserva.pagamento_status === "approved" ? dataLiberacao.toLocaleDateString("pt-BR") : "-",
