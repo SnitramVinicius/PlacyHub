@@ -374,11 +374,25 @@ if (anfitriao?.email) {
         // ============================================
         // 3. CRIAR REPASSE
         // ============================================
-        const TAXA_ANFITRIAO = 0.05;
+       const TAXA_LOCATARIO = 0.02; // 2%
+const TAXA_ANFITRIAO = 0.05; // 5%
 
-const valorBruto = reserva.valor_total;
-const taxa = valorBruto * TAXA_ANFITRIAO;
-const valorLiquido = valorBruto - taxa;
+// Valor total pago pelo cliente (já com os 2%)
+const valorPagoCliente = reserva.valor_total;
+
+// Remove os 2% para descobrir o valor real da reserva
+const valorBaseReserva = valorPagoCliente / (1 + TAXA_LOCATARIO);
+
+// Taxa do anfitrião calculada apenas sobre o valor da reserva
+const taxa = valorBaseReserva * TAXA_ANFITRIAO;
+
+// Valor que o anfitrião vai receber
+const valorLiquido = valorBaseReserva - taxa;
+
+// Valores arredondados
+const valorBruto = Number(valorBaseReserva.toFixed(2));
+const taxaPlataforma = Number(taxa.toFixed(2));
+const valorFinal = Number(valorLiquido.toFixed(2));
         
         const { data: repasseExistente } = await supabase
           .from("repasse")
@@ -393,8 +407,8 @@ const valorLiquido = valorBruto - taxa;
     reserva_id: reservaId,
     anfitriao_id: reserva.spaces.user_id,
     valor_bruto: valorBruto,
-    taxa_plataforma: taxa,
-    valor_liquido: valorLiquido,
+    taxa_plataforma: taxaPlataforma,
+    valor_liquido: valorFinal,
     status: "pendente",
     data_solicitacao: new Date().toISOString(),
     created_at: new Date().toISOString(),
