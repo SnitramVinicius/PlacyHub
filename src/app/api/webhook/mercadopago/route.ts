@@ -57,7 +57,18 @@ async function getDadosUsuario(usuarioId: string) {
 
 async function enviarEmailReservaConfirmada(destinatario: string, nome: string, reserva: any, tipo: "cliente" | "anfitriao") {
   const dataFormatada = new Date(reserva.data_inicio).toLocaleDateString("pt-BR");
-  
+  const TAXA_LOCATARIO = 0.02;
+const TAXA_ANFITRIAO = 0.05;
+
+const valorPago = reserva.valor_total;
+
+const valorBase = valorPago / (1 + TAXA_LOCATARIO);
+
+const taxaCliente = valorPago - valorBase;
+
+const taxaAnfitriao = valorBase * TAXA_ANFITRIAO;
+
+const valorLiquidoAnfitriao = valorBase - taxaAnfitriao;
   if (tipo === "cliente") {
     return await resend.emails.send({
       from: 'PlacyHub <onboarding@resend.dev>',
@@ -74,7 +85,9 @@ async function enviarEmailReservaConfirmada(destinatario: string, nome: string, 
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
-            <p><strong>💰 Valor:</strong> R$ ${reserva.valor_total.toFixed(2)}</p>
+           <p><strong>🏠 Valor do espaço:</strong> R$ ${valorBase.toFixed(2)}</p>
+<p><strong>💳 Taxa de serviço PlacyHub:</strong> R$ ${taxaCliente.toFixed(2)}</p>
+<p><strong>💰 Total pago:</strong> R$ ${valorPago.toFixed(2)}</p>
           </div>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver minhas reservas</a></p>
           <hr>
@@ -99,8 +112,11 @@ async function enviarEmailReservaConfirmada(destinatario: string, nome: string, 
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
-            <p><strong>💰 Valor:</strong> R$ ${reserva.valor_total.toFixed(2)}</p>
-            <p><strong>💵 Valor líquido (após taxas):</strong> R$ ${(reserva.valor_total * 0.9).toFixed(2)}</p>
+           <p><strong>🏠 Valor da reserva:</strong> R$ ${valorBase.toFixed(2)}</p>
+
+<p><strong>💳 Taxa PlacyHub (5%):</strong> R$ ${taxaAnfitriao.toFixed(2)}</p>
+
+<p><strong>💵 Você receberá:</strong> R$ ${valorLiquidoAnfitriao.toFixed(2)}</p>
           </div>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/anfitriao/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver reservas</a></p>
           <hr>
