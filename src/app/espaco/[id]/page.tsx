@@ -590,8 +590,10 @@ console.log({
         status: "pendente",
         qtd_pessoas: qtdPessoas,
        valor_base: valorBase,
- taxa_placyhub: taxaCliente,
- valor_total: total,
+taxa_placyhub: taxaCliente,
+comissao_placyhub: comissaoPlacyHub,
+repasse_anfitriao: repasseAnfitriao,
+valor_total: total,
         created_at: new Date().toISOString(),
         pacote_nome: pacoteSelecionado?.nome || null,
  convidados_pacote: valorSelecionado?.convidados || null
@@ -599,12 +601,11 @@ console.log({
       .select()
       .single();
 
-    if (reservaError) {
-      console.error("Erro ao salvar reserva:", reservaError);
-      toast.error("Erro ao criar reserva. Tente novamente.");
-      setReservando(false);
-      return;
-    }
+   if (reservaError) {
+  console.error("ERRO COMPLETO:", JSON.stringify(reservaError, null, 2));
+  alert(JSON.stringify(reservaError, null, 2));
+  return;
+}
 
     console.log("✅ Reserva salva:", reservaData);
 
@@ -715,6 +716,9 @@ const {
  taxaCliente,
  total: totalCalculado
 } = calcularResumoPreco();
+
+const comissaoPlacyHub = valorBase * TAXAS.anfitriao;
+const repasseAnfitriao = valorBase - comissaoPlacyHub;
 
 // ✅ 3. DEPOIS: imagens
 const imagens = [
