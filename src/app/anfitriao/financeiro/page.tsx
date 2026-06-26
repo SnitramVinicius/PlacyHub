@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import {
+  TAXAS,
+  calcularTaxaAnfitriao,
+  calcularValorBase,
+  calcularLiquidoAnfitriao
+} from "@/config/taxa";
 
 // Tipos
 interface Transacao {
@@ -41,33 +47,42 @@ export default function FinanceiroPage() {
   const [mesesDisponiveis, setMesesDisponiveis] = useState<string[]>([]);
 
   // Taxa da plataforma (%)
-  const TAXA_PLATAFORMA = 0.10; // 10%
+  // const TAXA_PLATAFORMA = 0.05; // 5%
 
-  // ============================================
-  // FUNÇÃO PARA CALCULAR REEMBOLSO BASEADO NA POLÍTICA
-  // ============================================
-function calcularReembolso(reserva: any): number {
+ function calcularReembolso(reserva: any): number {
+
   if (!reserva.cancelado_em) return 0;
 
-  const dataCriacao = new Date(reserva.created_at);
-  const dataCancelamento = new Date(reserva.cancelado_em);
-  const dataEvento = new Date(reserva.data_inicio);
+  const criacao = new Date(reserva.created_at);
+  const cancelamento = new Date(reserva.cancelado_em);
+  const evento = new Date(reserva.data_inicio);
 
-  const horasDesdeCriacao =
-    (dataCancelamento.getTime() - dataCriacao.getTime()) / (1000 * 60 * 60);
 
-  const diasAteEvento =
-    (dataEvento.getTime() - dataCancelamento.getTime()) / (1000 * 60 * 60 * 24);
+  const horas =
+    (cancelamento.getTime() - criacao.getTime()) /
+    (1000 * 60 * 60);
 
-  if (horasDesdeCriacao <= 48) {
-    return 1.0;
+
+  const dias =
+    (evento.getTime() - cancelamento.getTime()) /
+    (1000 * 60 * 60 * 24);
+
+
+
+  // Até 48h da reserva
+  if (horas <= 48) {
+    return 1;
   }
 
-  if (diasAteEvento > 7) {
+
+  // Mais de 7 dias antes do evento
+  if (dias > 7) {
     return 0.5;
   }
 
-  return 0.0;
+
+  // Menos de 7 dias
+  return 0;
 }
 
   // Função para obter descrição do reembolso
@@ -111,6 +126,8 @@ async function buscarDadosFinanceiros() {
       .in("espaco_id", espacosIds)
       .order("created_at", { ascending: false });
 
+
+      
     if (errorReservas) throw errorReservas;
 
     if (!reservas || reservas.length === 0) {
@@ -146,14 +163,12 @@ async function buscarDadosFinanceiros() {
 
 const valorPagoCliente = reserva.valor_total || 0;
 
-// Remove os 2% pagos pelo locatário
-const valorReserva = valorPagoCliente / 1.02;
 
-// Taxa de 10% do anfitrião
-const taxa = valorReserva * TAXA_PLATAFORMA;
+const valorReserva = calcularValorBase(valorPagoCliente);
 
-// Valor líquido do anfitrião
-const valorLiquido = valorReserva - taxa;
+const taxa = calcularTaxaAnfitriao(valorReserva);
+
+const valorLiquido = calcularLiquidoAnfitriao(valorPagoCliente);
 
       let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
 
@@ -166,12 +181,45 @@ const valorLiquido = valorReserva - taxa;
       // Cancelamento com reembolso
       if (reserva.status === "cancelada" && reserva.pagamento_status === "approved") {
         const percentualReembolso = calcularReembolso(reserva);
-        const valorReembolsado = valorReserva * percentualReembolso;
-const valorRetido = valorReserva - valorReembolsado;
+
+// Valor que o cliente pagou (inclui os 2%)
+// const valorPagoCliente = reserva.valor_total || 0;
+
+
+// Reembolso baseado no que o cliente realmente pagou
+const valorReembolsado =
+  valorPagoCliente * percentualReembolso;
+
+
+const valorReservaReal =
+  calcularValorBase(valorReembolsado);
+
+
+// Parte da reserva que fica com o anfitrião
+const valorAnfitriaoBruto =
+  valorReserva - valorReservaReal;
+
+
+const taxaPlacy =
+  calcularTaxaAnfitriao(valorAnfitriaoBruto);
+
+
+// Repasse final ao anfitrião
+const valorLiquidoCancelamento =
+  valorAnfitriaoBruto - taxaPlacy;
+
         const descricao = getDescricaoReembolso(percentualReembolso);
         
         dados[mesKey].estornos += valorReembolsado;
-        dados[mesKey].retidoCancelamentos += valorRetido;
+
+
+if(valorLiquidoCancelamento > 0){
+
+  dados[mesKey].totalRecebido += valorAnfitriaoBruto;
+
+  dados[mesKey].taxas += taxaPlacy;
+
+}
         
         dados[mesKey].transacoes.push({
           id: reserva.id,
@@ -183,8 +231,8 @@ const valorRetido = valorReserva - valorReembolsado;
           tipo: "Estorno",
           metodo: "Reembolso",
           valorBruto: valorReserva,
-          valorLiquido: -valorReembolsado,
-          taxa: taxa,
+          valorLiquido: valorLiquidoCancelamento,
+taxa: taxaPlacy,
           dataLiberacao: "-",
           observacao: descricao,
         });
@@ -198,7 +246,7 @@ const valorRetido = valorReserva - valorReembolsado;
       }
 
       if (reserva.pagamento_status !== "approved" && reserva.status !== "cancelada") {
-        dados[mesKey].aReceber += valorReserva;
+        dados[mesKey].aReceber += valorLiquido;
       }
 
       const dataEvento = new Date(reserva.data_inicio);
@@ -278,11 +326,9 @@ const mesAtual = dadosPorMes[mesSelecionado] || {
   transacoes: [],
 };
 
-const saldoDisponivel =
-  mesAtual.totalRecebido 
-  - mesAtual.taxas 
-  - mesAtual.estornos 
-  - mesAtual.saldoTransferido;
+const saldoPendenteLiberacao =
+  mesAtual.totalRecebido -
+  mesAtual.saldoTransferido;
 
   const ultimos6Meses = mesesDisponiveis.slice(-6);
   const valores = ultimos6Meses.map(m => dadosPorMes[m]?.totalRecebido || 0);
@@ -316,13 +362,13 @@ const saldoDisponivel =
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
         
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          💰 Painel Financeiro do Anfitrião
+           Painel Financeiro do Anfitrião
         </h1>
 
         {/* Gráfico */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 mb-4">
           <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-            📈 Resumo de Ganhos Mensais
+             Resumo de Ganhos Mensais
           </h2>
 
           {ultimos6Meses.length === 0 ? (
@@ -386,7 +432,7 @@ const saldoDisponivel =
         {/* Seletor de Mês */}
         {mesesDisponiveis.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-3 mb-4">
-            <label className="text-sm text-gray-600 block mb-1">📅 Mês</label>
+            <label className="text-sm text-gray-600 block mb-1"> Mês</label>
             <select
               className="w-full bg-transparent text-gray-900 dark:text-gray-100 font-medium focus:outline-none"
               value={mesSelecionado}
@@ -404,90 +450,123 @@ const saldoDisponivel =
         {/* Cards com explicação */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           
-          {/* Card: Total de Vendas */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-green-500">
-            <p className="text-xs text-gray-500 uppercase tracking-flex">💰 Total de Vendas</p>
-            <p className="text-2xl font-bold text-green-600 mt-1">R$ {mesAtual.totalRecebido.toFixed(2)}</p>
-            <p className="text-xs text-gray-400 mt-1">Soma de todas as reservas confirmadas</p>
-          </div>
+          {/* Card Receita Bruta */}
+<div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+
+  <p className="text-xs text-gray-500 uppercase tracking-flex">
+    Receita Bruta
+  </p>
+
+  <p className="text-2xl font-bold text-green-600 mt-1">
+    R$ {mesAtual.totalRecebido.toFixed(2)}
+  </p>
+
+  <p className="text-xs text-gray-400 mt-1">
+    Valor das reservas e valores retidos em cancelamentos
+  </p>
+
+</div>
 
           {/* Card: Taxas da Plataforma */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-red-500">
-            <p className="text-xs text-gray-500 uppercase tracking-flex">🏢 Taxa da PlacyHub</p>
+            <p className="text-xs text-gray-500 uppercase tracking-flex">Taxa da PlacyHub</p>
             <p className="text-2xl font-bold text-red-600 mt-1">- R$ {mesAtual.taxas.toFixed(2)}</p>
-            <p className="text-xs text-gray-400 mt-1">{TAXA_PLATAFORMA * 100}% sobre o valor das reservas</p>
-          </div>
-
-          {/* Card: Cancelamentos */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
-            <p className="text-xs text-gray-500 uppercase tracking-flex">⚠️ Cancelamentos</p>
-            <p className="text-2xl font-bold text-orange-600 mt-1">- R$ {mesAtual.retidoCancelamentos.toFixed(2)}</p>
-            <p className="text-xs text-gray-400 mt-1">Valor retido por cancelamentos (sem reembolso)</p>
+            <p className="text-xs text-gray-400 mt-1">
+Comissão PlacyHub (5%)
+</p>
           </div>
 
           {/* Card: Já Recebido */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-sky-500">
-            <p className="text-xs text-gray-500 uppercase tracking-flex">✅ Já Recebido</p>
+            <p className="text-xs text-gray-500 uppercase tracking-flex"> Já Recebido</p>
             <p className="text-2xl font-bold text-sky-600 mt-1">R$ {mesAtual.saldoTransferido.toFixed(2)}</p>
-            <p className="text-xs text-gray-400 mt-1">Valores já transferidos para sua conta</p>
+            <p className="text-xs text-gray-400 mt-1">Valores já liberados</p>
           </div>
 
           {/* Card: A Receber */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
-            <p className="text-xs text-gray-500 uppercase tracking-flex">⏳ A Receber</p>
+            <p className="text-xs text-gray-500 uppercase tracking-flex"> A Receber</p>
             <p className="text-2xl font-bold text-yellow-600 mt-1">R$ {mesAtual.aReceber.toFixed(2)}</p>
-            <p className="text-xs text-gray-400 mt-1">Reservas confirmadas que ainda serão liberadas</p>
+            <p className="text-xs text-gray-400 mt-1">Valores aguardando liberação</p>
           </div>
 
-          {/* Card: Estornos (se houver) */}
-          {mesAtual.estornos > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-red-400">
-              <p className="text-xs text-gray-500 uppercase tracking-flex">↩️ Estornos</p>
-              <p className="text-2xl font-bold text-red-500 mt-1">- R$ {mesAtual.estornos.toFixed(2)}</p>
-              <p className="text-xs text-gray-400 mt-1">Reembolsos feitos para clientes</p>
-            </div>
-          )}
+      {/* Card: Cancelamentos */}
+{mesAtual.estornos > 0 && (
+  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+
+    <p className="text-xs text-gray-500 uppercase tracking-flex">
+      Cancelamentos
+    </p>
+
+    <p className="text-2xl font-bold text-orange-600 mt-1">
+      - R$ {mesAtual.estornos.toFixed(2)}
+    </p>
+
+    <p className="text-xs text-gray-400 mt-1">
+      Valor devolvido ao cliente
+    </p>
+
+  </div>
+)}
         </div>
 
-        {/* Legenda explicativa */}
-        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 mb-6 border border-blue-200 dark:border-blue-800">
-          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">📌 Entenda os valores:</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-400">
-            <div>💰 <strong>Total de Vendas:</strong> Soma de todas as reservas pagas</div>
-            <div>🏢 <strong>Taxa:</strong> Comissão da PlacyHub ({TAXA_PLATAFORMA * 100}%)</div>
-            <div>⚠️ <strong>Cancelamentos:</strong> Valor retido quando cliente cancelou sem direito a reembolso</div>
-            <div>✅ <strong>Já Recebido:</strong> Valores já transferidos para sua conta</div>
-            <div>⏳ <strong>A Receber:</strong> Reservas confirmadas que ainda serão liberadas</div>
-            <div>💰 <strong>Saldo Disponível:</strong> Valor que pode ser sacado agora</div>
-          </div>
-        </div>
+      <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 mb-6 border border-blue-200 dark:border-blue-800">
 
-        {/* Saldo - Destaque principal */}
-        <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-6 mb-8 shadow-lg">
-          <div className="text-center">
-            <p className="text-white/80 text-sm uppercase tracking-wide mb-1">💰 Saldo Disponível para Saque</p>
-            <p className="text-4xl md:text-5xl font-bold text-white">R$ {saldoDisponivel.toFixed(2)}</p>
-            <div className="flex justify-center gap-6 mt-4 text-xs text-white/70">
-              <div className="text-center">
-                <p className="font-semibold text-white">R$ {mesAtual.totalRecebido.toFixed(2)}</p>
-                <p>Vendas</p>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-white">- R$ {mesAtual.taxas.toFixed(2)}</p>
-                <p>Taxas</p>
-              </div>
-              <div className="text-center">
-                <p className="font-semibold text-white">- R$ {mesAtual.saldoTransferido.toFixed(2)}</p>
-                <p>Já recebido</p>
-              </div>
-            </div>
-          </div>
-        </div>
+<p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">
+Como funciona:
+</p>
+
+<p className="text-xs text-blue-700 dark:text-blue-400">
+O cliente paga a reserva, a taxa da PlacyHub é descontada
+e o valor fica disponível após a finalização do evento.
+</p>
+
+</div>
+
+       {/* Saldo principal */}
+<div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-6 mb-8 shadow-lg">
+  <div className="text-center">
+    <p className="text-white/80 text-sm uppercase tracking-wide mb-1">
+      Saldo disponível
+    </p>
+
+    <p className="text-4xl md:text-5xl font-bold text-white">
+      R$ {saldoPendenteLiberacao.toFixed(2)}
+    </p>
+
+    <p className="text-white/80 text-sm mt-2">
+      Valor disponível para transferência
+    </p>
+
+    <div className="grid grid-cols-2 gap-4 mt-6">
+
+      <div className="bg-white/10 rounded-xl p-3">
+        <p className="text-white font-semibold">
+          R$ {mesAtual.saldoTransferido.toFixed(2)}
+        </p>
+        <p className="text-white/70 text-xs">
+          Já liberado
+        </p>
+      </div>
+
+      <div className="bg-white/10 rounded-xl p-3">
+        <p className="text-white font-semibold">
+          R$ {mesAtual.aReceber.toFixed(2)}
+        </p>
+        <p className="text-white/70 text-xs">
+          A liberar
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
 
         {/* Transações */}
         <div className="mb-20">
           <h3 className="text-base font-semibold text-gray-800 mb-3">
-            📋 Transações - {mesSelecionado ? formatarNomeMes(mesSelecionado) : ""}
+             Transações - {mesSelecionado ? formatarNomeMes(mesSelecionado) : ""}
           </h3>
 
           {mesAtual.transacoes.length === 0 ? (
@@ -513,15 +592,15 @@ const saldoDisponivel =
                       transacao.status === "Pendente" ? "bg-yellow-100 text-yellow-700" :
                       "bg-red-100 text-red-700"
                     }`}>
-                      {transacao.status === "Confirmado" ? "✅ Confirmado" : 
-                       transacao.status === "Pendente" ? "⏳ Pendente" : "❌ Cancelado"}
+                      {transacao.status === "Confirmado" ? " Confirmado" : 
+                       transacao.status === "Pendente" ? " Pendente" : " Cancelado"}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
                     <div>
                       <p className="text-xs text-gray-500">Tipo</p>
-                      <p className="font-medium">{transacao.tipo === "Reserva" ? "🏷️ Reserva" : "↩️ Estorno"}</p>
+                      <p className="font-medium">{transacao.tipo === "Reserva" ? " Reserva" : "Estorno"}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Método</p>
@@ -532,7 +611,9 @@ const saldoDisponivel =
                       <p className="font-medium">R$ {transacao.valorBruto.toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Taxa ({TAXA_PLATAFORMA * 100}%)</p>
+                      <p className="text-xs text-gray-500">
+ Taxa ({TAXAS.anfitriao * 100}%)
+</p>
                       <p className="font-medium text-red-500">- R$ {transacao.taxa.toFixed(2)}</p>
                     </div>
                     <div>
@@ -544,23 +625,13 @@ const saldoDisponivel =
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Liberação</p>
-                      <p className="font-medium">{transacao.dataLiberacao !== "-" ? `📅 ${transacao.dataLiberacao}` : "⏳ Aguardando"}</p>
+                      <p className="font-medium">{transacao.dataLiberacao !== "-" ? ` ${transacao.dataLiberacao}` : "Aguardando"}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
-
-        {/* Botão atualizar */}
-        <div className="fixed bottom-4 right-4">
-          <button
-            onClick={buscarDadosFinanceiros}
-            className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-full shadow-lg transition flex items-center gap-2"
-          >
-            🔄 Atualizar
-          </button>
         </div>
 
       </div>

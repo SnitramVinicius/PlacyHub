@@ -13,6 +13,9 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import { obterValorParaData } from "@/utils/precificacao";
 import { calcularValorPeriodo } from "@/utils/precificacao";
+import { TAXAS } from "@/config/taxa";
+
+
 
 registerLocale("pt-BR", ptBR);
 
@@ -385,9 +388,7 @@ const getDayClassName = (date: Date) => {
 
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
-const [isMobile, setIsMobile] = useState(false);
-  typeof window !== "undefined" ? window.innerWidth < 768 : false
-;
+const [isMobile,setIsMobile] = useState(false);
 
   const [showBottomBar, setShowBottomBar] = useState(true);
 const lastScrollY = useRef(0);
@@ -557,15 +558,11 @@ console.log({
 });
 
   try {
-   const valorBase = isBuffet
-  ? valorSelecionado?.preco ?? 0
-  : startReserva && endReserva
-    ? calcularValorPeriodo(startReserva, endReserva, espaco)
-    : 0;
-
-const taxaLocatario = valorBase * 0.02;
-
-const total = valorBase + taxaLocatario;
+  const {
+ valorBase,
+ taxaCliente,
+ total
+} = calcularResumoPreco();
 
 // 🔥 ADICIONE O CONSOLE AQUI (ANTES DE SALVAR) 🔥
     console.log("📝 Dados da reserva a serem salvos:", {
@@ -592,7 +589,9 @@ const total = valorBase + taxaLocatario;
         data_fim: endReserva ? endReserva.toISOString().split("T")[0] : startReserva.toISOString().split("T")[0],
         status: "pendente",
         qtd_pessoas: qtdPessoas,
-        valor_total: total,
+       valor_base: valorBase,
+ taxa_placyhub: taxaCliente,
+ valor_total: total,
         created_at: new Date().toISOString(),
         pacote_nome: pacoteSelecionado?.nome || null,
  convidados_pacote: valorSelecionado?.convidados || null
@@ -679,6 +678,25 @@ const precoSelecionado = isBuffet
   ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
   : precoBaseDinamico;
 
+const calcularResumoPreco = () => {
+
+  const valorBase = isBuffet
+    ? valorSelecionado?.preco ?? 0
+    : startReserva && endReserva
+      ? calcularValorPeriodo(startReserva, endReserva, espaco)
+      : 0;
+
+
+  const taxaCliente = valorBase * TAXAS.locatario;
+
+
+  return {
+    valorBase,
+    taxaCliente,
+    total: valorBase + taxaCliente
+  };
+};
+
 const diasReserva =
   startReserva
     ? endReserva
@@ -692,13 +710,11 @@ const diasReserva =
       : 1
     : 0;
 
-const valorBase = startReserva && endReserva
-  ? calcularValorPeriodo(startReserva, endReserva, espaco)
-  : 0;
-
-const taxaLocatario = valorBase * 0.02;
-
-const totalCalculado = valorBase + taxaLocatario;
+const {
+ valorBase,
+ taxaCliente,
+ total: totalCalculado
+} = calcularResumoPreco();
 
 // ✅ 3. DEPOIS: imagens
 const imagens = [
@@ -1065,18 +1081,36 @@ const selecionarImagem = (index: number) => {
 
     {/* Preços — automático baseado no período + plano */}
 {isBuffet ? (
-  <>
-    <p className="text-gray-500 text-sm">
-      Valor fechado do pacote
-    </p>
+<>
+<p className="text-gray-500 text-sm">
+Valor do pacote
+</p>
 
-    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-      {precoSelecionado.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      })}
-    </p>
-  </>
+<p className="text-xl font-bold">
+{valorBase.toLocaleString("pt-BR",{
+ style:"currency",
+ currency:"BRL"
+})}
+</p>
+
+<p className="text-gray-700">
+Taxa PlacyHub:
+{" "}
+{taxaCliente.toLocaleString("pt-BR",{
+ style:"currency",
+ currency:"BRL"
+})}
+</p>
+
+<p className="text-2xl font-bold">
+Total:
+{" "}
+{totalCalculado.toLocaleString("pt-BR",{
+ style:"currency",
+ currency:"BRL"
+})}
+</p>
+</>
 ) : (
   <>
 <p className="text-gray-700 dark:text-gray-200 font-medium">
@@ -1099,9 +1133,9 @@ const selecionarImagem = (index: number) => {
 </p>
 
 <p className="text-gray-700 dark:text-gray-300">
-  Taxa de serviço PlacyHub (2%):
+  Taxa de serviço PlacyHub:
   {" "}
-  {taxaLocatario.toLocaleString("pt-BR", {
+ {taxaCliente.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   })}
@@ -1554,11 +1588,11 @@ const selecionarImagem = (index: number) => {
   // ========== ESPAÇO NORMAL ==========
   <div>
     <p className="text-3xl font-bold text-[#02aeee]">
-      {precoBaseDinamico.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      })}
-    </p>
+  {precoBaseDinamico.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  })}
+</p>
     {diasReserva > 0 && (
       <p className="text-xs text-gray-500 mt-1">
         Total para {diasReserva} {diasReserva === 1 ? "dia" : "dias"}
@@ -1850,11 +1884,11 @@ Reservar Agora
 
   <p className="font-bold text-lg text-gray-900 dark:text-white">
     {isBuffet
-      ? precoSelecionado.toLocaleString("pt-BR", {
+      ? precoBaseDinamico.toLocaleString("pt-BR", {
           style: "currency",
           currency: "BRL",
         })
-      : totalCalculado.toLocaleString("pt-BR", {
+      : precoBaseDinamico.toLocaleString("pt-BR", {
           style: "currency",
           currency: "BRL",
         })}

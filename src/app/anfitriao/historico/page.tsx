@@ -21,6 +21,11 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import {
+  calcularValorBase,
+  calcularTaxaAnfitriao,
+  calcularLiquidoAnfitriao
+} from "@/config/taxa";
 
 // Componentes
 import AvaliacaoModal from "@/components/AvaliacaoModal";
@@ -36,6 +41,9 @@ interface ReservaComAuditoria extends Reserva {
   auditoriaPos?: Auditoria;
   dataInicio: string;
   dataFim: string;
+
+  valorBruto?: number;
+  taxaPlacyHub?: number;
 }
 import { formatarHorario, formatarTelefone, filtrarPorPeriodo } from "@/utils/reservas";
 
@@ -123,7 +131,6 @@ export default function HistoricoReservas() {
   const [detalhesAbertos, setDetalhesAbertos] = useState(false);
   const [reportarAberto, setReportarAberto] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState<number | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [reservaSelecionada, setReservaSelecionada] = useState<any>(null);
   const [vistoriaAberta, setVistoriaAberta] = useState(false);
 
@@ -261,23 +268,34 @@ export default function HistoricoReservas() {
             imagemUrl: imagemUrl
           });
 
-          return {
+     const valorBruto = reserva.valor_total || 0;
+
+const valorBase = calcularValorBase(valorBruto);
+
+const taxaPlacyHub = calcularTaxaAnfitriao(valorBase);
+
+const liquidoAnfitriao = calcularLiquidoAnfitriao(valorBruto);
+
+return {
             id: reserva.id,
             espaco_id: espacoData?.id,
             cliente_id: clienteData?.id,
+
+  valor: liquidoAnfitriao,
+valorBruto: valorBruto,
+taxaPlacyHub: taxaPlacyHub,
             espaco: espacoData?.nome_espaco || "Espaço não encontrado",
             data: formatarDataSemFuso(reserva.data_inicio),
             horario: formatarHorario(reserva.data_inicio, reserva.data_fim, isBuffet),
             cliente: clienteData?.name || "Cliente não identificado",
             local: `${espacoData?.cidade || ""} - ${espacoData?.bairro || ""}`,
-            valor: (reserva.valor_total || 0) / 1.02,
             status: reserva.status === "cancelada" ? "Cancelada" :
               (reserva.status === "finalizada" || (reserva.status === "confirmada" && new Date(reserva.data_inicio) < new Date())) ? "Finalizada" :
                 reserva.status === "confirmada" ? "Confirmada" :
                   reserva.status === "reagendamento_proposto" ? "Aguardando resposta" : "Pendente",
             imagem: imagemUrl,
             telefone: clienteData?.telefone || "(00) 00000-0000",
-            avaliada: reserva.avaliada || false,
+            avaliada: reserva.avaliada_anfitriao || false,
             dataInicio: reserva.data_inicio,
             dataFim: reserva.data_fim,
             isBuffet: isBuffet,
@@ -360,29 +378,6 @@ export default function HistoricoReservas() {
     };
   }, [dropdownAberto]);
 
-  // ==================== ATUALIZAR POSIÇÃO DO DROPDOWN AO ROLAR ====================
-  useEffect(() => {
-    if (dropdownAberto === null) return;
-
-    const handleScroll = () => {
-      const button = buttonRefs.current.get(dropdownAberto);
-      if (button) {
-        const rect = button.getBoundingClientRect();
-        setDropdownPosition({
-          top: rect.bottom + window.scrollY + 5,
-          left: rect.left + window.scrollX
-        });
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', handleScroll);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, [dropdownAberto]);
 
   // ==================== RENDER ====================
   return (
@@ -407,9 +402,11 @@ export default function HistoricoReservas() {
               onChange={(e) => setStatusFiltro(e.target.value)}
             >
               <option>Todas</option>
-              <option>Finalizada</option>
-              <option>Cancelada</option>
-              <option>Pendente</option>
+<option>Confirmada</option>
+<option>Finalizada</option>
+<option>Cancelada</option>
+<option>Pendente</option>
+<option>Aguardando resposta</option>
             </select>
 
             <select
@@ -511,14 +508,15 @@ export default function HistoricoReservas() {
                       </p>
                     </div>
 
-                    {/* Valor */}
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                      Valor:{" "}
-                      <span className="font-semibold text-sky-600">
-                        R$ {reserva.valor.toFixed(2)}
-                      </span>
-                    </p>
+                    <div className="mb-3">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        Repasse:
+                        <span className="font-semibold text-green-600 ml-1">
+                          R$ {reserva.valor.toFixed(2)}
+                        </span>
+                      </p>
 
+                    </div>
                     {/* Indicador de vistoria */}
                     {reserva.auditoriaPre && (
                       <div className="mb-2 flex items-center gap-2 text-xs text-green-600">
@@ -538,21 +536,12 @@ export default function HistoricoReservas() {
                           }
                         }}
                         onClick={() => {
-                          if (dropdownAberto === reserva.id) {
-                            setDropdownAberto(null);
-                            setDropdownPosition(null);
-                          } else {
-                            const button = buttonRefs.current.get(reserva.id);
-                            if (button) {
-                              const rect = button.getBoundingClientRect();
-                              setDropdownPosition({
-                                top: rect.bottom + window.scrollY + 5,
-                                left: rect.left + window.scrollX
-                              });
-                            }
-                            setDropdownAberto(reserva.id);
-                          }
-                        }}
+  if (dropdownAberto === reserva.id) {
+    setDropdownAberto(null);
+  } else {
+    setDropdownAberto(reserva.id);
+  }
+}}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl 
       bg-slate-100 hover:bg-slate-200 text-slate-700 
       dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200
@@ -563,25 +552,25 @@ export default function HistoricoReservas() {
                       </button>
 
                       {dropdownAberto === reserva.id && (
-  <div
-    ref={(el) => {
-      if (el) {
-        dropdownRefs.current.set(reserva.id, el);
-      } else {
-        dropdownRefs.current.delete(reserva.id);
-      }
-    }}
-    className="absolute z-50 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden
+                        <div
+                          ref={(el) => {
+                            if (el) {
+                              dropdownRefs.current.set(reserva.id, el);
+                            } else {
+                              dropdownRefs.current.delete(reserva.id);
+                            }
+                          }}
+                          className="absolute z-50 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden
       animate-in fade-in zoom-in-95 duration-150"
-    style={{
-      bottom: '100%',
-      marginBottom: '8px',
-      left: '0',
-      maxHeight: '300px',
-      overflowY: 'auto'
-    }}
-    id={`dropdown-${reserva.id}`}
-  >
+                          style={{
+                            bottom: '100%',
+                            marginBottom: '8px',
+                            left: '0',
+                            maxHeight: '300px',
+                            overflowY: 'auto'
+                          }}
+                          id={`dropdown-${reserva.id}`}
+                        >
                           {/* Ver detalhes */}
                           <button
                             onClick={() => {
@@ -729,7 +718,21 @@ export default function HistoricoReservas() {
                   <p><b>Horário:</b> {reservaSelecionada.horario}</p>
                 )}
                 <p><b>Local:</b> {reservaSelecionada.local}</p>
-                <p><b>Valor:</b> R$ {reservaSelecionada.valor.toFixed(2)}</p>
+                <p>
+                  <b>Valor da reserva:</b> 
+R$ {reservaSelecionada.valorBruto?.toFixed(2)}
+                </p>
+                <p>
+                  <b>Taxa PlacyHub: </b> -R$ {reservaSelecionada.taxaPlacyHub?.toFixed(2)}
+                </p>
+                <p>
+                  <b>Repasse: </b>
+                  R$ {reservaSelecionada.valor.toFixed(2)}
+
+                </p>
+
+
+
                 <p><b>Telefone:</b> {formatarTelefone(reservaSelecionada.telefone)}</p>
                 <p><b>Status:</b> {reservaSelecionada.status}</p>
               </div>

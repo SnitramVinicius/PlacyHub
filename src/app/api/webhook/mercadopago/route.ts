@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { Resend } from "resend";
+import {
+  TAXAS,
+  calcularValorBase,
+  calcularTaxaAnfitriao,
+  calcularLiquidoAnfitriao,
+} from "@/config/taxa";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -57,18 +63,15 @@ async function getDadosUsuario(usuarioId: string) {
 
 async function enviarEmailReservaConfirmada(destinatario: string, nome: string, reserva: any, tipo: "cliente" | "anfitriao") {
   const dataFormatada = new Date(reserva.data_inicio).toLocaleDateString("pt-BR");
-  const TAXA_LOCATARIO = 0.02;
-const TAXA_ANFITRIAO = 0.05;
-
 const valorPago = reserva.valor_total;
 
-const valorBase = valorPago / (1 + TAXA_LOCATARIO);
+const valorBase = calcularValorBase(valorPago);
 
 const taxaCliente = valorPago - valorBase;
 
-const taxaAnfitriao = valorBase * TAXA_ANFITRIAO;
+const taxaAnfitriao = calcularTaxaAnfitriao(valorBase);
 
-const valorLiquidoAnfitriao = valorBase - taxaAnfitriao;
+const valorLiquidoAnfitriao = calcularLiquidoAnfitriao(valorPago);
   if (tipo === "cliente") {
     return await resend.emails.send({
       from: 'PlacyHub <onboarding@resend.dev>',
@@ -86,7 +89,7 @@ const valorLiquidoAnfitriao = valorBase - taxaAnfitriao;
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
            <p><strong>🏠 Valor do espaço:</strong> R$ ${valorBase.toFixed(2)}</p>
-<p><strong>💳 Taxa de serviço PlacyHub:</strong> R$ ${taxaCliente.toFixed(2)}</p>
+<p><strong>💳 Taxa de serviço PlacyHub (${TAXAS.locatario * 100}%) R$ ${taxaCliente.toFixed(2)}</p>
 <p><strong>💰 Total pago:</strong> R$ ${valorPago.toFixed(2)}</p>
           </div>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver minhas reservas</a></p>
@@ -114,7 +117,7 @@ const valorLiquidoAnfitriao = valorBase - taxaAnfitriao;
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
            <p><strong>🏠 Valor da reserva:</strong> R$ ${valorBase.toFixed(2)}</p>
 
-<p><strong>💳 Taxa PlacyHub (5%):</strong> R$ ${taxaAnfitriao.toFixed(2)}</p>
+<p><strong>💳 Taxa PlacyHub (${TAXAS.anfitriao * 100}%):</strong> R$ ${taxaAnfitriao.toFixed(2)}</p>
 
 <p><strong>💵 Você receberá:</strong> R$ ${valorLiquidoAnfitriao.toFixed(2)}</p>
           </div>
@@ -390,22 +393,14 @@ if (anfitriao?.email) {
         // ============================================
         // 3. CRIAR REPASSE
         // ============================================
-       const TAXA_LOCATARIO = 0.02; // 2%
-const TAXA_ANFITRIAO = 0.05; // 5%
+      const valorPagoCliente = reserva.valor_total;
 
-// Valor total pago pelo cliente (já com os 2%)
-const valorPagoCliente = reserva.valor_total;
+const valorBaseReserva = calcularValorBase(valorPagoCliente);
 
-// Remove os 2% para descobrir o valor real da reserva
-const valorBaseReserva = valorPagoCliente / (1 + TAXA_LOCATARIO);
+const taxa = calcularTaxaAnfitriao(valorBaseReserva);
 
-// Taxa do anfitrião calculada apenas sobre o valor da reserva
-const taxa = valorBaseReserva * TAXA_ANFITRIAO;
+const valorLiquido = calcularLiquidoAnfitriao(valorPagoCliente);
 
-// Valor que o anfitrião vai receber
-const valorLiquido = valorBaseReserva - taxa;
-
-// Valores arredondados
 const valorBruto = Number(valorBaseReserva.toFixed(2));
 const taxaPlataforma = Number(taxa.toFixed(2));
 const valorFinal = Number(valorLiquido.toFixed(2));
