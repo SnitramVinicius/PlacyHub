@@ -7,8 +7,6 @@ import { toast } from "sonner";
 import {
   TAXAS,
   calcularTaxaAnfitriao,
-  calcularValorBase,
-  calcularLiquidoAnfitriao
 } from "@/config/taxa";
 
 // Tipos
@@ -31,11 +29,12 @@ interface Transacao {
 
 interface DadosFinanceirosMes {
   totalRecebido: number;
+  receitaCancelamentos: number;
   aReceber: number;
   taxas: number;
   estornos: number;
   saldoTransferido: number;
-  retidoCancelamentos: number;
+  saldoDisponivel: number; // NOVO
   transacoes: Transacao[];
 }
 
@@ -150,27 +149,25 @@ async function buscarDadosFinanceiros() {
       const mesKey = `${mesSemAcento} ${ano}`;
 
       if (!dados[mesKey]) {
-        dados[mesKey] = {
-          totalRecebido: 0,
-          aReceber: 0,
-          taxas: 0,
-          estornos: 0,
-          saldoTransferido: 0,
-          retidoCancelamentos: 0,
-          transacoes: [],
-        };
+     dados[mesKey] = {
+  totalRecebido: 0,
+  receitaCancelamentos: 0,
+  aReceber: 0,
+  taxas: 0,
+  estornos: 0,
+  saldoTransferido: 0,
+  saldoDisponivel: 0,
+  transacoes: [],
+};
       }
 
-const valorPagoCliente = reserva.valor_total || 0;
+const valorReserva = reserva.valor_base || 0;
 
+const taxa = reserva.comissao_placyhub || 0;
 
-const valorReserva = calcularValorBase(valorPagoCliente);
+const valorLiquido = reserva.repasse_anfitriao || 0;
 
-const taxa = calcularTaxaAnfitriao(valorReserva);
-
-const valorLiquido = calcularLiquidoAnfitriao(valorPagoCliente);
-
-      let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
+let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
 
       if (reserva.status === "cancelada") {
         statusTransacao = "Cancelado";
@@ -182,24 +179,15 @@ const valorLiquido = calcularLiquidoAnfitriao(valorPagoCliente);
       if (reserva.status === "cancelada" && reserva.pagamento_status === "approved") {
         const percentualReembolso = calcularReembolso(reserva);
 
-// Valor que o cliente pagou (inclui os 2%)
-// const valorPagoCliente = reserva.valor_total || 0;
-
-
-// Reembolso baseado no que o cliente realmente pagou
 const valorReembolsado =
-  valorPagoCliente * percentualReembolso;
+  valorReserva * percentualReembolso;
+const percentualMantido =
+  1 - percentualReembolso;
 
 
-const valorReservaReal =
-  calcularValorBase(valorReembolsado);
-
-
-// Parte da reserva que fica com o anfitrião
 const valorAnfitriaoBruto =
-  valorReserva - valorReservaReal;
-
-
+  valorReserva * percentualMantido;
+  
 const taxaPlacy =
   calcularTaxaAnfitriao(valorAnfitriaoBruto);
 
@@ -212,14 +200,21 @@ const valorLiquidoCancelamento =
         
         dados[mesKey].estornos += valorReembolsado;
 
-
-if(valorLiquidoCancelamento > 0){
+if(percentualMantido > 0){
 
   dados[mesKey].totalRecebido += valorAnfitriaoBruto;
 
+  dados[mesKey].receitaCancelamentos += valorAnfitriaoBruto;
+
   dados[mesKey].taxas += taxaPlacy;
 
+
+  if(!reserva.repasse_realizado){
+    dados[mesKey].aReceber += valorLiquidoCancelamento;
+  }
+
 }
+
         
         dados[mesKey].transacoes.push({
           id: reserva.id,
@@ -241,17 +236,22 @@ taxa: taxaPlacy,
 
       // Reservas NÃO canceladas
       if (reserva.pagamento_status === "approved") {
-        dados[mesKey].totalRecebido += valorReserva;
-        dados[mesKey].taxas += taxa;
-      }
+  dados[mesKey].totalRecebido += valorReserva;
+  dados[mesKey].taxas += taxa;
+}
 
-      if (reserva.pagamento_status !== "approved" && reserva.status !== "cancelada") {
-        dados[mesKey].aReceber += valorLiquido;
-      }
+  if (
+  reserva.pagamento_status === "approved" &&
+  reserva.status !== "cancelada" &&
+  !reserva.repasse_realizado
+) {
 
-      const dataEvento = new Date(reserva.data_inicio);
-      const dataLiberacao = new Date(dataEvento);
-      dataLiberacao.setDate(dataEvento.getDate() + 3);
+  dados[mesKey].aReceber += valorLiquido;
+
+}
+  const dataLiberacao = reserva.repasse_realizado
+  ? new Date(reserva.updated_at || reserva.created_at)
+  : null;
 
       dados[mesKey].transacoes.push({
         id: reserva.id,
@@ -265,25 +265,50 @@ taxa: taxaPlacy,
        valorBruto: valorReserva,
         valorLiquido: reserva.pagamento_status === "approved" ? valorLiquido : 0,
         taxa: reserva.pagamento_status === "approved" ? taxa : 0,
-        dataLiberacao: reserva.pagamento_status === "approved" ? dataLiberacao.toLocaleDateString("pt-BR") : "-",
+        dataLiberacao:
+  reserva.repasse_realizado && dataLiberacao
+    ? dataLiberacao.toLocaleDateString("pt-BR")
+    : "-",
       });
     }
 
-    // Calcular saldo transferido
-    for (const mesKey in dados) {
-      const transacoesLiberadas = dados[mesKey].transacoes.filter((t) => {
-        if (t.status !== "Confirmado") return false;
-        if (t.dataLiberacao === "-") return false;
-        const [dia, mes, ano] = t.dataLiberacao.split("/");
-        const dataLiberacao = new Date(`${ano}-${mes}-${dia}`);
-        return dataLiberacao <= new Date();
-      });
-      dados[mesKey].saldoTransferido = transacoesLiberadas.reduce(
-        (acc, t) => acc + t.valorLiquido,
-        0
-      );
-    }
+// Calcula apenas valores que já tiveram repasse manual realizado
 
+for (const reserva of reservas) {
+
+  if (
+    reserva.repasse_realizado &&
+    reserva.pagamento_status === "approved" &&
+    reserva.status !== "cancelada"
+  ) {
+
+    const dataReserva = new Date(reserva.created_at);
+
+    const mesNome = dataReserva
+      .toLocaleString("pt-BR", { month: "long" })
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ç/g, "c");
+
+    const mesKey = `${mesNome} ${dataReserva.getFullYear()}`;
+
+
+    const valorTransferido =
+      reserva.repasse_anfitriao || 0;
+
+
+    if (dados[mesKey]) {
+
+      dados[mesKey].saldoTransferido += valorTransferido;
+
+    }
+  }
+  
+}
+Object.keys(dados).forEach((mes) => {
+  dados[mes].saldoDisponivel = dados[mes].aReceber;
+});
     setDadosPorMes(dados);
 
     // Ordenar meses cronologicamente
@@ -318,17 +343,15 @@ taxa: taxaPlacy,
 
 const mesAtual = dadosPorMes[mesSelecionado] || {
   totalRecebido: 0,
+  receitaCancelamentos: 0,
   aReceber: 0,
   taxas: 0,
   estornos: 0,
   saldoTransferido: 0,
-  retidoCancelamentos: 0,
   transacoes: [],
 };
 
-const saldoPendenteLiberacao =
-  mesAtual.totalRecebido -
-  mesAtual.saldoTransferido;
+const saldoDisponivel = mesAtual.saldoTransferido;
 
   const ultimos6Meses = mesesDisponiveis.slice(-6);
   const valores = ultimos6Meses.map(m => dadosPorMes[m]?.totalRecebido || 0);
@@ -461,11 +484,30 @@ const saldoPendenteLiberacao =
     R$ {mesAtual.totalRecebido.toFixed(2)}
   </p>
 
+ <p className="text-xs text-gray-400 mt-1">
+    Valor das reservas confirmadas e cancelamentos sem reembolso total
+</p>
+
+</div>
+
+{/* Card Receita de Cancelamentos */}
+{mesAtual.receitaCancelamentos > 0 && (
+<div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+
+  <p className="text-xs text-gray-500 uppercase tracking-flex">
+    Receita de Cancelamentos
+  </p>
+
+  <p className="text-2xl font-bold text-orange-600 mt-1">
+    R$ {mesAtual.receitaCancelamentos.toFixed(2)}
+  </p>
+
   <p className="text-xs text-gray-400 mt-1">
-    Valor das reservas e valores retidos em cancelamentos
+    Valores mantidos pela política de cancelamento
   </p>
 
 </div>
+)}
 
           {/* Card: Taxas da Plataforma */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-red-500">
@@ -478,7 +520,7 @@ Comissão PlacyHub (5%)
 
           {/* Card: Já Recebido */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-sky-500">
-            <p className="text-xs text-gray-500 uppercase tracking-flex"> Já Recebido</p>
+            <p className="text-xs text-gray-500 uppercase tracking-flex"> Repasse realizado</p>
             <p className="text-2xl font-bold text-sky-600 mt-1">R$ {mesAtual.saldoTransferido.toFixed(2)}</p>
             <p className="text-xs text-gray-400 mt-1">Valores já liberados</p>
           </div>
@@ -531,11 +573,11 @@ e o valor fica disponível após a finalização do evento.
     </p>
 
     <p className="text-4xl md:text-5xl font-bold text-white">
-      R$ {saldoPendenteLiberacao.toFixed(2)}
-    </p>
+  R$ {saldoDisponivel.toFixed(2)}
+</p>
 
     <p className="text-white/80 text-sm mt-2">
-      Valor disponível para transferência
+     Valor disponível para transferência
     </p>
 
     <div className="grid grid-cols-2 gap-4 mt-6">
@@ -554,7 +596,7 @@ e o valor fica disponível após a finalização do evento.
           R$ {mesAtual.aReceber.toFixed(2)}
         </p>
         <p className="text-white/70 text-xs">
-          A liberar
+          Aguardando liberação
         </p>
       </div>
 

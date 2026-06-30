@@ -208,14 +208,20 @@ async function confirmarCancelamento() {
       .eq("id", reservaParaCancelar.espaco_id)
       .single();
 
+
+      const regra = verificarCancelamento(
+  reservaParaCancelar.data_inicio,
+  reservaParaCancelar.created_at
+);
     // Atualizar status da reserva para cancelada
     const { error } = await supabase
       .from("reservas")
-      .update({ 
-        status: "cancelada",
-        motivo_cancelamento: motivoCancelamento.trim(),
-        cancelado_em: new Date().toISOString()
-      })
+      .update({
+    status: "cancelada",
+    motivo_cancelamento: motivoCancelamento.trim(),
+    cancelado_em: new Date().toISOString(),
+    percentual_reembolso: regra.percentual
+})
       .eq("id", reservaParaCancelar.id);
 
     if (error) {
@@ -770,64 +776,57 @@ const formatarData = (data: string) => {
     );
   }
 
-const verificarCancelamento = (dataEvento: string, dataCriacao: string) => {
-  const hoje = new Date();
+const verificarCancelamento = (
+  dataEvento: string,
+  dataCriacao: string
+) => {
+  const agora = new Date();
   const evento = new Date(dataEvento);
   const criacao = new Date(dataCriacao);
-  
-  // Resetar horas para comparar apenas as datas
-  hoje.setHours(0, 0, 0, 0);
-  evento.setHours(0, 0, 0, 0);
-  criacao.setHours(0, 0, 0, 0);
-  
-  // Calcular dias para o evento
-  const diasParaEvento = Math.ceil((evento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // Calcular horas desde a criação (em dias)
-  const horasDesdeCriacao = (hoje.getTime() - criacao.getTime()) / (1000 * 60 * 60);
-  const diasDesdeCriacao = horasDesdeCriacao / 24;
-  
-  // 🔥 REGRA 1 (PRIORIDADE MÁXIMA): Cancelamento em até 48h após a reserva (100%)
-  if (diasDesdeCriacao <= 2) {
-    return { 
-      pode: true, 
-      reembolso: 100, 
-      msg: "✅ Cancelamento dentro de 48h após a reserva - reembolso integral de 100%" 
+
+  // horas desde a criação da reserva
+  const horasDesdeReserva =
+    (agora.getTime() - criacao.getTime()) / (1000 * 60 * 60);
+
+  // dias até o evento
+  const diasParaEvento =
+    (evento.getTime() - agora.getTime()) /
+    (1000 * 60 * 60 * 24);
+
+  // REGRA 1
+  // até 48h após reservar = 100%
+  if (horasDesdeReserva <= 48) {
+    return {
+      pode: true,
+      percentual: 100,
+      mensagem: "Reembolso integral (100%)",
     };
   }
-  
-  // 🔥 REGRA 2: Cancelamento com 7 a 2 dias antes do evento (50%)
-  if (diasParaEvento >= 2 && diasParaEvento <= 7) {
-    return { 
-      pode: true, 
-      reembolso: 50, 
-      msg: "⚠️ Cancelamento permitido - reembolso de 50%" 
+
+  // REGRA 2
+  // mais de 48h e faltam mais de 7 dias
+  if (diasParaEvento > 7) {
+    return {
+      pode: true,
+      percentual: 50,
+      mensagem: "Reembolso de 50%",
     };
   }
-  
-  // 🔥 REGRA 3: Cancelamento com menos de 2 dias (0% - mas pode cancelar)
-  if (diasParaEvento >= 0 && diasParaEvento < 2) {
-    return { 
-      pode: true,   // ← PERMITE cancelar, mas sem reembolso
-      reembolso: 0, 
-      msg: "❌ Cancelamento permitido, mas NÃO HAVERÁ REEMBOLSO (faltam menos de 2 dias)" 
+
+  // REGRA 3
+  // até 7 dias do evento
+  if (diasParaEvento >= 0) {
+    return {
+      pode: true,
+      percentual: 0,
+      mensagem: "Sem reembolso",
     };
   }
-  
-  // REGRA 4: Evento já passou
-  if (diasParaEvento < 0) {
-    return { 
-      pode: false, 
-      reembolso: 0, 
-      msg: "❌ Evento já ocorreu - não é possível cancelar" 
-    };
-  }
-  
-  // REGRA 5: Outros casos (mais de 7 dias E passou das 48h)
-  return { 
-    pode: true, 
-    reembolso: 50, 
-    msg: "⚠️ Cancelamento permitido - reembolso de 50%" 
+
+  return {
+    pode: false,
+    percentual: 0,
+    mensagem: "Evento já ocorreu",
   };
 };
 
@@ -1144,12 +1143,16 @@ const verificarRemarcacao = (dataEvento: string) => {
     Valor: R$ {reservaParaCancelar.valor_total.toFixed(2)}
   </p>
   {(() => {
-    const regra = verificarCancelamento(reservaParaCancelar.data_inicio, reservaParaCancelar.created_at);
-    if (regra.reembolso === 100) {
+    const regra = verificarCancelamento(
+  reservaParaCancelar.data_inicio,
+  reservaParaCancelar.created_at
+);
+
+if (regra.percentual === 100) {
       return <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-semibold"> Reembolso integral de 100%</p>;
-    } else if (regra.reembolso === 50) {
+    } else if (regra.percentual === 50) {
       return <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 font-semibold"> Reembolso de 50% do valor</p>;
-    } else if (regra.reembolso === 0) {
+    } else if (regra.percentual === 0) {
       return <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-semibold"> Este cancelamento NÃO TERÁ REEMBOLSO</p>;
     }
     return null;
