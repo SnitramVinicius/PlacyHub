@@ -251,27 +251,6 @@ export default function PreferenciasGerais() {
             </div>
           </Link>
         </div>
-<div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-xl">
-  <h3 className="font-semibold mb-2">📧 Teste de Email</h3>
-  <button
-    onClick={async () => {
-      try {
-        const response = await fetch('/api/teste-email');
-        const result = await response.json();
-        if (result.success) {
-          toast.success('✅ Email enviado! Verifique sua caixa de entrada.');
-        } else {
-          toast.error('❌ Erro: ' + result.error);
-        }
-      } catch (error) {
-        toast.error('❌ Erro ao enviar email');
-      }
-    }}
-    className="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition"
-  >
-    Enviar Email de Teste
-  </button>
-</div>
         {/* Botão Salvar */}
         <div className="mt-8 flex justify-center">
           <button

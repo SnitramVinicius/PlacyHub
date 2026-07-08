@@ -21,7 +21,11 @@ interface User {
   id?: string;
   name: string;
   email?: string;
+
   roles: Role[];
+
+  is_admin?: boolean;
+
   telefone?: string;
   cidade?: string;
   estado?: string;
@@ -117,10 +121,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const { data, error } = await supabase
-        .from("users")
-        .select("id, email, name, telefone, cidade, estado, cpf, is_anfitriao, foto_url, senha")
-        .eq("email", email)
-        .maybeSingle();
+  .from("users")
+ .select(`
+    id,
+    email,
+    name,
+    telefone,
+    cidade,
+    estado,
+    cpf,
+    foto_url,
+    senha,
+    roles,
+    is_admin
+  `)
+  .eq("email", email)
+  .maybeSingle();
 
       if (error || !data) {
         console.error("Erro ao buscar usuário:", error);
@@ -139,24 +155,24 @@ if (!senhaCorreta) {
 }
 
       const userData: User = {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        roles: data.is_anfitriao ? ["ANFITRIAO", "LOCATARIO"] : ["LOCATARIO"],
-        telefone: data.telefone,
-        cidade: data.cidade,
-        estado: data.estado,
-        cpf: data.cpf,
-        fotoUrl: data.foto_url,
-      };
+  id: data.id,
+  name: data.name,
+  email: data.email,
 
+  roles: data.roles ?? ["LOCATARIO"],
+
+  is_admin: data.is_admin,
+
+  telefone: data.telefone,
+  cidade: data.cidade,
+  estado: data.estado,
+  cpf: data.cpf,
+  fotoUrl: data.foto_url,
+};
       setUser(userData);
       localStorage.setItem("placyhub_user_dev", JSON.stringify(userData));
 
 try {
-  console.log("1️⃣ Iniciando registro de sessão...");
-  console.log("2️⃣ User ID:", userData.id);
-  
   const response = await fetch("/api/security/register-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -168,8 +184,6 @@ try {
     }),
   });
   const result = await response.json();
-  console.log("7️⃣ Resultado da API:", result);
-  console.log("✅ Sessão registrada com sucesso");
 } catch (sessionError) {
   console.error("❌ Erro ao registrar sessão:", sessionError);
 }
@@ -212,7 +226,11 @@ try {
     try {
       const { error } = await supabase
         .from("users")
-        .update({ is_anfitriao: true, cpf })
+       .update({
+    cpf,
+    roles: ["LOCATARIO", "ANFITRIAO"],
+    is_anfitriao: true // pode manter por compatibilidade
+})
         .eq("id", user.id);
 
       if (error) {

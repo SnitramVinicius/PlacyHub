@@ -34,7 +34,6 @@ interface DadosFinanceirosMes {
   taxas: number;
   estornos: number;
   saldoTransferido: number;
-  saldoDisponivel: number; // NOVO
   transacoes: Transacao[];
 }
 
@@ -149,17 +148,16 @@ async function buscarDadosFinanceiros() {
       const mesKey = `${mesSemAcento} ${ano}`;
 
       if (!dados[mesKey]) {
-     dados[mesKey] = {
-  totalRecebido: 0,
-  receitaCancelamentos: 0,
-  aReceber: 0,
-  taxas: 0,
-  estornos: 0,
-  saldoTransferido: 0,
-  saldoDisponivel: 0,
-  transacoes: [],
-};
-      }
+  dados[mesKey] = {
+    totalRecebido: 0,
+    receitaCancelamentos: 0,
+    aReceber: 0,
+    taxas: 0,
+    estornos: 0,
+    saldoTransferido: 0,
+    transacoes: [],
+  };
+}
 
 const valorReserva = reserva.valor_base || 0;
 
@@ -184,17 +182,24 @@ const valorReembolsado =
 const percentualMantido =
   1 - percentualReembolso;
 
-
 const valorAnfitriaoBruto =
   valorReserva * percentualMantido;
-  
+
+// Se o cliente recebeu 100% de volta,
+// ninguém recebe comissão.
+const taxaOriginal =
+  reserva.comissao_placyhub || 0;
+
 const taxaPlacy =
-  calcularTaxaAnfitriao(valorAnfitriaoBruto);
+  percentualReembolso === 1
+    ? 0
+    : taxaOriginal * percentualMantido;
 
-
-// Repasse final ao anfitrião
+// Valor que ficará para o anfitrião
 const valorLiquidoCancelamento =
-  valorAnfitriaoBruto - taxaPlacy;
+  percentualReembolso === 1
+    ? 0
+    : valorAnfitriaoBruto - taxaPlacy;
 
         const descricao = getDescricaoReembolso(percentualReembolso);
         
@@ -202,7 +207,7 @@ const valorLiquidoCancelamento =
 
 if(percentualMantido > 0){
 
-  dados[mesKey].totalRecebido += valorAnfitriaoBruto;
+ dados[mesKey].totalRecebido += valorReserva;
 
   dados[mesKey].receitaCancelamentos += valorAnfitriaoBruto;
 
@@ -214,7 +219,9 @@ if(percentualMantido > 0){
   }
 
 }
-
+const dataLiberacao = reserva.repasse_realizado_em
+  ? new Date(reserva.repasse_realizado_em)
+  : null;
         
         dados[mesKey].transacoes.push({
           id: reserva.id,
@@ -228,7 +235,13 @@ if(percentualMantido > 0){
           valorBruto: valorReserva,
           valorLiquido: valorLiquidoCancelamento,
 taxa: taxaPlacy,
-          dataLiberacao: "-",
+          dataLiberacao: reserva.repasse_realizado
+  ? (
+      dataLiberacao
+        ? dataLiberacao.toLocaleDateString("pt-BR")
+        : "Liberado"
+    )
+  : "Aguardando",
           observacao: descricao,
         });
         continue;
@@ -240,17 +253,19 @@ taxa: taxaPlacy,
   dados[mesKey].taxas += taxa;
 }
 
-  if (
-  reserva.pagamento_status === "approved" &&
-  reserva.status !== "cancelada" &&
-  !reserva.repasse_realizado
-) {
+if (reserva.pagamento_status === "approved") {
+  if (reserva.repasse_realizado) {
+    dados[mesKey].saldoTransferido += reserva.repasse_anfitriao || 0;
+  } else {
+    dados[mesKey].aReceber += reserva.repasse_anfitriao || 0;
+  }
+} {
 
   dados[mesKey].aReceber += valorLiquido;
 
 }
-  const dataLiberacao = reserva.repasse_realizado
-  ? new Date(reserva.updated_at || reserva.created_at)
+const dataLiberacao = reserva.repasse_realizado_em
+  ? new Date(reserva.repasse_realizado_em)
   : null;
 
       dados[mesKey].transacoes.push({
@@ -265,50 +280,84 @@ taxa: taxaPlacy,
        valorBruto: valorReserva,
         valorLiquido: reserva.pagamento_status === "approved" ? valorLiquido : 0,
         taxa: reserva.pagamento_status === "approved" ? taxa : 0,
-        dataLiberacao:
-  reserva.repasse_realizado && dataLiberacao
-    ? dataLiberacao.toLocaleDateString("pt-BR")
-    : "-",
+       dataLiberacao:
+  reserva.repasse_realizado
+    ? (dataLiberacao
+        ? dataLiberacao.toLocaleDateString("pt-BR")
+        : "Liberado")
+    : "Aguardando",
       });
     }
 
-// Calcula apenas valores que já tiveram repasse manual realizado
+// Calcula valores que já foram transferidos ao anfitrião
 
 for (const reserva of reservas) {
 
   if (
-    reserva.repasse_realizado &&
-    reserva.pagamento_status === "approved" &&
-    reserva.status !== "cancelada"
+    !reserva.repasse_realizado ||
+    reserva.pagamento_status !== "approved"
   ) {
+    continue;
+  }
 
-    const dataReserva = new Date(reserva.created_at);
+  const dataReserva = new Date(reserva.created_at);
 
-    const mesNome = dataReserva
-      .toLocaleString("pt-BR", { month: "long" })
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/ç/g, "c");
+  const mesNome = dataReserva
+    .toLocaleString("pt-BR", { month: "long" })
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ç/g, "c");
 
-    const mesKey = `${mesNome} ${dataReserva.getFullYear()}`;
+  const mesKey = `${mesNome} ${dataReserva.getFullYear()}`;
 
+  let valorTransferido = 0;
 
-    const valorTransferido =
+  if (reserva.status === "cancelada") {
+
+    const percentualReembolso = calcularReembolso(reserva);
+
+    if (percentualReembolso === 1) {
+
+      valorTransferido = 0;
+
+    } else {
+
+      const valorBase = reserva.valor_base || 0;
+
+      const taxaOriginal =
+        reserva.comissao_placyhub || 0;
+
+      const percentualMantido =
+        1 - percentualReembolso;
+
+      const taxa =
+        taxaOriginal * percentualMantido;
+
+      valorTransferido =
+        (valorBase * percentualMantido) - taxa;
+    }
+
+  } else {
+
+    valorTransferido =
       reserva.repasse_anfitriao || 0;
 
+  }
 
-    if (dados[mesKey]) {
+  if (dados[mesKey]) {
 
-      dados[mesKey].saldoTransferido += valorTransferido;
+    dados[mesKey].saldoTransferido += valorTransferido;
 
+    // remove do "A Receber"
+    dados[mesKey].aReceber -= valorTransferido;
+
+    if (dados[mesKey].aReceber < 0) {
+      dados[mesKey].aReceber = 0;
     }
   }
-  
 }
-Object.keys(dados).forEach((mes) => {
-  dados[mes].saldoDisponivel = dados[mes].aReceber;
-});
+
     setDadosPorMes(dados);
 
     // Ordenar meses cronologicamente
@@ -391,7 +440,7 @@ const saldoDisponivel = mesAtual.saldoTransferido;
         {/* Gráfico */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 mb-4">
           <h2 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-             Resumo de Ganhos Mensais
+             Receita Bruta Mensal
           </h2>
 
           {ultimos6Meses.length === 0 ? (
@@ -485,7 +534,7 @@ const saldoDisponivel = mesAtual.saldoTransferido;
   </p>
 
  <p className="text-xs text-gray-400 mt-1">
-    Valor das reservas confirmadas e cancelamentos sem reembolso total
+    Valor das reservas e valores retidos conforme a política de cancelamento.
 </p>
 
 </div>
@@ -503,7 +552,7 @@ const saldoDisponivel = mesAtual.saldoTransferido;
   </p>
 
   <p className="text-xs text-gray-400 mt-1">
-    Valores mantidos pela política de cancelamento
+   Valor retido após aplicação da política de cancelamento (antes da comissão da PlacyHub)
   </p>
 
 </div>
@@ -569,7 +618,7 @@ e o valor fica disponível após a finalização do evento.
 <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl p-6 mb-8 shadow-lg">
   <div className="text-center">
     <p className="text-white/80 text-sm uppercase tracking-wide mb-1">
-      Saldo disponível
+      Total repassado
     </p>
 
     <p className="text-4xl md:text-5xl font-bold text-white">

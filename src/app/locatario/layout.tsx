@@ -11,6 +11,7 @@ import {
   Star as StarIcon,
   LayoutDashboard,
   Bell,
+  ShieldCheck,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
@@ -80,18 +81,42 @@ export default function UsuarioLayout({
               })}
             </nav>
 
-            {/* 🔁 Alternar para Anfitrião */}
-            {user?.roles?.includes("ANFITRIAO") && (
-              <div className="mt-6 border-t pt-4">
-                <Link
-                  href="/anfitriao"
-                  className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-700 text-emerald-700 dark:text-white hover:bg-emerald-100 dark:hover:bg-emerald-600 transition font-semibold"
-                >
-                  <LayoutDashboard className="w-5 h-5" />
-                  Área do Anfitrião
-                </Link>
-              </div>
-            )}
+          {/* 🔁 Alternar para Anfitrião */}
+{user?.roles?.includes("ANFITRIAO") && (
+  <div className="mt-6 border-t pt-4">
+    <Link
+      href="/anfitriao"
+      className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-700 text-emerald-700 dark:text-white hover:bg-emerald-100 dark:hover:bg-emerald-600 transition font-semibold"
+    >
+      <LayoutDashboard className="w-5 h-5" />
+      Área do Anfitrião
+    </Link>
+  </div>
+)}
+
+
+{/* 🛡️ Área Administrativa */}
+{user?.roles?.includes("ADMIN") && (
+  <div className="mt-4">
+    <Link
+      href="/admin"
+      className="
+        flex items-center gap-3
+        px-4 py-2
+        rounded-xl
+        bg-red-50
+        text-red-700
+        hover:bg-red-100
+        transition
+        font-semibold
+      "
+    >
+      <ShieldCheck className="w-5 h-5" />
+      Painel Admin
+    </Link>
+  </div>
+)}
+            
           </div>
 
           <button

@@ -1,1 +1,4 @@
-export type Role = "LOCATARIO" | "ANFITRIAO";
+export type Role =
+  | "LOCATARIO"
+  | "ANFITRIAO"
+  | "ADMIN";

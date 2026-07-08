@@ -49,7 +49,10 @@ export default function NavbarWrapper() {
     "/footer/privacidade",
     "/footer/contato",
     "/footer/cancelamento",
-    "/reset-password"
+    "/reset-password",
+    "/admin/reservas",
+    "/admin",
+
 
   ];
 

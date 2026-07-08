@@ -21,7 +21,8 @@ import { useFavoritos } from "@/context/FavoritosContext";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import TesteSupabase from "@/components/TesteSupabase";
+import { useMemo } from "react";
+import Image from "next/image";
 
 export default function Home() {
   const { user } = useAuth();
@@ -35,24 +36,31 @@ export default function Home() {
       setLoading(true);
       
       const { data, error } = await supabase
-        .from("spaces")
-        .select(`
-          *,
-          espaco_categorias(
-            pacotes:espaco_pacotes(
-              precos:espaco_precos_pacote(valor)
-            )
-          )
-        `);
+  .from("spaces")
+  .select(`
+    id,
+    nome_espaco,
+    preco,
+    cidade,
+    avaliacao,
+    popularidade,
+    duracao,
+    imagens,
+    imagem,
+    buffet,
+    tipo_espaco,
+    espaco_categorias(
+      pacotes:espaco_pacotes(
+        precos:espaco_precos_pacote(valor)
+      )
+    )
+  `);
 
       if (error) {
-        console.log("ERRO:", error);
         setSupabaseSpaces([]);
         setLoading(false);
         return;
       }
-
-      console.log("DO BANCO:", data);
 
       const mappedSpaces = data?.map((item: any) => {
         // Calcular o menor preço dos pacotes
@@ -100,7 +108,6 @@ export default function Home() {
         };
       }) || [];
 
-      console.log("ESPAÇOS MAPEADOS:", mappedSpaces);
       setSupabaseSpaces(mappedSpaces);
       setLoading(false);
     }
@@ -108,28 +115,35 @@ export default function Home() {
     fetchSpaces();
   }, []);
 
-  const getEspacosIndicados = () => {
-    return [...supabaseSpaces].sort((a, b) => b.avaliacao - a.avaliacao);
-  };
+ const espacosIndicados = useMemo(() => {
+  return [...supabaseSpaces].sort(
+    (a, b) => b.avaliacao - a.avaliacao
+  );
+}, [supabaseSpaces]);
 
-  const getEspacosDestaque = () => {
-    return [...supabaseSpaces].sort((a, b) => b.popularidade - a.popularidade);
-  };
+ const espacosDestaque = useMemo(() => {
+  return [...supabaseSpaces].sort(
+    (a, b) => b.popularidade - a.popularidade
+  );
+}, [supabaseSpaces]);
 
-  const getEspacosFimDeSemana = () => {
-    return supabaseSpaces.filter((e) => e.preco <= 600);
-  };
+const espacosFimDeSemana = useMemo(() => {
+  return supabaseSpaces.filter((e) => e.preco <= 600);
+}, [supabaseSpaces]);
 
-  const getEspacosProximos = () => {
-    return supabaseSpaces.filter((e) => e.cidade?.includes("Campo Grande"));
-  };
+const espacosProximos = useMemo(() => {
+  return supabaseSpaces.filter((e) =>
+    e.cidade?.includes("Campo Grande")
+  );
+}, [supabaseSpaces]);
 
-  const getEspacosRecomendados = () => {
-    return [...supabaseSpaces].sort(
-      (a, b) => b.avaliacao + b.popularidade - (a.avaliacao + a.popularidade)
-    );
-  };
-
+const espacosRecomendados = useMemo(() => {
+  return [...supabaseSpaces].sort(
+    (a, b) =>
+      b.avaliacao + b.popularidade -
+      (a.avaliacao + a.popularidade)
+  );
+}, [supabaseSpaces]);
   const { favoritos, toggleFavorito } = useFavoritos();
   const scrollRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -228,18 +242,20 @@ export default function Home() {
                       Buffet
                     </span>
                   )}
-                  <img
-                    src={
-                      espaco.imagem ||
-                      "https://placehold.co/400x300/3b82f6/white?text=Espaço"
-                    }
-                    alt={espaco.nome}
-                    className="w-full h-[100px] sm:h-[120px] md:h-[140px] lg:h-[160px] object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://placehold.co/400x300/3b82f6/white?text=Espaço";
-                    }}
-                  />
+                  <div className="relative w-full h-[100px] sm:h-[120px] md:h-[140px] lg:h-[160px]">
+  <Image
+    src={
+      espaco.imagem ||
+      "https://placehold.co/400x300/3b82f6/white?text=Espaço"
+    }
+    alt={espaco.nome}
+    fill
+    className="object-cover"
+    sizes="(max-width:768px) 160px,
+           (max-width:1024px) 220px,
+           240px"
+  />
+</div>
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -347,21 +363,21 @@ export default function Home() {
         <div>
           {renderSection(
             "Explore espaços populares no Brasil",
-            getEspacosIndicados(),
+            espacosIndicados,
             "visit-indicados",
             "Os espaços mais reservados e avaliados pelos visitantes"
           )}
 
           {renderSection(
             "Em alta no momento",
-            getEspacosDestaque(),
+           espacosDestaque,
             "visit-destaque",
             "Os espaços mais procurados nesta semana"
           )}
 
           {renderSection(
             "Disponíveis para este fim de semana",
-            getEspacosFimDeSemana(),
+           espacosFimDeSemana,
             "visit-fds",
             "As melhores opções para eventos rápidos"
           )}
@@ -372,14 +388,14 @@ export default function Home() {
         <div>
           {renderSection(
             "Perto de você",
-            getEspacosProximos(),
+           espacosProximos,
             "log-proximos",
             "Opções próximas à sua região"
           )}
 
           {renderSection(
             "Sugestões para você",
-            getEspacosRecomendados(),
+           espacosRecomendados,
             "log-recomendados",
             "Recomendados com base no seu perfil"
           )}

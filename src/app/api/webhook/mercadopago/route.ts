@@ -84,14 +84,29 @@ const valorLiquidoAnfitriao = calcularLiquidoAnfitriao(valorPago);
         <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h1 style="color:#02b0f0;">✅ Pagamento Confirmado!</h1>
           <p>Olá <strong>${nome}</strong>!</p>
-          <p>Seu pagamento para o espaço <strong>${reserva.spaces.nome_espaco}</strong> foi confirmado.</p>
+          <p>
+Seu pagamento foi confirmado com sucesso e sua reserva está garantida.
+</p>
+
+<p>
+Espaço reservado:
+<strong>${reserva.spaces.nome_espaco}</strong>
+</p>
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
            <p><strong>🏠 Valor do espaço:</strong> R$ ${valorBase.toFixed(2)}</p>
-<p><strong>💳 Taxa de serviço PlacyHub (${TAXAS.locatario * 100}%) R$ ${taxaCliente.toFixed(2)}</p>
-<p><strong>💰 Total pago:</strong> R$ ${valorPago.toFixed(2)}</p>
-          </div>
+<p>
+<strong>💳 Taxa de serviço (${TAXAS.locatario * 100}%):</strong>
+R$ ${taxaCliente.toFixed(2)}
+</p>
+
+<hr style="margin:12px 0;">
+
+<p style="font-size:18px;">
+<strong>💰 Total pago:</strong>
+R$ ${valorPago.toFixed(2)}
+</p>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver minhas reservas</a></p>
           <hr>
           <p style="color:#666;font-size:12px;">PlacyHub - Aluguel de espaços para eventos</p>
@@ -111,16 +126,28 @@ const valorLiquidoAnfitriao = calcularLiquidoAnfitriao(valorPago);
         <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h1 style="color:#02b0f0;">🎉 Nova Reserva Confirmada!</h1>
           <p>Olá <strong>${nome}</strong>!</p>
-          <p>Você recebeu uma nova reserva para o espaço <strong>${reserva.spaces.nome_espaco}</strong>.</p>
+         <p>
+Parabéns! Você recebeu uma nova reserva confirmada.
+</p>
+
+<p>
+Espaço:
+<strong>${reserva.spaces.nome_espaco}</strong>
+</p>
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
            <p><strong>🏠 Valor da reserva:</strong> R$ ${valorBase.toFixed(2)}</p>
 
-<p><strong>💳 Taxa PlacyHub (${TAXAS.anfitriao * 100}%):</strong> R$ ${taxaAnfitriao.toFixed(2)}</p>
+<p><strong>💳 Comissão PlacyHub (${TAXAS.anfitriao * 100}%):</strong>
+R$ ${taxaAnfitriao.toFixed(2)}</p>
 
-<p><strong>💵 Você receberá:</strong> R$ ${valorLiquidoAnfitriao.toFixed(2)}</p>
-          </div>
+<hr style="margin:12px 0;">
+
+<p style="font-size:18px;">
+<strong>💵 Valor líquido do repasse:</strong>
+R$ ${valorLiquidoAnfitriao.toFixed(2)}
+</p>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/anfitriao/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver reservas</a></p>
           <hr>
           <p style="color:#666;font-size:12px;">PlacyHub - Aluguel de espaços para eventos</p>

@@ -27,6 +27,7 @@ interface Usuario {
   cpf?: string;
   dataNascimento?: string;
   fotoUrl?: string;
+  dadosRecebimento: DadosRecebimento;
 
   endereco?: {
     cep?: string;
@@ -48,19 +49,20 @@ interface Usuario {
   };
 
   roles: ("LOCATARIO" | "ANFITRIAO")[];
-  anfitriao?: Anfitriao;
 }
 
-interface Anfitriao {
-  status: "PENDENTE" | "VERIFICADO" | "BLOQUEADO";
-  dadosBancarios: {
-    banco: string;
-    agencia: string;
-    conta: string;
-    tipoConta: "corrente" | "poupanca";
-    titular: string;
-    cpfTitular: string;
-  };
+interface DadosRecebimento {
+  tipoRecebimento: "PIX" | "CONTA";
+
+  pixTipo?: string;
+  pixChave?: string;
+
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  tipoConta?: "corrente" | "poupanca";
+  titular?: string;
+  cpfTitular?: string;
 }
 
 /* ===================== COMPONENTE ===================== */
@@ -71,43 +73,41 @@ export default function PerfilUsuario() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [editando, setEditando] = useState(false);
   const [confirmarLogout, setConfirmarLogout] = useState(false);
-
 useEffect(() => {
   async function carregarPerfil() {
     const dadosLocal = localStorage.getItem("placyhub_user_dev");
-    console.log("📦 Dados do localStorage:", dadosLocal);
-    
+        
     if (!dadosLocal) {
       router.push("/login");
       return;
     }
 
     const userLocal = JSON.parse(dadosLocal);
-    console.log("👤 Usuário do localStorage:", userLocal);
-    console.log("🆔 ID do usuário:", userLocal.id);
-
+    
     if (!userLocal.id) {
       console.error("❌ ID do usuário não encontrado!");
       router.push("/login");
       return;
     }
     
-    // Buscar dados do Supabase
 const { data: userData, error } = await supabase
   .from("users")
-  .select("id, email, name, telefone, cidade, estado, cpf, data_nascimento, foto_url, cep, rua, numero, bairro") // 🔥 ADICIONOU cep, rua, numero, bairro
+  .select("id, email, name, telefone, cidade, estado, cpf, data_nascimento, foto_url, cep, rua, numero, bairro, roles")
   .eq("id", userLocal.id)
   .single();
 
-    if (error) {
-      console.error("Erro:", error);
-      setUsuario(userLocal);
-      return;
-    }
+const { data: dadosRecebimento } = await supabase
+  .from("dados_recebimento")
+  .select("*")
+  .eq("user_id", userLocal.id)
+  .maybeSingle();
 
-    console.log("✅ Dados do Supabase:", userData);
+if (error) {
+  console.error("Erro ao buscar dados:", error);
+  setUsuario(userLocal);
+  return;
+}
 
- // Montar objeto do usuário
 const usuarioCompleto: Usuario = {
   id: userData.id,
   nome: userData.name,
@@ -116,25 +116,71 @@ const usuarioCompleto: Usuario = {
   cpf: userData.cpf || "",
   dataNascimento: userData.data_nascimento || "",
   fotoUrl: userData.foto_url || "",
+  dadosRecebimento: dadosRecebimento
+  ? {
+      tipoRecebimento: dadosRecebimento.tipo_recebimento as "PIX" | "CONTA",
+      pixTipo: dadosRecebimento.pix_tipo || "",
+      pixChave: dadosRecebimento.pix_chave || "",
+      banco: dadosRecebimento.banco || "",
+      agencia: dadosRecebimento.agencia || "",
+      conta: dadosRecebimento.conta || "",
+      tipoConta:
+        (dadosRecebimento.tipo_conta as "corrente" | "poupanca") ||
+        "corrente",
+      titular: dadosRecebimento.titular || "",
+      cpfTitular: dadosRecebimento.cpf_titular || "",
+    }
+  : {
+      tipoRecebimento: "PIX",
+      pixTipo: "",
+      pixChave: "",
+      banco: "",
+      agencia: "",
+      conta: "",
+      tipoConta: "corrente",
+      titular: "",
+      cpfTitular: "",
+    },
   endereco: {
-    cep: userData.cep || "",        // 🔥 CARREGAR DO BANCO
-    rua: userData.rua || "",        // 🔥 CARREGAR DO BANCO
-    numero: userData.numero || "",  // 🔥 CARREGAR DO BANCO
-    bairro: userData.bairro || "",  // 🔥 CARREGAR DO BANCO
+    cep: userData.cep || "",
+    rua: userData.rua || "",
+    numero: userData.numero || "",
+    bairro: userData.bairro || "",
     cidade: userData.cidade || "",
     estado: userData.estado || "",
   },
-  roles: ["LOCATARIO"]
+  roles: userData.roles || userLocal.roles || ["LOCATARIO"]
 };
 
-    setUsuario(usuarioCompleto);
+// Atualiza estado da página
+setUsuario(usuarioCompleto);
+
+// Atualiza o AuthContext
+updateUser(usuarioCompleto);
+
+// Atualiza o localStorage
+localStorage.setItem(
+  "placyhub_user_dev",
+  JSON.stringify(usuarioCompleto)
+);
+
+// Atualiza o AuthContext
+updateUser(usuarioCompleto);
+
+// Atualiza o localStorage
+localStorage.setItem(
+  "placyhub_user_dev",
+  JSON.stringify(usuarioCompleto)
+);
   }
 
   carregarPerfil();
 }, [router]);
+
   if (!usuario) return null;
 
-  const isAnfitriao = usuario.roles.includes("ANFITRIAO");
+const isAnfitriao =
+  usuario.roles.includes("ANFITRIAO");
 
 const handleFotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files?.[0]) return;
@@ -204,22 +250,6 @@ updateUser({ fotoUrl });
 };
 
 const handleSalvar = async () => {
-  console.log("🔥 Botão salvar clicado!");
-  
-  if (!usuario) {
-    console.log("❌ Usuário não encontrado");
-    return;
-  }
-
-  console.log("📝 Dados a salvar:", {
-    id: usuario.id,
-    telefone: usuario.telefone,
-    cpf: usuario.cpf,
-    data_nascimento: usuario.dataNascimento,
-    cidade: usuario.endereco?.cidade,
-    estado: usuario.endereco?.estado,
-  });
-
   // Atualizar no Supabase
   const { error } = await supabase
     .from("users")
@@ -242,10 +272,59 @@ const handleSalvar = async () => {
     return;
   }
 
-  console.log("✅ Dados salvos com sucesso!");
-  localStorage.setItem("placyhub_user_dev", JSON.stringify(usuario));
-  setEditando(false);
-  toast.success("Informações atualizadas com sucesso!");
+const { error: erroRecebimento } = await supabase
+  .from("dados_recebimento")
+  .upsert(
+    {
+      user_id: usuario.id,
+
+      tipo_recebimento:
+        usuario.dadosRecebimento.tipoRecebimento,
+
+      pix_tipo:
+        usuario.dadosRecebimento.pixTipo,
+
+      pix_chave:
+        usuario.dadosRecebimento.pixChave,
+
+      banco:
+        usuario.dadosRecebimento.banco,
+
+      agencia:
+        usuario.dadosRecebimento.agencia,
+
+      conta:
+        usuario.dadosRecebimento.conta,
+
+      tipo_conta:
+        usuario.dadosRecebimento.tipoConta,
+
+      titular:
+        usuario.dadosRecebimento.titular,
+
+      cpf_titular:
+        usuario.dadosRecebimento.cpfTitular,
+    },
+    {
+      onConflict: "user_id",
+    }
+  );
+
+if (erroRecebimento) {
+  console.error("Erro recebimento:", erroRecebimento);
+  toast.error("Erro ao salvar dados de recebimento");
+  return;
+}
+
+updateUser(usuario);
+
+localStorage.setItem(
+  "placyhub_user_dev",
+  JSON.stringify(usuario)
+);
+
+setEditando(false);
+toast.success("Dados salvos com sucesso!");
 };
 
  const handleLogout = () => {
@@ -307,12 +386,12 @@ const formatarRua = (texto: string) => {
             <p className="text-gray-600 dark:text-gray-300 break-words">{usuario.email}</p>
             
             {/* Badge de anfitrião se for verificado */}
-            {isAnfitriao && usuario.anfitriao?.status === "VERIFICADO" && (
-              <div className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 rounded-full text-sm">
-                <BadgeCheck size={16} />
-                <span>Anfitrião Verificado</span>
-              </div>
-            )}
+            {isAnfitriao && (
+  <div className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-sky-100 dark:bg-sky-900 text-sky-700 dark:text-sky-300 rounded-full text-sm">
+    <BadgeCheck size={16} />
+    <span>Anfitrião</span>
+  </div>
+)}
           </div>
         </div>
       </div>
@@ -427,45 +506,225 @@ const formatarRua = (texto: string) => {
         />
       </Section>
 
-      {/* Dados do Anfitrião */}
-      {isAnfitriao && (
-        <Section title="Dados do Anfitrião">
-          <div className="col-span-full">
-            <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
-              <BadgeCheck size={18} />
-              <span>
-                Status: <strong>{usuario.anfitriao?.status === "VERIFICADO" ? "Verificado" : 
-                  usuario.anfitriao?.status === "PENDENTE" ? "Pendente" : "Bloqueado"}</strong>
-              </span>
-            </div>
-            
-            {usuario.anfitriao?.dadosBancarios && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input 
-                  label="Banco" 
-                  value={usuario.anfitriao.dadosBancarios.banco} 
-                  disabled 
-                />
-                <Input 
-                  label="Agência" 
-                  value={usuario.anfitriao.dadosBancarios.agencia} 
-                  disabled 
-                />
-                <Input 
-                  label="Conta" 
-                  value={usuario.anfitriao.dadosBancarios.conta} 
-                  disabled 
-                />
-                <Input 
-                  label="Tipo de Conta" 
-                  value={usuario.anfitriao.dadosBancarios.tipoConta === "corrente" ? "Corrente" : "Poupança"} 
-                  disabled 
-                />
-              </div>
-            )}
-          </div>
-        </Section>
-      )}
+     {/* Dados para Recebimento */}
+{isAnfitriao && (
+  <Section
+    title="Dados para Recebimento"
+    editando={editando}
+    onEditar={() => setEditando(true)}
+    onSalvar={handleSalvar}
+  >
+    <div className="md:col-span-2">
+      <label className="text-sm font-medium">
+        Forma de Recebimento
+      </label>
+
+      <select
+        className="w-full border rounded-xl px-4 py-2 mt-1"
+        disabled={!editando}
+        value={usuario.dadosRecebimento?.tipoRecebimento || "PIX"}
+        onChange={(e) => {
+  const tipo = e.target.value as "PIX" | "CONTA";
+
+  setUsuario({
+    ...usuario,
+    dadosRecebimento:
+      tipo === "PIX"
+        ? {
+            tipoRecebimento: "PIX",
+            pixTipo: "",
+            pixChave: "",
+
+            banco: "",
+            agencia: "",
+            conta: "",
+            tipoConta: "corrente",
+            titular: "",
+            cpfTitular: "",
+          }
+        : {
+            tipoRecebimento: "CONTA",
+
+            pixTipo: "",
+            pixChave: "",
+
+            banco: "",
+            agencia: "",
+            conta: "",
+            tipoConta: "corrente",
+            titular: "",
+            cpfTitular: "",
+          },
+  });
+}}
+      >
+        <option value="PIX">PIX</option>
+        <option value="CONTA">Conta Bancária</option>
+      </select>
+    </div>
+
+    {usuario.dadosRecebimento.tipoRecebimento === "PIX"? (
+      <>
+        <div>
+  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+    Tipo da Chave PIX
+  </label>
+
+  <select
+    disabled={!editando}
+    value={usuario.dadosRecebimento.pixTipo || ""}
+    onChange={(e) =>
+      setUsuario({
+        ...usuario,
+        dadosRecebimento: {
+          ...usuario.dadosRecebimento,
+          pixTipo: e.target.value,
+        },
+      })
+    }
+    className={`w-full border rounded-xl px-4 py-2.5 mt-1
+      bg-white text-gray-900 border-gray-300
+      dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600
+      ${
+        !editando
+          ? "bg-gray-100 dark:bg-gray-600 cursor-not-allowed"
+          : "hover:border-gray-400 dark:hover:border-gray-500 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+      }`}
+  >
+    <option value="">Selecione...</option>
+    <option value="CPF">CPF</option>
+    <option value="CELULAR">Celular</option>
+    <option value="EMAIL">E-mail</option>
+    <option value="ALEATORIA">Chave Aleatória</option>
+  </select>
+</div>
+
+        <Input
+          label="Chave PIX"
+          value={usuario.dadosRecebimento?.pixChave || ""}
+          disabled={!editando}
+          onChange={(v: string) =>
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+  ...usuario.dadosRecebimento,
+  pixChave: v,
+},
+  })
+}
+        />
+      </>
+    ) : (
+      <>
+        <Input
+          label="Banco"
+          value={usuario.dadosRecebimento?.banco || ""}
+          disabled={!editando}
+          onChange={(v: string) =>
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+  ...usuario.dadosRecebimento,
+  banco: v,
+},
+  })
+}
+        />
+
+        <Input
+          label="Agência"
+          value={usuario.dadosRecebimento?.agencia || ""}
+          disabled={!editando}
+          onChange={(v: string) =>
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+  ...usuario.dadosRecebimento,
+  agencia: v,
+},
+  })
+}
+        />
+
+        <Input
+          label="Conta"
+          value={usuario.dadosRecebimento?.conta || ""}
+          disabled={!editando}
+          onChange={(v: string) =>
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+  ...usuario.dadosRecebimento,
+  conta: v,
+},
+  })
+}
+        />
+        
+        <div>
+  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+    Tipo da Conta
+  </label>
+
+  <select
+    disabled={!editando}
+    value={usuario.dadosRecebimento.tipoConta || "corrente"}
+    onChange={(e) =>
+      setUsuario({
+        ...usuario,
+        dadosRecebimento: {
+          ...usuario.dadosRecebimento,
+          tipoConta: e.target.value as "corrente" | "poupanca",
+        },
+      })
+    }
+    className={`w-full border rounded-xl px-4 py-2.5 mt-1
+      bg-white text-gray-900 border-gray-300
+      dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600
+      ${
+        !editando
+          ? "bg-gray-100 dark:bg-gray-600 cursor-not-allowed"
+          : "hover:border-gray-400 dark:hover:border-gray-500 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+      }`}
+  >
+    <option value="corrente">Conta Corrente</option>
+    <option value="poupanca">Conta Poupança</option>
+  </select>
+</div>
+
+        <Input
+          label="Titular"
+          value={usuario.dadosRecebimento?.titular || ""}
+          disabled={!editando}
+         onChange={(v: string) =>
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+  ...usuario.dadosRecebimento,
+  titular: v,
+},
+  })
+}
+        />
+
+        <Input
+          label="CPF do Titular"
+          value={usuario.dadosRecebimento?.cpfTitular || ""}
+          disabled={!editando}
+          onChange={(v: string) =>
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+  ...usuario.dadosRecebimento,
+  cpfTitular: v,
+},
+  })
+}
+        />
+      </>
+    )}
+  </Section>
+)}
 
       {/* Cards de Ações */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
