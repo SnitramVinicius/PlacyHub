@@ -10,6 +10,7 @@ import { FavoritosProvider } from "@/context/FavoritosContext";
 import { TemaProvider } from "@/context/TemaContext";
 import HelpButton from "@/components/HelpButton";
 import { Suspense } from "react";
+import ReactQueryProvider from "@/providers/ReactQueryProvider";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -73,8 +74,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Suspense>
               
               <MobileTopBar />
-              
+               <ReactQueryProvider>
               {children}
+              </ReactQueryProvider>
               <Toaster />
               <HelpButton />
             </FavoritosProvider>

@@ -1,5 +1,6 @@
 // components/CardEspaco.tsx
 import { Heart } from "lucide-react";
+import { memo } from "react";
 
 interface CardEspacoProps {
   imagem: string;
@@ -9,7 +10,7 @@ interface CardEspacoProps {
   avaliacao: number;
 }
 
-export default function CardEspaco({
+function CardEspaco({
   imagem,
   nome,
   preco,
@@ -23,22 +24,42 @@ export default function CardEspaco({
           src={imagem}
           alt={nome}
           className="w-full h-[200px] object-cover"
+          loading="lazy"
         />
-        <button className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition">
+
+        <button 
+          className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition"
+          aria-label="Adicionar aos favoritos"
+        >
           <Heart size={20} className="text-[#02aeee]" />
         </button>
       </div>
 
       <div className="p-3">
-        <p className="font-semibold text-[16px]">{nome}</p>
-        <p className="text-gray-500 text-sm mt-1">{preco}</p>
-        <p className="text-gray-500 text-sm">{duracao}</p>
+        <p className="font-semibold text-[16px]">
+          {nome}
+        </p>
+
+        <p className="text-gray-500 text-sm mt-1">
+          {preco}
+        </p>
+
+        <p className="text-gray-500 text-sm">
+          {duracao}
+        </p>
 
         <div className="flex items-center gap-1 mt-1">
-          <span className="text-yellow-500">★</span>
-          <p className="text-gray-700 text-sm font-medium">{avaliacao.toFixed(1)}</p>
+          <span className="text-yellow-500">
+            ★
+          </span>
+
+          <p className="text-gray-700 text-sm font-medium">
+            {avaliacao.toFixed(1)}
+          </p>
         </div>
       </div>
     </div>
   );
 }
+
+export default memo(CardEspaco);
