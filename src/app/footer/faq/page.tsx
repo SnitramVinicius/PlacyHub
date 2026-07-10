@@ -113,7 +113,7 @@ export default function FAQ() {
         </div>
 
         {/* Ainda tem dúvidas? */}
-        <div className="mt-12 text-center">
+        {/* <div className="mt-12 text-center">
           <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-8">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Ainda tem dúvidas?
@@ -138,7 +138,7 @@ export default function FAQ() {
               </a>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
