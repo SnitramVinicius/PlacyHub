@@ -1,4 +1,4 @@
-
+export const dynamic = "force-dynamic";
 import { getSpacesHome } from "@/lib/server/spaces";
 import HomeClient from "@/components/HomeClient";
 
