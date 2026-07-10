@@ -4,17 +4,18 @@ import { useState } from "react";
 import { MessageCircle, Bug } from "lucide-react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { useRef } from "react";
-
-
-
+import { useAuth } from "@/context/AuthContext";
 export default function FloatingHelpButton() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [openReport, setOpenReport] = useState(false);
   const [descricaoBug, setDescricaoBug] = useState("");
   const controls = useAnimation();
   const isDragging = useRef(false);
+  if (!user) {
+  return null;
+}
 let timeoutRef: any = null;
-
 
   const enviarBug = () => {
     if (!descricaoBug.trim()) {

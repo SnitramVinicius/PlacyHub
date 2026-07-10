@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter,useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock } from "lucide-react";
@@ -14,15 +14,12 @@ import { ptBR } from "date-fns/locale";
 import { obterValorParaData } from "@/utils/precificacao";
 import { calcularValorPeriodo } from "@/utils/precificacao";
 import { TAXAS } from "@/config/taxa";
-
-
-
+import ImageGallery from "@/components/Espaco/ImageGallery";
 registerLocale("pt-BR", ptBR);
-
 // const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
 
 export default function EspacoPage() {
-  const router = useRouter(); // Adicione esta linha
+  const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
 
@@ -70,25 +67,21 @@ const formatarData = (data: Date) => {
     data.getDate()
   ).padStart(2,"0")}`;
 };
-  const [modalImagemAberto, setModalImagemAberto] = useState(false);
-
-
   const calendarRef = useRef<HTMLDivElement>(null);
   const [editandoReserva, setEditandoReserva] = useState(false);
   const [abrirSelecaoMobile, setAbrirSelecaoMobile] = useState(false);
   const [avaliacoes, setAvaliacoes] = useState<
     { usuario: string; nota: number; comentario: string; data: string }[]
   >([]);
-const notaMedia = avaliacoes.length
-  ? avaliacoes.reduce((acc,a)=>acc+a.nota,0) / avaliacoes.length
-  : 0;
+const notaMedia = useMemo(() => {
+  return avaliacoes.length
+    ? avaliacoes.reduce((acc, a) => acc + a.nota, 0) / avaliacoes.length
+    : 0;
+}, [avaliacoes]);
 
-// Buscar avaliações reais do Supabase
 useEffect(() => {
   async function buscarAvaliacoes() {
     if (!espaco?.id) return;
-
-    // Primeiro, buscar as avaliações do espaço
    const { data: avaliacoesData, error: avaliacoesError } = await supabase
   .from("avaliacoes")
   .select("id, nota, comentario, created_at, user_id")
@@ -106,7 +99,6 @@ useEffect(() => {
       return;
     }
 
-    // Buscar os nomes dos usuários separadamente
     const userIds = [...new Set(avaliacoesData.map(av => av.user_id))];
     const { data: usersData, error: usersError } = await supabase
       .from("users")
@@ -115,7 +107,7 @@ useEffect(() => {
 
     if (usersError) {
       console.error("Erro ao buscar usuários:", usersError);
-      // Se não conseguir buscar nomes, usa "Usuário" como padrão
+
       const avaliacoesFormatadas = avaliacoesData.map((av: any) => ({
         usuario: "Usuário",
         nota: av.nota,
@@ -152,22 +144,25 @@ useEffect(() => {
 
     try {
       // Buscar bloqueios manuais
-      const { data: bloqueios, error: bloqueiosError } = await supabase
-        .from("bloqueios")
-        .select("data_inicio, data_fim, espaco_id")
-        .or(`espaco_id.eq.${espaco.id},espaco_id.is.null`);
+      const [
+  { data: bloqueios, error: bloqueiosError },
+  { data: reservas, error: reservasError },
+] = await Promise.all([
+  supabase
+    .from("bloqueios")
+    .select("data_inicio, data_fim, espaco_id")
+    .or(`espaco_id.eq.${espaco.id},espaco_id.is.null`),
 
-      if (bloqueiosError) throw bloqueiosError;
+  supabase
+    .from("reservas")
+    .select("data_inicio, data_fim")
+    .eq("espaco_id", espaco.id)
+    .eq("pagamento_status", "approved")
+    .neq("status", "cancelada"),
+]);
 
-      // 🔥 CORRIGIDO: Buscar reservas que NÃO estão canceladas
-      const { data: reservas, error: reservasError } = await supabase
-        .from("reservas")
-        .select("data_inicio, data_fim")
-        .eq("espaco_id", espaco.id)
-        .eq("pagamento_status", "approved")
-        .neq("status", "cancelada");  // ← EXCLUI RESERVAS CANCELADAS
-
-      if (reservasError) throw reservasError;
+if (bloqueiosError) throw bloqueiosError;
+if (reservasError) throw reservasError;
 
       const datas: string[] = [];
 
@@ -190,8 +185,6 @@ useEffect(() => {
       reservas?.forEach((r) =>
         expandirPeriodo(r.data_inicio, r.data_fim)
       );
-
-      console.log("DATAS BLOQUEADAS:", datas);
       setDatasBloqueadas([...new Set(datas)]);
     } catch (error) {
       console.error("Erro ao carregar bloqueios:", error);
@@ -364,14 +357,14 @@ const getDayClassName = (date: Date) => {
 
   useEffect(() => {
   document.body.style.overflow =
-    modalAberto || modalReservaAberto || modalImagemAberto
+    modalAberto || modalReservaAberto
       ? "hidden"
       : "auto";
 
   return () => {
     document.body.style.overflow = "auto";
   };
-}, [modalAberto, modalReservaAberto, modalImagemAberto]);
+}, [modalAberto, modalReservaAberto]);
 
   const handleFavoritoClick = (espacoId: string) => {
     if (!isLogged) {
@@ -392,45 +385,6 @@ const [isMobile,setIsMobile] = useState(false);
 
   const [showBottomBar, setShowBottomBar] = useState(true);
 const lastScrollY = useRef(0);
-
-  const [indexAtual, setIndexAtual] = useState(0);
-  const touchStartX = useRef(0);
-const touchEndX = useRef(0);
-
-const handleTouchStart = (e: React.TouchEvent) => {
-  touchStartX.current = e.changedTouches[0].screenX;
-};
-
-const handleTouchEnd = (e: React.TouchEvent) => {
-  touchEndX.current = e.changedTouches[0].screenX;
-  handleSwipe();
-};
-
-const handleSwipe = () => {
-  const distance = touchStartX.current - touchEndX.current;
-
-  if (distance > 50) {
-    // 👉 swipe pra esquerda (próxima imagem)
-    proximaImagem();
-  }
-
-  if (distance < -50) {
-    // 👉 swipe pra direita (imagem anterior)
-    imagemAnterior();
-  }
-};
-
- useEffect(() => {
-  const handleResize = () => {
-    setIsMobile(window.innerWidth < 768);
-  };
-
-  handleResize();
-
-  window.addEventListener("resize", handleResize);
-
-  return () => window.removeEventListener("resize", handleResize);
-}, []);
 
 useEffect(() => {
   if (!isMobile) return;
@@ -547,36 +501,12 @@ startReserva && endReserva
   )
 : 1;
 
-console.log({
- inicio: startReserva,
- fim: endReserva,
- dias: diasReserva,
- diferenca:
- endReserva && startReserva
- ? endReserva.getTime() - startReserva.getTime()
- : null
-});
-
-  try {
-  const {
- valorBase,
- taxaCliente,
- total
-} = calcularResumoPreco();
-
-// 🔥 ADICIONE O CONSOLE AQUI (ANTES DE SALVAR) 🔥
-    console.log("📝 Dados da reserva a serem salvos:", {
-      espaco_id: espaco.id,
-      user_id: user?.id,
-      data_inicio: formatarData(startReserva),
-     data_fim: endReserva 
-? formatarData(endReserva) 
-: formatarData(startReserva),
-      status: "pendente",
-      qtd_pessoas: qtdPessoas,
-      valor_total: total,
-      created_at: new Date().toISOString(),
-    });
+try {
+const {
+  valorBase,
+  taxaCliente,
+  total,
+} = resumoPreco;
 
 
     // 🔥 1. SALVAR RESERVA NO SUPABASE
@@ -607,7 +537,6 @@ valor_total: total,
   return;
 }
 
-    console.log("✅ Reserva salva:", reservaData);
 
     // 🔥 2. CRIAR PAGAMENTO COM O ID DA RESERVA
     const response = await fetch("/api/pagamento", {
@@ -650,6 +579,103 @@ dataFim: endReserva
   setReservando(false);
 }
 };
+
+const isBuffet = useMemo(() => {
+  return !!espaco?.buffet &&
+    espaco.buffet.tiposFesta?.length > 0;
+}, [espaco]);
+
+const precoBaseDinamico = useMemo(() => {
+  if (!espaco) return 0;
+
+  return startReserva
+    ? obterValorParaData(startReserva, espaco)
+    : (espaco.preco ?? 0) / 100;
+}, [startReserva, espaco]);
+
+const precoSelecionado = useMemo(() => {
+  return isBuffet
+    ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
+    : precoBaseDinamico;
+}, [
+  isBuffet,
+  valorSelecionado,
+  espaco,
+  precoBaseDinamico
+]);
+
+const resumoPreco = useMemo(() => {
+
+  if (!espaco) {
+    return {
+      valorBase: 0,
+      taxaCliente: 0,
+      total: 0,
+    };
+  }
+
+  const valorBase = isBuffet
+    ? valorSelecionado?.preco ?? 0
+    : startReserva && endReserva
+      ? calcularValorPeriodo(startReserva, endReserva, espaco)
+      : 0;
+
+  const taxaCliente = valorBase * TAXAS.locatario;
+
+  return {
+    valorBase,
+    taxaCliente,
+    total: valorBase + taxaCliente,
+  };
+
+}, [
+ isBuffet,
+ valorSelecionado,
+ startReserva,
+ endReserva,
+ espaco,
+]);
+
+
+const {
+ valorBase,
+ taxaCliente,
+ total: totalCalculado,
+} = resumoPreco;
+
+
+const comissaoPlacyHub = useMemo(() => {
+ return valorBase * TAXAS.anfitriao;
+}, [valorBase]);
+
+
+const repasseAnfitriao = useMemo(() => {
+ return valorBase - comissaoPlacyHub;
+}, [valorBase, comissaoPlacyHub]);
+
+
+const imagens = useMemo(() => {
+ if (!espaco) return [];
+
+ return [
+   ...(espaco.imagem ? [espaco.imagem] : []),
+   ...(espaco.imagens || []),
+ ];
+}, [espaco]);
+
+
+const reservaCompleta = useMemo(() => {
+ return isBuffet
+ ? !!startReserva && !!valorSelecionado
+ : !!startReserva && qtdPessoas > 0;
+}, [
+ isBuffet,
+ startReserva,
+ valorSelecionado,
+ qtdPessoas
+]);
+
+
   if (loading) {
   return (
     <p className="text-center mt-10">
@@ -665,38 +691,8 @@ if (!espaco) {
     </p>
   );
 }
- // ✅ 1. PRIMEIRO: isBuffet
-const isBuffet =
-  !!espaco.buffet &&
-  espaco.buffet.tiposFesta?.length > 0;
-  
-
-const precoBaseDinamico = startReserva
-  ? obterValorParaData(startReserva, espaco)
-  : (espaco.preco ?? 0) / 100;
-
-const precoSelecionado = isBuffet
-  ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
-  : precoBaseDinamico;
-
-const calcularResumoPreco = () => {
-
-  const valorBase = isBuffet
-    ? valorSelecionado?.preco ?? 0
-    : startReserva && endReserva
-      ? calcularValorPeriodo(startReserva, endReserva, espaco)
-      : 0;
 
 
-  const taxaCliente = valorBase * TAXAS.locatario;
-
-
-  return {
-    valorBase,
-    taxaCliente,
-    total: valorBase + taxaCliente
-  };
-};
 
 const diasReserva =
   startReserva
@@ -711,25 +707,6 @@ const diasReserva =
       : 1
     : 0;
 
-const {
- valorBase,
- taxaCliente,
- total: totalCalculado
-} = calcularResumoPreco();
-
-const comissaoPlacyHub = valorBase * TAXAS.anfitriao;
-const repasseAnfitriao = valorBase - comissaoPlacyHub;
-
-// ✅ 3. DEPOIS: imagens
-const imagens = [
-  ...(espaco.imagem ? [espaco.imagem] : []),
-  ...(espaco.imagens || []),
-];
-
-// ✅ 4. DEPOIS: reservaCompleta
-const reservaCompleta = isBuffet
-  ? !!startReserva && !!valorSelecionado
-  : !!startReserva && qtdPessoas > 0;
 
 const handleVoltar = () => {
  if(window.history.length > 1){
@@ -738,22 +715,6 @@ const handleVoltar = () => {
    router.push("/");
  }
 };
-
-  const proximaImagem = () => {
-  setIndexAtual((prev) => (prev + 1) % imagens.length);
-};
-
-const imagemAnterior = () => {
-  setIndexAtual((prev) =>
-    prev === 0 ? imagens.length - 1 : prev - 1
-  );
-};
-
-const selecionarImagem = (index: number) => {
-  setIndexAtual(index);
-};
-
-
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 pb-24 text-gray-900 dark:text-gray-100">
@@ -770,146 +731,8 @@ const selecionarImagem = (index: number) => {
       
       <h1 className="text-4xl font-bold mb-6">{espaco.nome}</h1>
 
- <div className="mb-6">
-  {/* IMAGEM PRINCIPAL */}
- <div className="relative rounded-2xl overflow-hidden shadow-xl">
-  <div className="flex overflow-x-auto snap-x snap-mandatory">
-<img
-  src={
-    imagens[indexAtual] ||
-    "/images/placeholder-space.jpg"
-  }
-  alt="Imagem do espaço"
-  onTouchStart={handleTouchStart}
-  onTouchEnd={handleTouchEnd}
-  onClick={() => setModalImagemAberto(true)} // 👈 AQUI
-  className="w-full h-[450px] object-cover transition-all duration-300 cursor-pointer"
-/>
-    {/* BOTÕES DESKTOP */}
-    {!isMobile && (
-      <>
-       <button
-  onClick={imagemAnterior}
-  className="absolute left-4 top-1/2 -translate-y-1/2
-  w-11 h-11 flex items-center justify-center
-  rounded-full
-  bg-white/20 backdrop-blur-md
-  border border-white/30
-  shadow-lg
-  hover:bg-white/30 hover:scale-105
-  active:scale-95
-  transition-all duration-300"
->
-  <ChevronLeft className="text-white" size={22} />
-</button>
-
-       <button
-  onClick={proximaImagem}
-  className="absolute right-4 top-1/2 -translate-y-1/2
-  w-11 h-11 flex items-center justify-center
-  rounded-full
-  bg-white/20 backdrop-blur-md
-  border border-white/30
-  shadow-lg
-  hover:bg-white/30 hover:scale-105
-  active:scale-95
-  transition-all duration-300"
->
-  <ChevronRight className="text-white" size={22} />
-</button>
-      </>
-    )}
-    </div>
-  </div>
-
-  {/* MOBILE */}
-  {isMobile && (
-    <div className="flex gap-2 overflow-x-auto mt-2 pb-2">
-      {imagens.map((img, index) => (
-        <img
-          key={index}
-          src={img}
-          onClick={() => selecionarImagem(index)}
-          className={`h-20 w-32 object-cover rounded-lg cursor-pointer ${
-            index === indexAtual ? "ring-2 ring-blue-500" : ""
-          }`}
-        />
-      ))}
-    </div>
-  )}
-
-  {/* DESKTOP MINIATURAS */}
-  {!isMobile && (
-    <div className="flex gap-2 mt-3 overflow-x-auto">
-      {imagens.map((img, index) => (
-        <img
-          key={index}
-          src={img}
-          onClick={() => selecionarImagem(index)}
-          className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition ${
-  index === indexAtual ? "ring-2 ring-blue-500" : ""
-}`}
-        />
-      ))}
-    </div>
-  )}
-</div>
-   
-{modalImagemAberto && (
-  <div
-    className="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center"
-    onClick={() => setModalImagemAberto(false)}
-    onTouchMove={(e) => e.preventDefault()}
-  >
-    {/* BOTÃO FECHAR */}
-    <button
-      onClick={() => setModalImagemAberto(false)}
-      className="absolute top-5 right-5 text-white bg-black/50 rounded-full p-2"
-    >
-      <X size={28} />
-    </button>
-
-    {/* BOTÃO ESQUERDA (só desktop) */}
-    {!isMobile && (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          imagemAnterior();
-        }}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md p-3 rounded-full"
-      >
-        <ChevronLeft className="text-white" size={30} />
-      </button>
-    )}
-
-    {/* 🔥 IMAGEM (AGORA SEMPRE VISÍVEL) */}
-    <img
-  src={
-    imagens[indexAtual] ||
-    "/images/placeholder-space.jpg"
-  }
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className="max-w-[95%] max-h-[90%] object-contain"
-      onClick={(e) => e.stopPropagation()}
-    />
-
-    {/* BOTÃO DIREITA (só desktop) */}
-    {!isMobile && (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          proximaImagem();
-        }}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md p-3 rounded-full"
-      >
-        <ChevronRight className="text-white" size={30} />
-      </button>
-    )}
-  </div>
-)}
-   
-      {/* NOVO MODAL DE RESERVA */}
+<ImageGallery imagens={imagens} />
+    
       {modalReservaAberto && (
         <div
           className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm"
