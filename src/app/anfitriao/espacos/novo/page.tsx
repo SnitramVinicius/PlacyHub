@@ -6,7 +6,20 @@ import { supabase } from "@/lib/supabase";
 export default function NovoEspaco() {
   const router = useRouter();
 
-  const handleSubmit = async (dados: EspacoFormData, fotosNovas: File[]) => {
+const handleSubmit = async (dados: EspacoFormData, fotosNovas: File[]) => {
+
+    // 🔥 PEGAR USUÁRIO LOGADO
+    const userData = localStorage.getItem("placyhub_user_dev");
+
+    if (!userData) {
+      alert("Usuário não encontrado. Faça login novamente.");
+      return;
+    }
+
+    const user = JSON.parse(userData);
+
+    console.log("Usuário criando espaço:", user.id);
+
     const urls: string[] = [];
 
     // 1. Upload das fotos
@@ -37,6 +50,7 @@ export default function NovoEspaco() {
       .from("spaces")
       .insert([
         {
+          user_id: user.id,
           nome_espaco: dados.nome_espaco,
           tipo_espaco: dados.tipo_espaco,
           capacidade: dados.capacidade,
