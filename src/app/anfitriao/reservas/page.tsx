@@ -1,9 +1,4 @@
 "use client";
-
-/* ======================= CALENDARIO AGENDA DO ANFITRIAO
-CALENDARIO PARA ANFITRIAO ACOMPANHAR SEUS AGENDAMENTOS DE ESPAÇOS
- ======================= */
-
 import { useState, useEffect } from "react";
 import {
   ChevronLeft,
@@ -434,13 +429,18 @@ bloqueiosData?.forEach((bloqueio) => {
 
     // Buscar dados dos clientes
     const userIds = [...new Set(reservasData.map(r => r.user_id))];
-const { data: clientes } = await supabase
+const { data: clientes, error: clientesError } = await supabase
   .from("users")
   .select("id, name, telefone")
   .in("id", userIds);
 
+console.log("userIds:", userIds);
+console.log("clientes:", clientes);
+console.log("erro:", clientesError);
+
     const clientesMap = new Map();
     clientes?.forEach(c => clientesMap.set(c.id, c));
+    
     console.log("👤 Mapa de clientes:", Array.from(clientesMap.entries()));
 const reservasFormatadas: Reserva[] = await Promise.all(
   reservasData.map(async (reserva) => {
