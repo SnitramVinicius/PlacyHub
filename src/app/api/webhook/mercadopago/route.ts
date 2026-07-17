@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Resend } from "resend";
 import {
   TAXAS,
@@ -18,7 +18,7 @@ async function podeEnviarEmail(usuarioId: string, tipo: string): Promise<boolean
   if (!usuarioId) return false;
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("user_notificacoes_settings")
       .select("email")
       .eq("user_id", usuarioId)
@@ -43,7 +43,7 @@ async function podeEnviarEmail(usuarioId: string, tipo: string): Promise<boolean
 
 async function getDadosUsuario(usuarioId: string) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("users")
       .select("email, name")
       .eq("id", usuarioId)
@@ -211,7 +211,7 @@ export async function POST(request: Request) {
     }
     
     // 🔥 Buscar dados completos da reserva (antes de atualizar)
-    const { data: reservaCompleta, error: reservaCompletaError } = await supabase
+    const { data: reservaCompleta, error: reservaCompletaError } = await supabaseAdmin
       .from("reservas")
       .select(`
   *,
@@ -237,15 +237,19 @@ export async function POST(request: Request) {
     }
     
     // Atualizar reserva no Supabase
-    const { error: updateError } = await supabase
-      .from("reservas")
-      .update({
-        status: statusReserva,
-        pagamento_id: payment.id,
-        pagamento_status: payment.status,
-        pagamento_atualizado_em: new Date().toISOString(),
-      })
-      .eq("id", reservaId);
+   const { data, error: updateError } = await supabaseAdmin
+  .from("reservas")
+  .update({
+    status: statusReserva,
+    pagamento_id: payment.id,
+    pagamento_status: payment.status,
+    pagamento_atualizado_em: new Date().toISOString(),
+  })
+  .eq("id", reservaId)
+  .select();
+
+console.log("UPDATE RESULT:", data);
+console.log("UPDATE ERROR:", updateError);
     
     if (updateError) {
       console.error("❌ Erro ao atualizar reserva:", updateError);
@@ -258,7 +262,7 @@ export async function POST(request: Request) {
     if (payment.status === "approved") {
       const { data: reserva, error: reservaError } = reservaCompleta && !reservaCompletaError
         ? { data: reservaCompleta, error: null }
-        : await supabase
+        : await supabaseAdmin
             .from("reservas")
             .select(`
   *,
@@ -290,7 +294,7 @@ console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_i
         // ============================================
         
         // Para o ANFITRIÃO
-        const { error: notifAnfitriaoError } = await supabase
+        const { error: notifAnfitriaoError } = await supabaseAdmin
           .from("notificacoes")
           .insert({
             usuario_id: reserva.spaces.user_id,
@@ -319,7 +323,7 @@ console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_i
         }
         
         // Para o CLIENTE
-        const { error: notifClienteError } = await supabase
+        const { error: notifClienteError } = await supabaseAdmin
           .from("notificacoes")
           .insert({
             usuario_id: reserva.user_id,
@@ -432,14 +436,14 @@ const valorBruto = Number(valorBaseReserva.toFixed(2));
 const taxaPlataforma = Number(taxa.toFixed(2));
 const valorFinal = Number(valorLiquido.toFixed(2));
         
-        const { data: repasseExistente } = await supabase
+        const { data: repasseExistente } = await supabaseAdmin
           .from("repasse")
           .select("id")
           .eq("reserva_id", reservaId)
           .single();
         
         if (!repasseExistente) {
-         const { error: repasseError } = await supabase
+         const { error: repasseError } = await supabaseAdmin
   .from("repasse")
   .insert({
     reserva_id: reservaId,
