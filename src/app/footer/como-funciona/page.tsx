@@ -3,16 +3,24 @@
 import { CheckCircle, ArrowLeft, Users, Calendar, Shield, CreditCard, MapPin, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function ComoFunciona() {
   const [logado, setLogado] = useState(false);
 
-  useEffect(() => {
-    const user = localStorage.getItem("placyhub_user_dev");
+useEffect(() => {
+  const verificarUsuario = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (user) {
       setLogado(true);
     }
-  }, []);
+  };
+
+  verificarUsuario();
+}, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">

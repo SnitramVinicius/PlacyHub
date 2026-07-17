@@ -390,20 +390,41 @@ const { data: bloqueiosData, error: bloqueiosError } = await supabase
   .eq("user_id", user?.id);
 
 if (bloqueiosError) throw bloqueiosError;
-
+console.log("🔒 Bloqueios encontrados:", bloqueiosData);
   if (!reservasData || reservasData.length === 0) {
-  const bloqueiosFormatados: Reserva[] =
-    bloqueiosData?.map((bloqueio) => ({
+  const bloqueiosFormatados: Reserva[] = [];
+
+bloqueiosData?.forEach((bloqueio) => {
+
+  // 🔥 Bloqueio geral
+  if (bloqueio.espaco_id === "ALL") {
+
+    espacos.forEach((espaco) => {
+      bloqueiosFormatados.push({
+        id: bloqueio.id + espaco.id,
+        espacoId: espaco.id,
+        espacoNome: espaco.nome,
+        dataInicio: bloqueio.data_inicio,
+        dataFim: bloqueio.data_fim,
+        status: "bloqueada",
+      });
+    });
+
+  } else {
+
+    bloqueiosFormatados.push({
       id: bloqueio.id,
       espacoId: bloqueio.espaco_id,
       espacoNome:
-        bloqueio.espaco_id === "ALL"
-          ? "Todos os espaços"
-          : espacos.find((e) => e.id === bloqueio.espaco_id)?.nome || "Espaço",
+        espacos.find((e) => e.id === bloqueio.espaco_id)?.nome || "Espaço",
       dataInicio: bloqueio.data_inicio,
       dataFim: bloqueio.data_fim,
       status: "bloqueada",
-    })) || [];
+    });
+
+  }
+
+});
 
   setReservas(bloqueiosFormatados);
   return;
@@ -458,7 +479,7 @@ return {
 };
   })
 );
-
+console.log("🚧 FORMATANDO BLOQUEIOS:", bloqueiosData);
 const bloqueiosFormatados: Reserva[] =
   bloqueiosData?.map((bloqueio) => ({
     id: bloqueio.id,
@@ -472,6 +493,10 @@ const bloqueiosFormatados: Reserva[] =
     status: "bloqueada",
   })) || [];
 
+  console.log("📅 RESERVAS FINAIS DO CALENDÁRIO:", [
+  ...reservasFormatadas,
+  ...bloqueiosFormatados
+]);
 console.log("✅ Reservas formatadas:", reservasFormatadas);
 
 setReservas([
@@ -955,9 +980,12 @@ useEffect(() => {
             dataDia.setHours(0, 0, 0, 0);
             const isPassado = dataDia < hoje;
 
-            const reservasDoDia = reservas.filter(
-              (r) => r.dataInicio <= dataStr && r.dataFim >= dataStr
-            );
+           const reservasDoDia = reservas.filter((r) => {
+  const dentroPeriodo =
+    r.dataInicio <= dataStr && r.dataFim >= dataStr;
+
+  return dentroPeriodo;
+});
 
             const bloqueado = reservasDoDia.find(
               (r) => r.status === "bloqueada"

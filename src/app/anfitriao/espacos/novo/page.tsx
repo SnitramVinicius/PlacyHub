@@ -8,17 +8,20 @@ export default function NovoEspaco() {
 
 const handleSubmit = async (dados: EspacoFormData, fotosNovas: File[]) => {
 
-    // 🔥 PEGAR USUÁRIO LOGADO
-    const userData = localStorage.getItem("placyhub_user_dev");
+ // 🔥 PEGAR USUÁRIO LOGADO PELO SUPABASE AUTH
+const {
+  data: { user },
+  error: authError
+} = await supabase.auth.getUser();
 
-    if (!userData) {
-      alert("Usuário não encontrado. Faça login novamente.");
-      return;
-    }
 
-    const user = JSON.parse(userData);
+if (authError || !user) {
+  alert("Usuário não autenticado. Faça login novamente.");
+  return;
+}
 
-    console.log("Usuário criando espaço:", user.id);
+
+console.log("Usuário criando espaço:", user.id);
 
     const urls: string[] = [];
 

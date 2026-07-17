@@ -1,28 +1,43 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 function ResetPasswordContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!token) {
-      setError("Token inválido ou expirado");
-    }
-  }, [token]);
+ useEffect(() => {
 
+  const verificarRecuperacao = async () => {
+
+    const {
+      data: {
+        session
+      }
+    } = await supabase.auth.getSession();
+
+
+    if(!session){
+      setError("Link inválido ou expirado");
+      return;
+    }
+
+  };
+
+
+  verificarRecuperacao();
+
+
+}, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -46,26 +61,37 @@ function ResetPasswordContent() {
     setLoading(true);
     
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, newPassword }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        setSuccess(true);
-        toast.success("Senha alterada com sucesso!");
-        setTimeout(() => router.push("/login"), 3000);
-      } else {
-        setError(data.error || "Erro ao alterar senha");
-      }
-    } catch (error) {
-      setError("Erro de conexão");
-    } finally {
-      setLoading(false);
-    }
+
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+
+  if(error){
+    setError(error.message);
+    return;
+  }
+
+
+  setSuccess(true);
+
+  toast.success("Senha alterada com sucesso!");
+
+
+  setTimeout(() => {
+    router.push("/login");
+  },3000);
+
+
+} catch(error){
+
+  setError("Erro ao alterar senha");
+
+} finally {
+
+  setLoading(false);
+
+}
   };
 
   if (success) {
@@ -161,7 +187,7 @@ function ResetPasswordContent() {
 
           <button
             type="submit"
-            disabled={loading || !token}
+            disabled={loading}
             className="w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-lg font-semibold transition 
               disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >

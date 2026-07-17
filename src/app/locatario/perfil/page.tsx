@@ -74,37 +74,31 @@ export default function PerfilUsuario() {
   const [editando, setEditando] = useState(false);
   const [confirmarLogout, setConfirmarLogout] = useState(false);
 useEffect(() => {
+
   async function carregarPerfil() {
-    const dadosLocal = localStorage.getItem("placyhub_user_dev");
-        
-    if (!dadosLocal) {
+
+    if (!user?.id) {
       router.push("/login");
       return;
     }
 
-    const userLocal = JSON.parse(dadosLocal);
-    
-    if (!userLocal.id) {
-      console.error("❌ ID do usuário não encontrado!");
-      router.push("/login");
-      return;
-    }
+    const userId = user.id;
     
 const { data: userData, error } = await supabase
   .from("users")
   .select("id, email, name, telefone, cidade, estado, cpf, data_nascimento, foto_url, cep, rua, numero, bairro, roles")
-  .eq("id", userLocal.id)
+  .eq("id", userId)
   .single();
 
 const { data: dadosRecebimento } = await supabase
   .from("dados_recebimento")
   .select("*")
-  .eq("user_id", userLocal.id)
+  .eq("user_id", userId)
   .maybeSingle();
 
 if (error) {
   console.error("Erro ao buscar dados:", error);
-  setUsuario(userLocal);
+  toast.error("Erro ao carregar perfil");
   return;
 }
 
@@ -149,33 +143,16 @@ const usuarioCompleto: Usuario = {
     cidade: userData.cidade || "",
     estado: userData.estado || "",
   },
-  roles: userData.roles || userLocal.roles || ["LOCATARIO"]
+  roles: userData.roles || user.roles || ["LOCATARIO"]
 };
 
 // Atualiza estado da página
 setUsuario(usuarioCompleto);
 
-// Atualiza o AuthContext
-updateUser(usuarioCompleto);
-
-// Atualiza o localStorage
-localStorage.setItem(
-  "placyhub_user_dev",
-  JSON.stringify(usuarioCompleto)
-);
-
-// Atualiza o AuthContext
-updateUser(usuarioCompleto);
-
-// Atualiza o localStorage
-localStorage.setItem(
-  "placyhub_user_dev",
-  JSON.stringify(usuarioCompleto)
-);
   }
 
   carregarPerfil();
-}, [router]);
+}, [user?.id, router, updateUser]);
 
   if (!usuario) return null;
 
@@ -274,6 +251,7 @@ const handleSalvar = async () => {
 
 const { error: erroRecebimento } = await supabase
   .from("dados_recebimento")
+  
   .upsert(
     {
       user_id: usuario.id,
@@ -315,22 +293,19 @@ if (erroRecebimento) {
   toast.error("Erro ao salvar dados de recebimento");
   return;
 }
-
+console.log("Recebimento salvo:", usuario.dadosRecebimento);
 updateUser(usuario);
-
-localStorage.setItem(
-  "placyhub_user_dev",
-  JSON.stringify(usuario)
-);
 
 setEditando(false);
 toast.success("Dados salvos com sucesso!");
 };
 
- const handleLogout = () => {
-  localStorage.removeItem("placyhub_user_dev");  // 🔥 MUDOU AQUI
-  sessionStorage.clear();
+const handleLogout = async () => {
+
+  await supabase.auth.signOut();
+
   router.push("/login");
+
 };
 
 // Função para formatar texto com primeira letra maiúscula
@@ -573,15 +548,17 @@ const formatarRua = (texto: string) => {
   <select
     disabled={!editando}
     value={usuario.dadosRecebimento.pixTipo || ""}
-    onChange={(e) =>
-      setUsuario({
-        ...usuario,
-        dadosRecebimento: {
-          ...usuario.dadosRecebimento,
-          pixTipo: e.target.value,
+    onChange={(e) => {
+  console.log("Mudou para:", e.target.value);
+
+  setUsuario({
+    ...usuario,
+    dadosRecebimento: {
+      ...usuario.dadosRecebimento,
+      pixTipo: e.target.value,
         },
       })
-    }
+    }}
     className={`w-full border rounded-xl px-4 py-2.5 mt-1
       bg-white text-gray-900 border-gray-300
       dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600

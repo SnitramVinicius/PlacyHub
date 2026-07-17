@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     let usuarioId = userId;
     
     if (!usuarioId && sessionToken && !sessionToken.startsWith("manual_")) {
-      const { data: { user }, error } = await supabase.auth.getUser(sessionToken);
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(sessionToken);
       if (!error && user) {
         usuarioId = user.id;
       }
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     console.log("📍 Localização final:", locationText);
     
     // Registrar sessão
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("user_sessions")
       .insert({
         user_id: usuarioId,
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     }
     
     if (data && data.length > 0) {
-      await supabase
+      await supabaseAdmin
         .from("user_sessions")
         .update({ is_current: false })
         .eq("user_id", usuarioId)

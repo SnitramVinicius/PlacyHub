@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Home,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "@/context/AuthContext";
-import SinoNotificacoes from "@/components/SinoNotificacoes";
 import SinoNotificacoesDesktop from "@/components/SinoNotificacoesDesktop";
 
 const links = [
@@ -32,7 +31,8 @@ export default function UsuarioLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { logout, user } = useAuth();
+  const router = useRouter();
+const { logout, user, loading } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
 
   // Effect para responsividade
@@ -46,6 +46,28 @@ export default function UsuarioLayout({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Proteção das rotas do locatário
+useEffect(() => {
+  if (loading) return;
+
+  if (!user) {
+    router.replace(`/login?redirect=${pathname}`);
+  }
+}, [loading, user, router]);
+
+if (loading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-gray-500 dark:text-gray-400">
+        Carregando...
+      </div>
+    </div>
+  );
+}
+
+if (!user) {
+  return null;
+}
   return (
     <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Sidebar - Desktop */}

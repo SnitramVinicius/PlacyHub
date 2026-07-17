@@ -65,10 +65,16 @@ export function TemaProvider({ children }: { children: ReactNode }) {
       if (user?.id) {
         try {
           const { data, error } = await supabase
-            .from("users")
-            .select("tema")
-            .eq("id", user.id)
-            .single();
+  .from("users")
+  .select("*")
+  .eq("id", user.id)
+  .maybeSingle();
+
+console.log("TEMA DEBUG:", {
+  data,
+  error,
+  userId: user.id
+});
           
           if (!error && data?.tema && (data.tema === "claro" || data.tema === "escuro")) {
             console.log("📱 Tema carregado do banco:", data.tema);

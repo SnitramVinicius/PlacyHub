@@ -59,23 +59,28 @@ useEffect(() => {
   const buscarEspacos = async () => {
     setLoading(true);
     
-    // 🔥 PEGAR O USUÁRIO LOGADO
-    const userData = localStorage.getItem("placyhub_user_dev");
-    if (!userData) {
-      console.log("Usuário não logado");
-      setEspacos([]);
-      setLoading(false);
-      return;
-    }
+// 🔥 PEGAR USUÁRIO PELO SUPABASE AUTH
+const {
+  data: { user },
+  error: authError
+} = await supabase.auth.getUser();
 
-    const user = JSON.parse(userData);
-    console.log("Usuário logado ID:", user.id);
+
+if (authError || !user) {
+  console.log("Usuário não autenticado");
+  setEspacos([]);
+  setLoading(false);
+  return;
+}
+
+
+console.log("Usuário logado ID:", user.id);
 
     // 🔥 BUSCAR APENAS ESPAÇOS DESTE USUÁRIO
-    const { data, error } = await supabase
-      .from("spaces")
-      .select("*")
-      .eq("user_id", user.id);
+   const { data, error } = await supabase
+  .from("spaces")
+  .select("*")
+  .eq("user_id", user.id);
 
     console.log("ESPACOS DO BANCO:", data);
     console.log("ERRO:", error);
@@ -144,31 +149,46 @@ const excluirEspaco = async (id: string) => {
 };
 
 const alternarDisponibilidade = async (id: string) => {
-  const espaco = espacos.find(e => e.id === id);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  console.log("USER:", user?.id);
+
+  const espaco = espacos.find((e) => e.id === id);
+
   if (!espaco) return;
 
   const novoStatus = !espaco.disponivel;
-  
-  try {
-    const { error } = await supabase
-      .from("spaces")
-      .update({ disponivel: novoStatus })
-      .eq("id", id);
 
-    if (error) throw error;
+  const { data, error } = await supabase
+    .from("spaces")
+    .update({
+      disponivel: novoStatus,
+    })
+    .eq("id", id)
 
-    // Atualizar estado local
-    setEspacos(prev =>
-      prev.map(e =>
-        e.id === id ? { ...e, disponivel: novoStatus } : e
-      )
-    );
-    
-    toast.success(`Espaço ${novoStatus ? "ativado" : "pausado"} com sucesso!`);
-  } catch (error) {
-    console.error("Erro ao alterar disponibilidade:", error);
-    toast.error("Erro ao alterar status do espaço");
+
+
+  console.log("DATA UPDATE:", data);
+  console.log("ERROR UPDATE:", error);
+
+
+  if (error) {
+    toast.error(error.message);
+    return;
   }
+
+
+  setEspacos((prev) =>
+    prev.map((e) =>
+      e.id === id
+        ? { ...e, disponivel: novoStatus }
+        : e
+    )
+  );
+
 };
 
   const formatarPreco = (valor: number) => {

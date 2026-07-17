@@ -15,12 +15,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function GerenciarSeguranca() {
+
+  const { user } = useAuth();
+
   const [autenticacao2FA, setAutenticacao2FA] = useState(false);
   const [devices, setDevices] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-
   // Detectar mobile
   useEffect(() => {
     const handleResize = () => {
@@ -34,9 +37,12 @@ export default function GerenciarSeguranca() {
   useEffect(() => {
     async function loadDevices() {
       try {
-        const userData = JSON.parse(localStorage.getItem("placyhub_user_dev") || "{}");
-        const userId = userData.id;
-        
+        const userId = user?.id;
+
+if (!userId) {
+  console.log("Usuário não encontrado");
+  return;
+}
         if (!userId) {
           console.log("Usuário não encontrado");
           return;
@@ -80,8 +86,7 @@ export default function GerenciarSeguranca() {
 
   const handleEncerrarDispositivo = async (id: string) => {
     try {
-      const userData = JSON.parse(localStorage.getItem("placyhub_user_dev") || "{}");
-      const userId = userData.id;
+      const userId = user?.id;
       
       const res = await fetch("/api/security/devices", {
         method: "DELETE",

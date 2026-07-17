@@ -10,7 +10,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { Role } from "@/types/role";
-import crypto from 'crypto';
+// import crypto from 'crypto';
 
 /**
  * ===============================
@@ -37,12 +37,12 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, senha: string) => Promise<boolean>;
-  logout: () => void;
+ logout: () => Promise<void>;
   updateUser: (novosDados: Partial<User>) => void;
   favoritos: string[];
   toggleFavorito: (id: string) => void;
   virarAnfitriao: (cpf: string) => Promise<void>;
-  refreshUser: () => void;
+  refreshUser: () => Promise<void>;
   isAnfitriao: boolean;
   isLocatario: boolean;
 }
@@ -69,38 +69,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * CARREGAR USUÁRIO DO STORAGE
    * ===============================
    */
-  const refreshUser = () => {
-    const raw = localStorage.getItem("placyhub_user_dev");
-    if (!raw) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
 
-    try {
-      const parsedUser = JSON.parse(raw);
-      setUser(parsedUser);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+  const refreshUser = async () => {
+  setLoading(true);
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+const authUser = session?.user;
+
+console.log("===== DEBUG AUTH =====");
+console.log("SESSION:", session);
+console.log("AUTH USER:", authUser);
+console.log("AUTH ID:", authUser?.id);
+console.log("======================");
+
+  console.log("AUTH USER:", authUser);
+console.log("AUTH ID:", authUser?.id);
+
+  if (!authUser) {
+    setUser(null);
+    setLoading(false);
+    return;
+  }
+
+ const { data, error } = await supabase
+  .from("users")
+  .select(`
+    id,
+    email,
+    name,
+    telefone,
+    cidade,
+    estado,
+    cpf,
+    foto_url,
+    roles,
+    is_admin
+  `)
+  .eq("id", authUser.id)
+  .single();
+
+if (error || !data) {
+    setUser(null);
+    setLoading(false);
+    return;
+  }
+
+  const userData: User = {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    roles: data.roles ?? ["LOCATARIO"],
+    is_admin: data.is_admin,
+    telefone: data.telefone,
+    cidade: data.cidade,
+    estado: data.estado,
+    cpf: data.cpf,
+    fotoUrl: data.foto_url,
   };
 
-  /**
-   * ===============================
-   * BOOTSTRAP - Carrega usuário e favoritos
-   * ===============================
-   */
-  useEffect(() => {
-    refreshUser();
-    
-    // Carregar favoritos
-    const saved = localStorage.getItem("placyhub_favoritos");
-    if (saved) {
-      setFavoritos(JSON.parse(saved));
-    }
-  }, []);
+  setUser(userData);
+
+  setLoading(false);
+};
+ useEffect(() => {
+  refreshUser();
+
+  const saved = localStorage.getItem("placyhub_favoritos");
+  if (saved) {
+    setFavoritos(JSON.parse(saved));
+  }
+}, []);
 
   /**
    * ===============================
@@ -120,9 +161,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
+//       const { data, error } = await supabase
+//   .from("users")
+//  .select(`
+//     id,
+//     email,
+//     name,
+//     telefone,
+//     cidade,
+//     estado,
+//     cpf,
+//     foto_url,
+//     senha,
+//     roles,
+//     is_admin
+//   `)
+//   .eq("email", email)
+//   .maybeSingle();
+
+//       if (error || !data) {
+//         console.error("Erro ao buscar usuário:", error);
+//         toast.error("E-mail ou senha incorretos");
+//         setLoading(false);
+//         return false;
+//       }
+
+//      const senhaHash = crypto.createHash('sha256').update(senha).digest('hex');
+// const senhaCorreta = data.senha === senhaHash;
+
+// if (!senhaCorreta) {
+//   toast.error("E-mail ou senha incorretos");
+//   setLoading(false);
+//   return false;
+// }
+
+const { data: authData, error: authError } =
+  await supabase.auth.signInWithPassword({
+    email,
+    password: senha,
+  });
+
+  console.log("===== LOGIN =====");
+console.log("AUTH DATA:", authData);
+console.log("AUTH ERROR:", authError);
+console.log("=================");
+
+if (authError || !authData.user) {
+  console.log("ERRO SUPABASE LOGIN:", authError);
+  toast.error(authError?.message || "Erro login");
+  setLoading(false);
+  return false;
+}
+
+const { data, error } = await supabase
   .from("users")
- .select(`
+  .select(`
     id,
     email,
     name,
@@ -131,25 +224,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     estado,
     cpf,
     foto_url,
-    senha,
     roles,
     is_admin
   `)
-  .eq("email", email)
-  .maybeSingle();
+  .eq("id", authData.user.id)
+  .single();
 
-      if (error || !data) {
-        console.error("Erro ao buscar usuário:", error);
-        toast.error("E-mail ou senha incorretos");
-        setLoading(false);
-        return false;
-      }
+  console.log("AUTH ID:", authData.user.id);
+console.log("USER TABLE:", data);
 
-     const senhaHash = crypto.createHash('sha256').update(senha).digest('hex');
-const senhaCorreta = data.senha === senhaHash;
-
-if (!senhaCorreta) {
-  toast.error("E-mail ou senha incorretos");
+if (error || !data) {
+  toast.error("Erro ao carregar usuário");
   setLoading(false);
   return false;
 }
@@ -170,8 +255,7 @@ if (!senhaCorreta) {
   fotoUrl: data.foto_url,
 };
       setUser(userData);
-      localStorage.setItem("placyhub_user_dev", JSON.stringify(userData));
-
+     
 try {
   const response = await fetch("/api/security/register-session", {
     method: "POST",
@@ -204,11 +288,12 @@ try {
    * LOGOUT
    * ===============================
    */
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("placyhub_user_dev");
-    toast.success("Logout realizado com sucesso!");
-  };
+ const logout = async () => {
+  await supabase.auth.signOut();
+
+  setUser(null);
+  toast.success("Logout realizado com sucesso!");
+};
 
   /**
    * ===============================
@@ -247,7 +332,6 @@ try {
       };
 
       setUser(updatedUser);
-      localStorage.setItem("placyhub_user_dev", JSON.stringify(updatedUser));
       toast.success("Agora você é um anfitrião!");
     } catch (err) {
       console.error("Erro:", err);
@@ -267,7 +351,6 @@ try {
 
     const updatedUser = { ...user, ...novosDados };
     setUser(updatedUser);
-    localStorage.setItem("placyhub_user_dev", JSON.stringify(updatedUser));
   };
 
   /**

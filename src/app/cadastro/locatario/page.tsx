@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/types/role";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { hashPassword } from "@/lib/passwordUtils";
+// import { hashPassword } from "@/lib/passwordUtils";
 
 interface EstadoIBGE {
   id: number;
@@ -98,51 +98,50 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   setLoading(true);
 
   try {
-    // 1. Verificar se email já existe no Supabase
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("email")
-      .eq("email", usuario.email)
-      .maybeSingle();
 
-    if (existingUser) {
-      toast.error("Este e-mail já está cadastrado");
-      setLoading(false);
-      return;
-    }
-
-    // 2. Inserir novo usuário no Supabase
-    const { data, error } = await supabase
-  .from("users")
-  .insert({
+const { data: authData, error: authError } =
+  await supabase.auth.signUp({
     email: usuario.email,
-    name: usuario.nome,
+    password: usuario.senha,
+    options: {
+      data: {
+        name: usuario.nome,
+        telefone: usuario.telefone,
+        cidade: usuario.cidade,
+        estado: usuario.estado,
+      },
+    },
+  });
+
+
+if (authError) {
+  console.error("Erro Auth:", authError);
+  toast.error(authError.message);
+  setLoading(false);
+  return;
+}
+if (!authData.user) {
+  toast.error("Erro ao criar usuário.");
+  setLoading(false);
+  return;
+}
+
+const { error } = await supabase
+  .from("users")
+  .update({
     telefone: usuario.telefone,
     cidade: usuario.cidade,
     estado: usuario.estado,
     is_anfitriao: false,
-    senha: hashPassword(usuario.senha), // 🔥 Salvar com hash
+    roles: ["LOCATARIO"],
   })
-  .select()
-  .single();
-
+  .eq("id", authData.user.id);
     if (error) {
       console.error("Erro ao cadastrar:", error);
       toast.error("Erro ao criar conta. Tente novamente.");
       setLoading(false);
       return;
     }
-
-    console.log("✅ Usuário criado:", data);
-
-if (data) {
-  await supabase
-    .from("password_history")
-    .insert({
-      user_id: data.id,
-      password_hash: hashPassword(usuario.senha),
-    });
-}
 
     // 3. Fazer login automático
     const loginSuccess = await login(usuario.email, usuario.senha);
