@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Check, Trash2, Calendar, Heart, MessageCircle, Star, AlertCircle, ChevronLeft, Settings } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import Link from "next/link";
+// import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 interface Notification {
@@ -202,12 +202,12 @@ export default function NotificacoesPage() {
                   <span className="hidden sm:inline">Marcar todas</span>
                 </button>
               )}
-              <Link
+              {/* <Link
   href="/locatario/preferencias"
   className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
 >
   <Settings size={20} />
-</Link>
+</Link> */}
             </div>
           </div>
 
@@ -312,7 +312,7 @@ export default function NotificacoesPage() {
                       </div>
                     </div>
 
-                    {notification.link && (
+                    {/* {notification.link && (
                       <Link
                         href={notification.link}
                         onClick={() => {
@@ -322,7 +322,7 @@ export default function NotificacoesPage() {
                       >
                         Ver detalhes →
                       </Link>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>
