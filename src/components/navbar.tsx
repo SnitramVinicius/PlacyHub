@@ -454,58 +454,58 @@ useEffect(() => {
           </div>
 
           {/* MENU DIREITO - Sempre visível em desktop, mesmo em favoritos */}
-          {!isMobile && (
-            <div className="flex items-center gap-2 md:gap-3 shrink-0">
-              {!isAnfitriao && !isMobile && !isFavoritosPage && (
-                <button
-                  onClick={() => setShowBenefitsModal(true)}
-                  className="text-sm pr-1 hover:text-gray-600 transition-colors whitespace-nowrap hidden md:block"
-                >
-                  Tem um espaço para alugar?
-                </button>
-              )}
+         
+{!isMobile && (
+  <div className="flex items-center gap-2 md:gap-3 shrink-0 relative">
+    {!isAnfitriao && !isMobile && !isFavoritosPage && (
+      <button
+        onClick={() => setShowBenefitsModal(true)}
+        className="text-sm pr-1 hover:text-gray-600 transition-colors whitespace-nowrap hidden md:block"
+      >
+        Tem um espaço para alugar?
+      </button>
+    )}
 
-           {user ? (
-  <>
-    {/* 🔥 NOTIFICAÇÕES COM CONTADOR 🔥 */}
-    <SinoNavbar />
+    {user ? (
+      <>
+        <SinoNavbar />
 
-    <button
-      onClick={() => router.push("/locatario/perfil")}
-      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold hover:shadow-md transition-shadow text-sm md:text-base overflow-hidden
-        ${isPainelAnfitriao 
-          ? "bg-sky-500 text-white hover:bg-sky-600" 
-          : "bg-gray-300 text-white"
-        }`}
-    >
-      {user.fotoUrl ? (
-        <img 
-          src={user.fotoUrl} 
-          alt={user.name}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        user.name ? user.name[0].toUpperCase() : "?"
-      )}
-    </button>
-
-    <button
-      onClick={() => setIsOpen(!isOpen)}
-      className="p-1.5 md:p-2 border rounded-full hover:shadow-md transition-shadow flex items-center gap-2"
-    >
-      <Menu size={18} />
-    </button>
-  </>
-) : (
-  <Link
-    href="/login"
-    className="px-3 md:px-4 py-1.5 md:py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
-  >
-    Entrar
-  </Link>
-)}
-            </div>
+        <button
+          onClick={() => router.push("/locatario/perfil")}
+          className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold hover:shadow-md transition-shadow text-sm md:text-base overflow-hidden
+            ${isPainelAnfitriao 
+              ? "bg-sky-500 text-white hover:bg-sky-600" 
+              : "bg-gray-300 text-white"
+            }`}
+        >
+          {user.fotoUrl ? (
+            <img 
+              src={user.fotoUrl} 
+              alt={user.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            user.name ? user.name[0].toUpperCase() : "?"
           )}
+        </button>
+
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-1.5 md:p-2 border rounded-full hover:shadow-md transition-shadow flex items-center gap-2 relative"
+        >
+          <Menu size={18} />
+        </button>
+      </>
+    ) : (
+      <Link
+        href="/login"
+        className="px-3 md:px-4 py-1.5 md:py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
+      >
+        Entrar
+      </Link>
+    )}
+  </div>
+)}
         </div>
       )}
 
@@ -519,63 +519,73 @@ useEffect(() => {
 } />
 
       {/* MENU DROPDOWN USUÁRIO */}
-      {isOpen && (
-        <div
-          ref={menuRef}
-          className="absolute top-16 md:top-20 right-4 flex flex-col bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden p-2 z-50 border border-gray-200 min-w-[200px] md:min-w-[220px] animate-fadeIn"
+
+{isOpen && (
+  <div
+    ref={menuRef}
+    className="fixed right-4 flex flex-col bg-white dark:bg-gray-800 shadow-lg rounded-xl overflow-hidden p-2 z-[999] border border-gray-200 min-w-[200px] md:min-w-[220px] animate-fadeIn"
+    style={{
+      top: isMobile 
+        ? (shrink ? '72px' : '88px')  
+        : (shrink ? '72px' : '140px') 
+    }}
+  >
+    {user ? (
+      <>
+        <Link
+          href="/favoritos"
+          onClick={() => setIsOpen(false)}
+          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
         >
-          {user ? (
-            <>
-              <Link
-                href="/favoritos"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-medium"
-              >
-                Favoritos
-              </Link>
+          <Heart size={16} />
+          Favoritos
+        </Link>
 
-              <Link
-                href="/locatario/reservas"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-medium"
-              >
-                Minhas Reservas
-              </Link>
+        <Link
+          href="/locatario/reservas"
+          onClick={() => setIsOpen(false)}
+          className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
+        >
+          <Calendar size={16} />
+          Minhas Reservas
+        </Link>
 
-              {isAnfitriao && <div className="my-1 border-t border-gray-200 dark:border-gray-700" />}
-              
-              {user && isAnfitriao && (
-                <Link href="/anfitriao"
-                  onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-medium"
-                >
-                  Painel do Anfitrião
-                </Link>
-              )}
+        {isAnfitriao && <div className="my-1 border-t border-gray-200 dark:border-gray-700" />}
+        
+        {user && isAnfitriao && (
+          <Link href="/anfitriao"
+            onClick={() => setIsOpen(false)}
+            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg text-sm font-medium flex items-center gap-2"
+          >
+            <LayoutDashboard size={16} />
+            Painel do Anfitrião
+          </Link>
+        )}
 
-              <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
+        <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
 
-              <button
-                onClick={() => {
-                  logout();
-                  setIsOpen(false);
-                }}
-                className="text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm"
-              >
-                Sair da conta
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/login"
-              onClick={() => setIsOpen(false)}
-              className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm"
-            >
-              Entrar ou Cadastrar
-            </Link>
-          )}
-        </div>
-      )}
+        <button
+          onClick={() => {
+            logout();
+            setIsOpen(false);
+          }}
+          className="text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm flex items-center gap-2 text-red-500"
+        >
+          <User size={16} />
+          Sair da conta
+        </button>
+      </>
+    ) : (
+      <Link
+        href="/login"
+        onClick={() => setIsOpen(false)}
+        className="px-4 py-2 hover:bg-gray-100 rounded-lg text-sm"
+      >
+        Entrar ou Cadastrar
+      </Link>
+    )}
+  </div>
+)}
 
       {/* MODAL BENEFÍCIOS */}
       {showBenefitsModal && (
