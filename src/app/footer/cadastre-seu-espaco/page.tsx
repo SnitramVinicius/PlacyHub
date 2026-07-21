@@ -27,7 +27,7 @@ export default function CadastreSeuEspaco() {
     
     <div className="w-10"></div> {/* Espaçador para centralizar a logo */}
   </div>
-</div>z
+</div>
 
       {/* Hero Section */}
       <div className="max-w-4xl mx-auto px-4 text-center py-12 md:py-16">
