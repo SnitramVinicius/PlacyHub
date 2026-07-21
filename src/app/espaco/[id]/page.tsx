@@ -355,16 +355,16 @@ const getDayClassName = (date: Date) => {
   };
 }, [activeCalendar]);
 
-  useEffect(() => {
+ useEffect(() => {
   document.body.style.overflow =
-    modalAberto || modalReservaAberto
+    modalAberto || modalReservaAberto || abrirSelecaoMobile
       ? "hidden"
       : "auto";
 
   return () => {
     document.body.style.overflow = "auto";
   };
-}, [modalAberto, modalReservaAberto]);
+}, [modalAberto, modalReservaAberto, abrirSelecaoMobile]);
 
   const handleFavoritoClick = (espacoId: string) => {
     if (!isLogged) {
@@ -382,6 +382,22 @@ const getDayClassName = (date: Date) => {
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
 const [isMobile,setIsMobile] = useState(false);
+
+useEffect(() => {
+  const checkIsMobile = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+
+  // Executa ao abrir a página
+  checkIsMobile();
+
+  // Atualiza se mudar o tamanho da tela
+  window.addEventListener("resize", checkIsMobile);
+
+  return () => {
+    window.removeEventListener("resize", checkIsMobile);
+  };
+}, []);
 
   const [showBottomBar, setShowBottomBar] = useState(true);
 const lastScrollY = useRef(0);
@@ -1578,66 +1594,163 @@ Reservar Agora
       </div>
 
 {isMobile && abrirSelecaoMobile && (
-  <div className="fixed inset-0 z-[100] bg-black/50 flex items-end animate-slideUp">
+  <div className="fixed inset-0 z-[100] bg-white dark:bg-slate-900 flex flex-col">
+
+    {/* HEADER */}
+    <div className="sticky top-0 bg-white dark:bg-slate-900 border-b px-5 py-4 flex items-center justify-between z-10">
+      <h2 className="text-xl font-bold">
+        Reservar espaço
+      </h2>
+
+      <button
+        onClick={() => setAbrirSelecaoMobile(false)}
+      >
+        <X size={26} />
+      </button>
+    </div>
 
     {/* CONTEÚDO */}
-    <div className="bg-white dark:bg-slate-900 w-full rounded-t-2xl p-5 max-h-[90vh] overflow-y-auto">
+    <div className="flex-1 overflow-y-auto p-5">
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold text-lg">Selecionar reserva</h2>
-        <button onClick={() => setAbrirSelecaoMobile(false)}>
-          <X size={24} />
-        </button>
-      </div>
+  {/* RESUMO DO ESPAÇO */}
+  <div className="mb-6 bg-gray-50 dark:bg-slate-800 rounded-2xl p-4 border border-gray-200 dark:border-slate-700">
 
-      {/* DATA */}
-      <div className="mb-4">
-        <p className="font-medium mb-2">Data</p>
+    <div className="flex gap-4">
 
-       {eventoMultiDia ? (
-  <DatePicker
-    inline
-    locale="pt-BR"
-    minDate={new Date()}
-    selectsRange
-    filterDate={dataDisponivel}
-    startDate={startReserva ?? undefined}
-    endDate={endReserva ?? undefined}
-    onChange={(update: any) => {
-      setRangeReserva(update);
-    }}
-     dayClassName={getDayClassName}
-  />
-) : (
-  <DatePicker
-    inline
-    locale="pt-BR"
-    minDate={new Date()}
-    selected={startReserva ?? undefined}
-    filterDate={dataDisponivel}
-    onChange={(date: Date | null) => {
-      if (date) setRangeReserva([date, date]);
-    }}
-     dayClassName={getDayClassName}
-  />
-)}
+      <img
+        src={
+          espaco.imagem ||
+          imagens[0] ||
+          "/images/placeholder-space.jpg"
+        }
+        alt={espaco.nome}
+        className="w-28 h-24 rounded-xl object-cover"
+      />
 
-        {/* MULTI DIA */}
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="checkbox"
-            checked={eventoMultiDia}
-            onChange={(e) => setEventoMultiDia(e.target.checked)}
+      <div className="flex-1">
+
+        <h3 className="font-semibold text-lg">
+          {espaco.nome}
+        </h3>
+
+        <p className="text-sm text-gray-500">
+          {espaco.tipo ?? "Espaço para eventos"}
+        </p>
+
+        <div className="flex items-center gap-1 mt-2">
+
+          <Star
+            size={16}
+            fill="#facc15"
+            className="text-yellow-400"
           />
-          <span className="text-sm">Mais de um dia</span>
+
+          <span className="font-medium">
+            {notaMedia.toFixed(1)}
+          </span>
+
+          <span className="text-gray-500 text-sm">
+            ({avaliacoes.length})
+          </span>
+
         </div>
+
+        <p className="text-sm text-gray-500 mt-2">
+          {espaco.cidade} • {espaco.bairro}
+        </p>
+
       </div>
+
+    </div>
+
+  </div>
+
+ {/* CARD DATA */}
+<div className="mb-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+
+  <div className="flex items-center justify-between mb-4">
+
+    <div>
+      <p className="text-sm text-gray-500">
+        Data do evento
+      </p>
+
+      <p className="font-semibold text-lg">
+        {startReserva
+          ? endReserva
+            ? `${startReserva.toLocaleDateString("pt-BR")} - ${endReserva.toLocaleDateString("pt-BR")}`
+            : startReserva.toLocaleDateString("pt-BR")
+          : "Selecione uma data"}
+      </p>
+    </div>
+
+    <div className="text-[#02aeee] font-medium text-sm">
+      {eventoMultiDia ? "Mais de 1 dia" : "1 dia"}
+    </div>
+
+  </div>
+
+  {eventoMultiDia ? (
+    <DatePicker
+      inline
+      locale="pt-BR"
+      minDate={new Date()}
+      selectsRange
+      filterDate={dataDisponivel}
+      startDate={startReserva ?? undefined}
+      endDate={endReserva ?? undefined}
+      onChange={(update: any) => {
+        setRangeReserva(update);
+      }}
+      dayClassName={getDayClassName}
+    />
+  ) : (
+    <DatePicker
+      inline
+      locale="pt-BR"
+      minDate={new Date()}
+      selected={startReserva ?? undefined}
+      filterDate={dataDisponivel}
+      onChange={(date: Date | null) => {
+        if (date) setRangeReserva([date, date]);
+      }}
+      dayClassName={getDayClassName}
+    />
+  )}
+
+  <div className="flex items-center gap-2 mt-4">
+
+    <input
+      type="checkbox"
+      checked={eventoMultiDia}
+      onChange={(e) => setEventoMultiDia(e.target.checked)}
+    />
+
+    <span className="text-sm">
+      Evento com mais de um dia
+    </span>
+
+  </div>
+
+</div>
 
       {/* PESSOAS */}
-    {!isBuffet && (
-  <div className="mb-4">
-    <p className="font-medium mb-2">Quantidade de pessoas</p>
+    {/* CARD PESSOAS */}
+{!isBuffet && (
+  <div className="mb-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+
+    <div className="mb-4">
+      <p className="text-sm text-gray-500">
+        Quantidade de pessoas
+      </p>
+
+      <p className="font-semibold text-lg">
+        {qtdPessoas > 0
+          ? `${qtdPessoas} ${qtdPessoas === 1 ? "pessoa" : "pessoas"}`
+          : "Informe a quantidade"}
+      </p>
+    </div>
+
     <input
       type="number"
       min={1}
@@ -1645,30 +1758,37 @@ Reservar Agora
       value={qtdPessoas === 0 ? "" : qtdPessoas}
       onChange={(e) => {
         const valor = e.target.value;
-        
-        // Se estiver vazio, deixa como string vazia (mostra placeholder)
+
         if (valor === "") {
           setQtdPessoas(0);
           return;
         }
-        
+
         let v = parseInt(valor, 10);
+
         if (isNaN(v)) v = 0;
-        
+
         setQtdPessoas(v);
       }}
       onBlur={() => {
-        // Quando sair do campo, se for 0 ou inválido, volta para 1
         if (qtdPessoas < 1 || isNaN(qtdPessoas)) {
           setQtdPessoas(1);
         }
-        // Se for maior que a capacidade, ajusta
-        if (espaco?.capacidade && qtdPessoas > espaco.capacidade) {
+
+        if (
+          espaco?.capacidade &&
+          qtdPessoas > espaco.capacidade
+        ) {
           setQtdPessoas(espaco.capacidade);
         }
       }}
-      className="w-full border p-3 rounded-xl"
+      className="w-full border border-gray-300 dark:border-slate-600 rounded-xl px-4 py-3 text-lg bg-white dark:bg-slate-900"
     />
+
+    <p className="text-xs text-gray-500 mt-2">
+      Capacidade máxima: {espaco?.capacidade || 1000} pessoas
+    </p>
+
   </div>
 )}
 
@@ -1680,7 +1800,7 @@ Reservar Agora
         className="w-full bg-[#02aeee] text-white py-4 rounded-xl font-semibold"
       >
         Confirmar
-      </button>
+          </button>
     </div>
   </div>
 )}
