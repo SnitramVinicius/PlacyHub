@@ -1,6 +1,6 @@
 {
-  "name": "Placyhub",
-  "short_name": "MySite",
+  "name": "PlacyHub",
+  "short_name": "PlacyHub",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
