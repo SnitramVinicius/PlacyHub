@@ -735,17 +735,20 @@ const handleVoltar = () => {
   return (
     <main className="max-w-6xl mx-auto px-6 py-10 pb-24 text-gray-900 dark:text-gray-100">
       {/* BOTÃO VOLTAR - Corrigido */}
-      <div className="w-full mb-8 flex justify-end">
-        <button
-          onClick={handleVoltar}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-700 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-300 group"
-          aria-label="Voltar"
-        >
-          <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
-        </button>
+      <div className="w-full mb-8 flex justify-start">
+         <button
+    onClick={handleVoltar}
+    className="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-600 hover:text-gray-700 dark:hover:text-gray-200 hover:shadow-sm transition-all duration-300 group"
+    aria-label="Voltar"
+  >
+    <ArrowLeft
+      size={18}
+      className="group-hover:-translate-x-0.5 transition-transform duration-300"
+    />
+  </button>
       </div>
       
-      <h1 className="text-4xl font-bold mb-6">{espaco.nome}</h1>
+      <h1 className="text-4xl font-bold mb-6">{espaco.nome_espaco}</h1>
 
 <ImageGallery imagens={imagens} />
     
@@ -1299,8 +1302,10 @@ Total:
 </section>
 )}
 
+
           {/* AVALIAÇÕES */}
           <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 mt-10">
+            
             <h2 className="text-2xl font-semibold mb-4">Avaliações</h2>
 
         {/* Nota Média */}

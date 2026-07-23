@@ -50,7 +50,7 @@ export default function PreferenciasGerais() {
       loadUserSettings();
     }
   }, [user]);
-
+const [mostrarModalExcluir, setMostrarModalExcluir] = useState(false);
   const loadUserSettings = async () => {
     try {
       const { data, error } = await supabase
@@ -123,6 +123,100 @@ export default function PreferenciasGerais() {
       toast.error("Erro ao salvar preferências");
     }
   };
+
+const handleExcluirConta = async () => {
+  if (!user?.id) {
+    toast.error("Usuário não autenticado.");
+    return;
+  }
+
+  try {
+    // Verifica se o usuário possui reservas confirmadas
+    const { data: reservas, error } = await supabase
+      .from("reservas")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "confirmada");
+
+    if (error) throw error;
+
+    if (reservas && reservas.length > 0) {
+      toast.error(
+        "Você possui reservas confirmadas. Cancele todas antes de excluir sua conta."
+      );
+      setMostrarModalExcluir(false);
+      return;
+    }
+
+// Verifica se o usuário possui espaços com reservas confirmadas
+const { data: espacos, error: erroEspacos } = await supabase
+  .from("spaces")
+  .select("id")
+  .eq("user_id", user.id);
+
+if (erroEspacos) throw erroEspacos;
+
+if (espacos && espacos.length > 0) {
+  const espacosIds = espacos.map((e) => e.id);
+
+  const { data: reservasEspacos, error: erroReservas } = await supabase
+    .from("reservas")
+    .select("id")
+    .in("espaco_id", espacosIds)
+    .eq("status", "confirmada");
+
+  if (erroReservas) throw erroReservas;
+
+ if (reservasEspacos && reservasEspacos.length > 0) {
+    toast.error(
+      "Você possui reservas confirmadas em um de seus espaços. Resolva essas reservas antes de excluir sua conta."
+    );
+    setMostrarModalExcluir(false);
+    return;
+  }
+}
+
+    setMostrarModalExcluir(false);
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+if (!session) {
+  toast.error("Sessão expirada.");
+  return;
+}
+
+const response = await fetch("/api/excluir-conta", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${session.access_token}`,
+  },
+});
+
+const result = await response.json();
+
+console.log(result);
+
+if (!response.ok) {
+  toast.error(result.message || "Erro ao excluir conta.");
+  return;
+}
+
+if (result.success) {
+  toast.success("Conta excluída com sucesso.");
+
+  await supabase.auth.signOut();
+
+  window.location.href = "/login";
+} else {
+  toast.error(result.message || "Não foi possível excluir a conta.");
+}
+  } catch (error) {
+  console.error(error);
+  setMostrarModalExcluir(false);
+  toast.error("Erro ao verificar a conta.");
+}
+};
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -251,6 +345,34 @@ export default function PreferenciasGerais() {
             </div>
           </Link>
         </div>
+        {/* Zona de Perigo */}
+<div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-red-200 dark:border-red-900 overflow-hidden mt-6">
+  <div className="p-5">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
+        <Shield size={20} className="text-red-500" />
+      </div>
+    </div>
+
+    
+      <h3 className="font-semibold text-gray-900 dark:text-white">
+        Excluir minha conta
+      </h3>
+
+      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+        Ao excluir sua conta, seus dados pessoais serão removidos
+        permanentemente. Esta ação não poderá ser desfeita.
+      </p>
+
+      <button
+  onClick={() => setMostrarModalExcluir(true)}
+  className="mt-5 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg transition"
+>
+  Excluir minha conta
+</button>
+    
+  </div>
+</div>
         {/* Botão Salvar */}
         <div className="mt-8 flex justify-center">
           <button
@@ -261,6 +383,45 @@ export default function PreferenciasGerais() {
           </button>
         </div>
       </div>
+     {mostrarModalExcluir && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl">
+
+      <h2 className="text-xl font-bold text-red-600">
+        Excluir conta
+      </h2>
+
+      <p className="mt-4 text-gray-600 dark:text-gray-300">
+        Tem certeza de que deseja excluir sua conta?
+      </p>
+
+      <div className="mt-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+        <ul className="text-sm text-red-700 dark:text-red-300 space-y-2">
+          <li>• Seu perfil será removido.</li>
+          <li>• Seus dados pessoais serão apagados.</li>
+          <li>• Esta ação é permanente e não poderá ser desfeita.</li>
+        </ul>
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          onClick={() => setMostrarModalExcluir(false)}
+          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+        >
+          Cancelar
+        </button>
+
+        <button
+  onClick={handleExcluirConta}
+  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition"
+>
+  Excluir conta
+</button>
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }
