@@ -90,7 +90,7 @@ export default function SupportLocador() {
             Canais de Atendimento
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             
             {/* WhatsApp */}
             <div className="bg-gray-50 dark:bg-gray-700/30 rounded-2xl p-6 hover:shadow-md transition-all group text-center">
@@ -132,7 +132,7 @@ export default function SupportLocador() {
             </div> */}
 
             {/* Central de Ajuda */}
-            <div className="bg-gray-50 dark:bg-gray-700/30 rounded-2xl p-6 hover:shadow-md transition-all group text-center">
+            {/* <div className="bg-gray-50 dark:bg-gray-700/30 rounded-2xl p-6 hover:shadow-md transition-all group text-center">
               <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                 <BookOpen size={28} className="text-orange-500" />
               </div>
@@ -142,7 +142,7 @@ export default function SupportLocador() {
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Tutoriais, artigos e respostas para tudo o que você precisa.
               </p>
-            </div>
+            </div> */}
 
           </div>
           

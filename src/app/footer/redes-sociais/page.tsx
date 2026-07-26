@@ -98,7 +98,7 @@ export default function RedesSociais() {
           </div>
 
           {/* Facebook */}
-          {/* <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 hover:shadow-md transition-all group text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 hover:shadow-md transition-all group text-center">
             <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
               <Facebook size={40} className="text-white" />
             </div>
@@ -109,14 +109,14 @@ export default function RedesSociais() {
               Comunidade, interação e novidades.
             </p>
             <a 
-              href="https://facebook.com/placyhub" 
+              href="https://www.facebook.com/profile.php?id=61592029727623" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition"
             >
               facebook.com/placyhub
             </a>
-          </div> */}
+          </div>
 
         </div>
 

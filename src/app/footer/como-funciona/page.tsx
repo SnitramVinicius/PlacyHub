@@ -150,10 +150,6 @@ useEffect(() => {
               </li>
               <li className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                 <div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div>
-                Você pode conversar com o anfitrião antes de reservar
-              </li>
-              <li className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                <div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div>
                 O PlacyHub oferece suporte caso tenha algum problema
               </li>
             </ul>

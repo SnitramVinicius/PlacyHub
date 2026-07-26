@@ -42,7 +42,7 @@ export default function PoliticasDeCancelamento() {
           {/* 1. Cancelamento pelo Hóspede */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-all">
             <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-              1. Cancelamento pelo Hóspede
+              1. Cancelamento pelo Locatário
             </h2>
             <div className="space-y-3 text-gray-600 dark:text-gray-300">
               <p>

@@ -52,7 +52,7 @@ export default function FaleConosco() {
               Converse com a gente pelo WhatsApp.
             </p>
             <a
-              href="https://wa.me/5567999999999"
+              href="https://wa.me/5567992600081"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-all"
@@ -74,7 +74,7 @@ export default function FaleConosco() {
               Prefere enviar um e-mail? Responderemos o mais rápido possível.
             </p>
             <a
-              href="mailto:contato@placyhub.com"
+              href="mailto:placyhub@gmail.com"
               className="inline-flex items-center gap-2 px-6 py-2 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-all"
             >
               <Mail size={18} />

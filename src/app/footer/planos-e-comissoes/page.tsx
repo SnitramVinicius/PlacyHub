@@ -119,10 +119,9 @@ export default function PlanosEComissoes() {
             </h2>
             <ul className="space-y-4">
               {[
-                "Você aceita a reserva no seu painel",
                 "O pagamento do cliente é confirmado",
                 "A comissão é descontada automaticamente",
-                "Você recebe o valor restante na sua conta"
+                "Você recebe o valor restante na sua conta após o evento"
               ].map((texto, index) => (
                 <li key={index} className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                   <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0">

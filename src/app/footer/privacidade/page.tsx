@@ -203,7 +203,7 @@ export default function PoliticaPrivacidade() {
               Se você tiver dúvidas sobre o tratamento de seus dados, entre em contato:
             </p>
             <p className="font-semibold text-sky-600 dark:text-sky-400 mt-2">
-              suporte@placyhub.com
+              placyhub@gmail.com
             </p>
           </div>
 

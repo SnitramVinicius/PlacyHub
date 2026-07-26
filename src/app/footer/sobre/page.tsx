@@ -2,9 +2,11 @@
 import { ArrowLeft, Users, Target, Heart, Sparkles, Shield, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function QuemSomos() {
   const router = useRouter();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -47,16 +49,9 @@ export default function QuemSomos() {
             Nossa História
           </h2>
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">
-            A ideia do PlacyHub surgiu da necessidade real de conectar pessoas que possuem
-            espaços incríveis com quem busca um local ideal para festas, reuniões,
-            celebrações e eventos em geral. Observamos que muitas pessoas têm espaços
-            disponíveis, mas encontram dificuldades para divulgar, gerenciar e receber
-            reservas de forma prática. Do outro lado, locatários enfrentam falta de opções
-            confiáveis, plataformas confusas e burocracias.
-            <br /><br />
-            Assim, criamos uma plataforma intuitiva, moderna e transparente, que une esses
-            dois mundos. O PlacyHub está em constante evolução para oferecer a melhor
-            experiência possível.
+          A PlacyHub nasceu para facilitar o encontro entre proprietários de espaços para eventos e pessoas que procuram o lugar ideal para celebrar momentos especiais. Percebemos que muitos espaços incríveis da nossa região ainda não possuem uma forma centralizada de divulgação, enquanto quem deseja alugar um local precisa pesquisar em diferentes perfis, trocar diversas mensagens e reunir informações para tomar uma decisão.
+  <br /><br />
+  Nossa missão é simplificar esse processo, reunindo tudo em uma única plataforma para tornar a busca, o contato e a reserva muito mais práticos, rápidos e seguros para todos.
           </p>
         </div>
       </div>
@@ -140,11 +135,17 @@ export default function QuemSomos() {
           Descubra como é fácil anunciar seu espaço e começar a receber reservas.
         </p>
         <button
-          onClick={() => router.push("/?openModal=true")}
-          className="px-8 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-        >
-          Iniciar cadastro
-        </button>
+  onClick={() => {
+    if (user) {
+      router.push("/");
+    } else {
+      router.push("/login");
+    }
+  }}
+  className="px-8 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+>
+  Iniciar cadastro
+</button>
       </div>
     </div>
   );

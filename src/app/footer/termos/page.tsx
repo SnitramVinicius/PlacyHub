@@ -157,12 +157,10 @@ export default function TermosDeUso() {
               </h2>
             </div>
             <p className="text-gray-600 dark:text-gray-300">
-              As regras de cancelamento variam conforme o anúncio. O locador deve definir suas regras 
-              claramente, e o locatário deve concordar com elas antes de concluir a reserva.
+              Os cancelamentos e reembolsos seguem a Política de Cancelamento da PlacyHub, disponível na plataforma.
             </p>
             <p className="text-gray-600 dark:text-gray-300 mt-2">
-              O PlacyHub atua apenas como intermediador no processo de reembolso, seguindo as políticas 
-              definidas pelo locador e pela plataforma.
+              Ao realizar uma reserva, o locatário declara estar ciente e concorda com as regras de cancelamento e reembolso aplicáveis. O PlacyHub analisará cada solicitação conforme essa política e, quando cabível, realizará o reembolso de acordo com os critérios estabelecidos.
             </p>
           </div>
 
@@ -232,7 +230,7 @@ export default function TermosDeUso() {
               Em caso de dúvidas sobre estes termos, você pode entrar em contato pelo e-mail:
             </p>
             <p className="font-semibold text-sky-600 dark:text-sky-400 mt-2">
-              suporte@placyhub.com
+              placyhub@gmail.com
             </p>
           </div>
 
