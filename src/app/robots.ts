@@ -12,6 +12,6 @@ export default function robots(): MetadataRoute.Robots {
       ],
     },
     sitemap:
-      "https://placyhub.netlify.app/sitemap.xml",
+       "https://placyhub.com.br/sitemap.xml",
   };
 }
