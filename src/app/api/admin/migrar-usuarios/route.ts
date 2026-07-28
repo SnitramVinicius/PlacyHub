@@ -1,95 +1,95 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+// import { NextResponse } from "next/server";
+// import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-export async function GET() {
-  try {
+// export async function GET() {
+//   try {
 
-    // Buscar usuários antigos
-    const { data: usuarios, error } = await supabaseAdmin
-      .from("users")
-      .select("*");
-
-
-    if (error) {
-      return NextResponse.json(
-        { erro: error.message },
-        { status: 500 }
-      );
-    }
+//     // Buscar usuários antigos
+//     const { data: usuarios, error } = await supabaseAdmin
+//       .from("users")
+//       .select("*");
 
 
-    const resultados = [];
+//     if (error) {
+//       return NextResponse.json(
+//         { erro: error.message },
+//         { status: 500 }
+//       );
+//     }
 
 
-    for (const usuario of usuarios) {
+//     const resultados = [];
 
 
-      // verificar se já existe no Auth
-      const { data: authUsers } =
-        await supabaseAdmin.auth.admin.listUsers();
+//     for (const usuario of usuarios) {
 
 
-      const jaExiste = authUsers.users.some(
-        (u) => u.email === usuario.email
-      );
+//       // verificar se já existe no Auth
+//       const { data: authUsers } =
+//         await supabaseAdmin.auth.admin.listUsers();
 
 
-      if (jaExiste) {
-        resultados.push({
-          email: usuario.email,
-          status: "já existe",
-        });
-
-        continue;
-      }
+//       const jaExiste = authUsers.users.some(
+//         (u) => u.email === usuario.email
+//       );
 
 
-      // criar usuário no Auth
-      const { data, error } =
-        await supabaseAdmin.auth.admin.createUser({
-          id: usuario.id,
-          email: usuario.email,
-          password: "TrocarSenha@2026",
-          email_confirm: true,
-        });
+//       if (jaExiste) {
+//         resultados.push({
+//           email: usuario.email,
+//           status: "já existe",
+//         });
+
+//         continue;
+//       }
 
 
-      if (error) {
-
-        resultados.push({
-          email: usuario.email,
-          status: "erro",
-          erro: error.message,
-        });
-
-        continue;
-      }
+//       // criar usuário no Auth
+//       const { data, error } =
+//         await supabaseAdmin.auth.admin.createUser({
+//           id: usuario.id,
+//           email: usuario.email,
+//           password: "TrocarSenha@2026",
+//           email_confirm: true,
+//         });
 
 
-      resultados.push({
-        email: usuario.email,
-        status: "criado",
-      });
+//       if (error) {
 
-    }
+//         resultados.push({
+//           email: usuario.email,
+//           status: "erro",
+//           erro: error.message,
+//         });
 
-
-    return NextResponse.json({
-      sucesso: true,
-      resultados,
-    });
+//         continue;
+//       }
 
 
-  } catch (err:any) {
+//       resultados.push({
+//         email: usuario.email,
+//         status: "criado",
+//       });
 
-    return NextResponse.json(
-      {
-        erro: err.message
-      },
-      {
-        status:500
-      }
-    );
+//     }
 
-  }
-}
+
+//     return NextResponse.json({
+//       sucesso: true,
+//       resultados,
+//     });
+
+
+//   } catch (err:any) {
+
+//     return NextResponse.json(
+//       {
+//         erro: err.message
+//       },
+//       {
+//         status:500
+//       }
+//     );
+
+//   }
+// }
