@@ -74,8 +74,15 @@ export const POST = async (req: NextRequest) => {
       notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`,
        auto_return: "approved",
     };
+console.log("Body enviado ao Mercado Pago:");
+console.log(body);
+
 const result = await preference.create({ body });
-console.log("Preference criada:", result);
+
+console.log(
+  JSON.stringify(result.payment_methods, null, 2)
+);
+
 return NextResponse.json({ url: result.init_point });
 } catch (err: any) {
   console.error("ERRO COMPLETO MP:");
