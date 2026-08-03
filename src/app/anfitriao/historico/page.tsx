@@ -148,9 +148,7 @@ export default function HistoricoReservas() {
     setLoading(true);
 
     try {
-      console.log("Buscando reservas para o anfitrião:", user.id);
-
-      // Primeiro, buscar os IDs dos espaços do anfitrião
+        // Primeiro, buscar os IDs dos espaços do anfitrião
       const { data: espacosDoAnfitriao, error: espacosError } = await supabase
         .from("spaces")
         .select("id")
@@ -162,15 +160,12 @@ export default function HistoricoReservas() {
       }
 
       if (!espacosDoAnfitriao || espacosDoAnfitriao.length === 0) {
-        console.log("Anfitrião não tem espaços cadastrados");
         setReservas([]);
         setLoading(false);
         return;
       }
 
       const espacosIds = espacosDoAnfitriao.map(espaco => espaco.id);
-      console.log("IDs dos espaços do anfitrião:", espacosIds);
-
       // Buscar reservas relacionadas a esses espaços
       const { data: reservasData, error: reservasError } = await supabase
         .from("reservas")
@@ -185,14 +180,10 @@ export default function HistoricoReservas() {
       }
 
       if (!reservasData || reservasData.length === 0) {
-        console.log("Nenhuma reserva encontrada");
         setReservas([]);
         setLoading(false);
         return;
       }
-
-      console.log("Reservas encontradas:", reservasData.length);
-
       // Agora buscar os dados complementares (espaços e clientes)
       const reservasCompletas = await Promise.all(
         reservasData.map(async (reserva) => {
@@ -223,23 +214,14 @@ export default function HistoricoReservas() {
           // TRATAMENTO DA IMAGEM
           // TRATAMENTO DA IMAGEM - CORRIGIDO
           let imagemUrl = "/placeholder-space.jpg";
-
-          console.log("🔍 Verificando imagem do espaço:", {
-            espacoId: espacoData?.id,
-            imagens: espacoData?.imagens,
-            tipo: typeof espacoData?.imagens
-          });
-
           if (espacoData?.imagens) {
             // Caso 1: Já é um array
             if (Array.isArray(espacoData.imagens) && espacoData.imagens.length > 0) {
               imagemUrl = espacoData.imagens[0];
-              console.log("✅ Caso 1 - Array, imagem:", imagemUrl);
             }
             // Caso 2: É uma string que começa com http (URL direta)
             else if (typeof espacoData.imagens === 'string' && espacoData.imagens.startsWith('http')) {
               imagemUrl = espacoData.imagens;
-              console.log("✅ Caso 2 - String URL, imagem:", imagemUrl);
             }
             // Caso 3: É uma string JSON (como o seu caso)
             else if (typeof espacoData.imagens === 'string') {
@@ -247,27 +229,13 @@ export default function HistoricoReservas() {
                 const parsed = JSON.parse(espacoData.imagens);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                   imagemUrl = parsed[0];
-                  console.log("✅ Caso 3 - JSON parseado, imagem:", imagemUrl);
                 } else if (typeof parsed === 'string' && parsed.startsWith('http')) {
                   imagemUrl = parsed;
-                  console.log("✅ Caso 3 - String dentro do JSON, imagem:", imagemUrl);
                 }
               } catch (e) {
-                console.log("❌ Erro ao fazer parse do JSON:", e);
               }
             }
           }
-
-          console.log("📸 URL FINAL da imagem:", imagemUrl);
-
-          console.log("🔍 Dados do espaço:", {
-            espacoDataId: espacoData?.id,
-            reservaEspacoId: reserva.espaco_id,
-            clienteDataId: clienteData?.id,
-            reservaUserId: reserva.user_id,
-            imagemUrl: imagemUrl
-          });
-
      const valorBruto = reserva.valor_total || 0;
 
 const valorBase = calcularValorBase(valorBruto);
@@ -304,7 +272,6 @@ taxaPlacyHub: taxaPlacyHub,
           };
         })
       );
-      console.log("Reservas formatadas:", reservasCompletas.length);
       setReservas(reservasCompletas);
 
       // Extrair espaços únicos para o filtro
@@ -933,9 +900,6 @@ R$ {reservaSelecionada.valorBruto?.toFixed(2)}
                 toast.error(`Erro: ${error.message}`);
                 return;
               }
-
-              console.log("✅ Avaliação salva:", data);
-
               // Marcar reserva como avaliada
               const { error: updateError } = await supabase
                 .from("reservas")
@@ -976,8 +940,6 @@ R$ {reservaSelecionada.valorBruto?.toFixed(2)}
             setReservaSelecionada(null);
           }}
           onSalvar={async (auditoria: Auditoria) => {
-            console.log("💾 SALVANDO AUDITORIA:", auditoria);
-
             try {
               // Verificar se já existe vistoria para esta reserva e tipo
               const { data: existing } = await supabase

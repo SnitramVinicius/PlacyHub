@@ -64,8 +64,6 @@ export async function GET() {
         error: error.message 
       }, { status: 500 });
     }
-
-    console.log("✅ Email enviado com sucesso:", data);
     return NextResponse.json({ 
       success: true, 
       message: "Email enviado com sucesso! Verifique sua caixa de entrada.",

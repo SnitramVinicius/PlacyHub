@@ -19,10 +19,6 @@ if (authError || !user) {
   alert("Usuário não autenticado. Faça login novamente.");
   return;
 }
-
-
-console.log("Usuário criando espaço:", user.id);
-
     const urls: string[] = [];
 
     // 1. Upload das fotos

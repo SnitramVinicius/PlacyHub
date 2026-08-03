@@ -1,3 +1,8 @@
+export async function GET() {
+  return Response.json({
+    mensagem: "Rota de migração desativada"
+  });
+}
 // import { NextResponse } from "next/server";
 // import { supabaseAdmin } from "@/lib/supabaseAdmin";
 

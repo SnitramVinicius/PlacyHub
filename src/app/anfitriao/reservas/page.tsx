@@ -342,9 +342,7 @@ const buscarReservasReais = async () => {
 
   try {
     const espacosIds = espacos.map(e => e.id);
-    console.log("🔍 Buscando reservas para espaços:", espacosIds);
-
-    // Buscar reservas confirmadas, pendentes e finalizadas
+      // Buscar reservas confirmadas, pendentes e finalizadas
     const { data: reservasData, error: reservasError } = await supabase
   .from("reservas")
   .select(`
@@ -385,7 +383,6 @@ const { data: bloqueiosData, error: bloqueiosError } = await supabase
   .eq("user_id", user?.id);
 
 if (bloqueiosError) throw bloqueiosError;
-console.log("🔒 Bloqueios encontrados:", bloqueiosData);
   if (!reservasData || reservasData.length === 0) {
   const bloqueiosFormatados: Reserva[] = [];
 
@@ -424,24 +421,14 @@ bloqueiosData?.forEach((bloqueio) => {
   setReservas(bloqueiosFormatados);
   return;
 }
-
-    console.log("✅ Reservas encontradas:", reservasData);
-
     // Buscar dados dos clientes
     const userIds = [...new Set(reservasData.map(r => r.user_id))];
 const { data: clientes, error: clientesError } = await supabase
   .from("users")
   .select("id, name, telefone")
   .in("id", userIds);
-
-console.log("userIds:", userIds);
-console.log("clientes:", clientes);
-console.log("erro:", clientesError);
-
     const clientesMap = new Map();
     clientes?.forEach(c => clientesMap.set(c.id, c));
-    
-    console.log("👤 Mapa de clientes:", Array.from(clientesMap.entries()));
 const reservasFormatadas: Reserva[] = await Promise.all(
   reservasData.map(async (reserva) => {
     const espaco = espacos.find(e => e.id === reserva.espaco_id);
@@ -479,7 +466,6 @@ return {
 };
   })
 );
-console.log("🚧 FORMATANDO BLOQUEIOS:", bloqueiosData);
 const bloqueiosFormatados: Reserva[] =
   bloqueiosData?.map((bloqueio) => ({
     id: bloqueio.id,
@@ -492,18 +478,10 @@ const bloqueiosFormatados: Reserva[] =
     dataFim: bloqueio.data_fim,
     status: "bloqueada",
   })) || [];
-
-  console.log("📅 RESERVAS FINAIS DO CALENDÁRIO:", [
-  ...reservasFormatadas,
-  ...bloqueiosFormatados
-]);
-console.log("✅ Reservas formatadas:", reservasFormatadas);
-
 setReservas([
   ...reservasFormatadas,
   ...bloqueiosFormatados
 ]);
-
 } catch (error) {
   console.error("Erro ao buscar reservas:", error);
   toast.error("Erro ao carregar reservas");
@@ -680,7 +658,6 @@ const enviarPropostaReagendamento = async () => {
         link: `/locatario/reservas/${reservaParaReagendar.id}`,
         created_at: new Date().toISOString(),
       });
-      console.log("✅ Notificação enviada para o cliente");
     }
 
     // Atualizar estado local
@@ -839,14 +816,6 @@ const processarFotosAuditoria = async (auditoria: Auditoria, tipo: string, reser
           const response = await fetch(foto);
           const blob = await response.blob();
           const file = new File([blob], `vistoria_${reservaId}_${tipo}_${item.id}_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          
-          console.log("📤 Upload para bucket 'vistorias':", file.name);
-
-            // 🔥 COLOQUE AQUI OS NOVOS LOGS 🔥
-          console.log("🔐 Verificando bucket:", 'vistorias');
-          console.log("📁 Nome do arquivo:", file.name);
-          console.log("📦 Tamanho:", file.size);
-          
           const { error } = await supabase.storage
             .from("vistorias")  // ← MUDOU PARA "vistorias"
             .upload(file.name, file, {
@@ -862,8 +831,6 @@ const processarFotosAuditoria = async (auditoria: Auditoria, tipo: string, reser
           const { data: { publicUrl } } = supabase.storage
             .from("vistorias")
             .getPublicUrl(file.name);
-            
-          console.log("✅ Upload concluído:", publicUrl);
           novasFotosPre.push(publicUrl);
         } catch (err) {
           console.error("❌ Erro ao processar foto:", err);
@@ -1724,9 +1691,7 @@ useEffect(() => {
         let espacoIdCorreto = reservaAuditoria.espacoId;
         
         // 🔥 SE FOR "ALL" OU INVÁLIDO, BUSCAR O ESPAÇO CORRETO NO BANCO
-        if (espacoIdCorreto === "ALL" || !espacoIdCorreto || espacoIdCorreto === "ALL") {
-          console.log("⚠️ espacoId é 'ALL', buscando espaço real no banco...");
-          
+        if (espacoIdCorreto === "ALL" || !espacoIdCorreto || espacoIdCorreto === "ALL") {          
           const { data: reservaCompleta, error: buscaError } = await supabase
             .from("reservas")
             .select("espaco_id")
@@ -1741,16 +1706,8 @@ useEffect(() => {
           
           if (reservaCompleta) {
             espacoIdCorreto = reservaCompleta.espaco_id;
-            console.log("✅ Espaço corrigido para:", espacoIdCorreto);
           }
-        }
-        
-        console.log("🔍 Verificando IDs:", {
-          reserva_id: reservaAuditoria.id,
-          espacoIdCorreto: espacoIdCorreto,
-          tipo: tipoAuditoria
-        });
-        
+        }       
         // 🔥 VALIDAÇÃO: Verificar se o espaco_id é válido (UUID)
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (!espacoIdCorreto || !uuidRegex.test(espacoIdCorreto)) {
@@ -1778,7 +1735,6 @@ useEffect(() => {
         
         if (vistoriaExistente) {
           // UPDATE - já existe, atualiza
-          console.log("📝 Atualizando vistoria existente:", vistoriaExistente.id);
           const { error: updateError } = await supabase
             .from("vistorias")
             .update({
@@ -1791,10 +1747,7 @@ useEffect(() => {
           if (updateError) {
             console.error("❌ Erro no UPDATE:", updateError);
           }
-        } else {
-          // INSERT - não existe, cria nova
-          console.log("➕ Criando nova vistoria");
-          
+        } else {         
           const dadosInsert = {
             reserva_id: reservaAuditoria.id,
             espaco_id: espacoIdCorreto,
@@ -1803,9 +1756,7 @@ useEffect(() => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
-          
-          console.log("📦 Dados para inserir:", dadosInsert);
-          
+         
           const { error: insertError } = await supabase
             .from("vistorias")
             .insert(dadosInsert);

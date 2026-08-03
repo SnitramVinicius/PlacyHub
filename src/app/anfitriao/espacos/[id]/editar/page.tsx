@@ -20,9 +20,6 @@ export default function EditarEspaco() {
         .select("*")
         .eq("id", id)
         .single();
-
-        console.log("📸 FOTOS VINDAS DO BANCO:", data.imagens);
-
       if (error) {
         console.error("Erro ao buscar espaço:", error);
         return;
@@ -145,9 +142,6 @@ fotosArray = fotosArray.filter(url => {
          !url.includes('\\') &&
          url.length > 10;
 });
-
-console.log("📸 FOTOS TRATADAS:", fotosArray);
-
 if (data) {
   setDados({
     ...data,
@@ -226,11 +220,6 @@ if (espacoAtual?.imagens) {
 fotosExistentesNoBanco = fotosExistentesNoBanco.filter(url => 
   url && typeof url === 'string' && url.startsWith('http') && !url.includes('"') && !url.includes('\\')
 );
-
-console.log("📸 Fotos já no banco (tratadas):", fotosExistentesNoBanco);
-console.log("📸 Fotos já no banco:", fotosExistentesNoBanco);
-console.log("📸 Fotos que vieram do formulário:", dadosAtualizados.fotos);
-
     // 0. Fazer upload das novas fotos e obter URLs
 const novasUrls: string[] = [];
 for (const foto of fotosNovas) {
@@ -252,7 +241,6 @@ for (const foto of fotosNovas) {
 // Combinar URLs existentes com as novas
 // Usar as fotos do banco (não as do formulário) para não perder nenhuma
 const todasUrls = [...(fotosExistentesNoBanco || []), ...(novasUrls || [])];
-console.log("📸 Todas URLs (array):", todasUrls);
     // 1. Atualizar a tabela principal spaces
     const { error: updateError } = await supabase
       .from("spaces")

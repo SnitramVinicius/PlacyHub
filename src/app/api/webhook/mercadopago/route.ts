@@ -164,17 +164,13 @@ R$ ${valorLiquidoAnfitriao.toFixed(2)}
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    console.log("📦 Webhook recebido:", body);
-    
+    const body = await request.json();    
     // Verificar se é um pagamento
     if (body.type !== "payment") {
-      console.log("ℹ️ Ignorado - não é pagamento");
       return NextResponse.json({ message: "Ignorado" }, { status: 200 });
     }
     
     const paymentId = body.data?.id;
-    console.log("💰 Payment ID:", paymentId);
     
     if (!paymentId) {
       return NextResponse.json({ error: "No payment id" }, { status: 400 });
@@ -182,8 +178,7 @@ export async function POST(request: Request) {
     
     // Buscar token
     const token = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_TOKEN;
-    console.log("🔑 Token existe:", !!token);
-    
+        
     // Buscar pagamento no Mercado Pago
     const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: {
@@ -197,12 +192,7 @@ export async function POST(request: Request) {
     }
     
     const payment = await response.json();
-    console.log("💳 Pagamento:", { 
-      id: payment.id, 
-      status: payment.status, 
-      reservaId: payment.external_reference 
-    });
-    
+   
     const reservaId = payment.external_reference;
     
     if (!reservaId) {
@@ -246,11 +236,7 @@ export async function POST(request: Request) {
     pagamento_atualizado_em: new Date().toISOString(),
   })
   .eq("id", reservaId)
-  .select();
-
-console.log("UPDATE RESULT:", data);
-console.log("UPDATE ERROR:", updateError);
-    
+  .select();    
     if (updateError) {
       console.error("❌ Erro ao atualizar reserva:", updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -275,20 +261,8 @@ console.log("UPDATE ERROR:", updateError);
             .eq("id", reservaId)
             .single();
       
-      if (!reservaError && reserva) {
-        // ============================================
-        // 🔥 DEPURAÇÃO - LOGS EXTRAS
-        // ============================================
-        console.log("🔍 1 - Webhook processado para reserva:", reservaId);
-        console.log("🔍 2 - Status do pagamento:", payment.status);
-        console.log("🔍 3 - Dados da reserva:", reserva);
-        console.log("🔍 4 - Cliente:", await getDadosUsuario(reserva.user_id));
-console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_id));
-        console.log("🔍 6 - Preferência cliente (pagamentos):", await podeEnviarEmail(reserva.user_id, "pagamentos"));
-        console.log("🔍 7 - Preferência anfitrião (reservas):", await podeEnviarEmail(reserva.spaces?.user_id, "reservas"));
-        
+      if (!reservaError && reserva) {       
         const dataFormatada = new Date(reserva.data_inicio).toLocaleDateString("pt-BR");
-        
         // ============================================
         // 1. NOTIFICAÇÃO NO SISTEMA (tabela notificacoes)
         // ============================================
@@ -319,7 +293,6 @@ console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_i
         if (notifAnfitriaoError) {
           console.error("❌ Erro ao criar notificação para anfitrião:", notifAnfitriaoError);
         } else {
-          console.log("✅ Notificação no sistema enviada para o ANFITRIÃO");
         }
         
         // Para o CLIENTE
@@ -347,7 +320,6 @@ console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_i
         if (notifClienteError) {
           console.error("❌ Erro ao criar notificação para cliente:", notifClienteError);
         } else {
-          console.log("✅ Notificação no sistema enviada para o CLIENTE");
         }
         
         // ============================================
@@ -356,12 +328,9 @@ console.log("🔍 5 - Anfitrião:", await getDadosUsuario(reserva.spaces?.user_i
         
         // 🔥 Email para o CLIENTE
         const podeEmailCliente = await podeEnviarEmail(reserva.user_id, "pagamentos");
-        console.log(`📧 Cliente (${reserva.user_id}) pode receber email de pagamentos? ${podeEmailCliente}`);
         
         if (podeEmailCliente) {
           const cliente = await getDadosUsuario(reserva.user_id);
-
-console.log(`📧 Email do cliente: ${cliente?.email}`);
 
 if (cliente?.email) {
   try {
@@ -375,7 +344,6 @@ if (cliente?.email) {
     if (result.error) {
       console.error("❌ Erro ao enviar email para cliente:", result.error);
     } else {
-      console.log(`✅ Email de pagamento enviado para ${cliente.email}`);
     }
   } catch (emailError) {
     console.error("❌ Erro ao enviar email para cliente:", emailError);
@@ -390,12 +358,9 @@ if (cliente?.email) {
         
         // 🔥 Email para o ANFITRIÃO
         const podeEmailAnfitriao = await podeEnviarEmail(reserva.spaces.user_id, "reservas");
-        console.log(`📧 Anfitrião (${reserva.spaces.user_id}) pode receber email de reservas? ${podeEmailAnfitriao}`);
         
         if (podeEmailAnfitriao) {
           const anfitriao = await getDadosUsuario(reserva.spaces.user_id);
-
-console.log(`📧 Email do anfitrião: ${anfitriao?.email}`);
 
 if (anfitriao?.email) {
   try {
@@ -470,7 +435,6 @@ const valorFinal = Number(valorLiquido.toFixed(2));
       }
     }
     
-    console.log(`✅ Reserva ${reservaId} atualizada para ${statusReserva}`);
     return NextResponse.json({ success: true });
     
   } catch (error) {

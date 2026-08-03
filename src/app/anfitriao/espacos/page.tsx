@@ -67,14 +67,13 @@ const {
 
 
 if (authError || !user) {
-  console.log("Usuário não autenticado");
+
   setEspacos([]);
   setLoading(false);
   return;
 }
 
 
-console.log("Usuário logado ID:", user.id);
 
     // 🔥 BUSCAR APENAS ESPAÇOS DESTE USUÁRIO
    const { data, error } = await supabase
@@ -82,11 +81,9 @@ console.log("Usuário logado ID:", user.id);
   .select("*")
   .eq("user_id", user.id);
 
-    console.log("ESPACOS DO BANCO:", data);
-    console.log("ERRO:", error);
+
 
     if (error) {
-      console.log(error);
       setLoading(false);
       return;
     }
@@ -124,10 +121,8 @@ console.log("Usuário logado ID:", user.id);
     
     setLoading(false);
   };
-
   buscarEspacos();
 }, []);
-
 const excluirEspaco = async (id: string) => {
   if (confirm("Tem certeza que deseja excluir este espaço? Esta ação não pode ser desfeita.")) {
     try {
@@ -147,14 +142,10 @@ const excluirEspaco = async (id: string) => {
     }
   }
 };
-
 const alternarDisponibilidade = async (id: string) => {
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  console.log("USER:", user?.id);
 
   const espaco = espacos.find((e) => e.id === id);
 
@@ -168,13 +159,6 @@ const alternarDisponibilidade = async (id: string) => {
       disponivel: novoStatus,
     })
     .eq("id", id)
-
-
-
-  console.log("DATA UPDATE:", data);
-  console.log("ERROR UPDATE:", error);
-
-
   if (error) {
     toast.error(error.message);
     return;
@@ -235,9 +219,6 @@ const alternarDisponibilidade = async (id: string) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {espacos.map((espaco) => {
-  console.log("ESPACO COMPLETO:", espaco);
-  console.log("FOTOS:", espaco.fotos);
-
   const imagemCapa =
   espaco.fotos && espaco.fotos.length > 0
     ? espaco.fotos[0]   // sem timestamp, apenas a URL

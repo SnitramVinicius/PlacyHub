@@ -3,10 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
   try {
-    const { sessionToken, userAgent, ipAddress, userId } = await request.json();
-    
-    console.log("📝 Registrando sessão...");
-    
+    const { sessionToken, userAgent, ipAddress, userId } = await request.json();   
     let usuarioId = userId;
     
     if (!usuarioId && sessionToken && !sessionToken.startsWith("manual_")) {
@@ -20,13 +17,9 @@ export async function POST(request: Request) {
       console.error("❌ User ID não fornecido");
       return NextResponse.json({ error: "User ID não fornecido" }, { status: 400 });
     }
-    
-    console.log("✅ Usuário ID:", usuarioId);
-    
+   
     // Detectar informações do dispositivo
-    const deviceInfo = getDeviceInfo(userAgent || "");
-    console.log("📱 Dispositivo:", deviceInfo);
-    
+    const deviceInfo = getDeviceInfo(userAgent || "");   
     // Capturar IP real
     let clientIp = ipAddress || "";
     if (!clientIp) {
@@ -36,10 +29,7 @@ export async function POST(request: Request) {
         const realIp = request.headers.get("x-real-ip");
         if (realIp) clientIp = realIp || "";
       }
-    }
-    
-    console.log("🌐 IP detectado:", clientIp || "não capturado");
-    
+    }    
     // Buscar localização
     let locationText = "";
     if (clientIp && clientIp !== "::1" && clientIp !== "127.0.0.1" && clientIp !== "localhost") {
@@ -52,7 +42,6 @@ export async function POST(request: Request) {
           locationText = `${locData.city || ""}${locData.city && locData.regionName ? ", " : ""}${locData.regionName || ""}`;
         }
       } catch (err) {
-        console.log("⚠️ Erro ao buscar localização:", err);
       }
     }
     
@@ -60,10 +49,8 @@ export async function POST(request: Request) {
     if (clientIp === "::1" || clientIp === "127.0.0.1" || clientIp === "localhost" || !clientIp) {
       locationText = "Campo Grande, MS";
       clientIp = "Desenvolvimento Local";
-      console.log("📍 Ambiente local - usando localização de teste: Campo Grande, MS");
     }
     
-    console.log("📍 Localização final:", locationText);
     
     // Registrar sessão
     const { data, error } = await supabaseAdmin
@@ -95,7 +82,6 @@ export async function POST(request: Request) {
         .neq("id", data[0].id);
     }
     
-    console.log("✅ Sessão registrada!");
     return NextResponse.json({ success: true });
     
   } catch (error) {

@@ -9,10 +9,7 @@ export async function GET() {
     if (error || !session) {
       console.error("❌ Erro ao buscar sessão:", error);
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-    }
-    
-    console.log("✅ Token encontrado para usuário:", session.user.id);
-    
+    }   
     return NextResponse.json({ 
       token: session.access_token,
       user_id: session.user.id 

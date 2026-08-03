@@ -5,12 +5,8 @@ export async function GET(request: Request) {
   try {
     // Pegar o userId da URL (query string)
     const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    
-    console.log("📝 API devices - UserId recebido:", userId);
-    
+    const userId = url.searchParams.get("userId");   
     if (!userId) {
-      console.log("❌ UserId não fornecido");
       return NextResponse.json({ error: "User ID não fornecido" }, { status: 400 });
     }
     
@@ -24,10 +20,7 @@ export async function GET(request: Request) {
     if (error) {
       console.error("❌ Erro ao buscar dispositivos:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    
-    console.log("✅ Dispositivos encontrados:", devices?.length || 0);
-    
+    }    
     // Formatar dispositivos para o frontend - 🔥 INCLUIR LOCATION
     const formattedDevices = devices.map(device => ({
       id: device.id,
@@ -37,10 +30,7 @@ export async function GET(request: Request) {
       atual: device.is_current,
       location: device.location,  // 🔥 ADICIONAR ESTA LINHA
       ip: device.ip_address,       // 🔥 ADICIONAR ESTA LINHA
-    }));
-    
-    console.log("📱 Dispositivos formatados:", formattedDevices.map(d => ({ name: d.name, location: d.location })));
-    
+    }));   
     return NextResponse.json({ devices: formattedDevices });
   } catch (error) {
     console.error("❌ Erro ao buscar dispositivos:", error);
@@ -50,10 +40,7 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { id, userId } = await request.json();
-    
-    console.log("📝 API devices DELETE - DeviceId:", id, "UserId:", userId);
-    
+    const { id, userId } = await request.json();    
     if (!userId) {
       return NextResponse.json({ error: "User ID não fornecido" }, { status: 400 });
     }

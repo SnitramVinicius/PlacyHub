@@ -4,11 +4,6 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
-console.log("================================");
-console.log("FUNÇÃO NETLIFY EXECUTADA");
-console.log("TOKEN:", !!process.env.MP_ACCESS_TOKEN);
-console.log("================================");
-
 export const handler = async (event: any) => {
 
   return {

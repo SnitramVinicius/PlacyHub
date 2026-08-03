@@ -6,11 +6,6 @@ const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
-console.log("MP_ACCESS_TOKEN existe?", !!process.env.MP_ACCESS_TOKEN);
-console.log(
-  "MP_ACCESS_TOKEN início:",
-  process.env.MP_ACCESS_TOKEN?.substring(0, 20)
-);
 export const POST = async (req: NextRequest) => {
   try {
     const {
@@ -79,28 +74,7 @@ export const POST = async (req: NextRequest) => {
       notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`,
        auto_return: "approved",
     };
-
-console.log("BODY ENVIADO:", JSON.stringify(body, null, 2));
-
-console.log("=================================");
-console.log("TOKEN EXISTE?", !!process.env.MP_ACCESS_TOKEN);
-
-console.log(
-  "TOKEN:",
-  process.env.MP_ACCESS_TOKEN?.substring(0, 25)
-);
-
-console.log("BASE URL:", process.env.NEXT_PUBLIC_BASE_URL);
-console.log("=================================");
-
-console.log(
-  "WEBHOOK URL:",
-  `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`
-);
-
 const result = await preference.create({ body });
-
-console.log("RESULTADO MP:", result);
 
 return NextResponse.json({ url: result.init_point });
 } catch (err: any) {
