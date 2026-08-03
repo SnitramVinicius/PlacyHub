@@ -75,7 +75,7 @@ export const POST = async (req: NextRequest) => {
        auto_return: "approved",
     };
 const result = await preference.create({ body });
-
+console.log("Preference criada:", result);
 return NextResponse.json({ url: result.init_point });
 } catch (err: any) {
   console.error("ERRO COMPLETO MP:");
