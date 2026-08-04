@@ -187,9 +187,21 @@ export async function POST(request: Request) {
     });
     
     if (!response.ok) {
-      console.error("❌ Erro ao buscar pagamento:", response.status);
-      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
-    }
+  console.error(
+    "⚠️ Não foi possível encontrar o pagamento no Mercado Pago:",
+    paymentId,
+    "Status:",
+    response.status
+  );
+
+  return NextResponse.json(
+    {
+      success: true,
+      message: "Notificação recebida, mas pagamento não encontrado."
+    },
+    { status: 200 }
+  );
+}
     
 const payment = await response.json();
 
