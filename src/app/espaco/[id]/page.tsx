@@ -18,6 +18,12 @@ import ImageGallery from "@/components/Espaco/ImageGallery";
 registerLocale("pt-BR", ptBR);
 // const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
 
+declare global {
+  interface Window {
+    MP_DEVICE_SESSION_ID?: string;
+  }
+}
+
 export default function EspacoPage() {
   const router = useRouter();
   const params = useParams();
@@ -554,23 +560,29 @@ valor_total: total,
 }
 
 
-    // 🔥 2. CRIAR PAGAMENTO COM O ID DA RESERVA
-    const response = await fetch("/api/pagamento", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        total,
-        espacoId: espaco.id,
-        nomeEspaco: espaco.nome,
-        dataInicio: formatarData(startReserva),
-dataFim: endReserva 
-? formatarData(endReserva)
-: formatarData(startReserva),
-        diasReserva,
-        qtdPessoas,
-        reservaId: reservaData.id, // 🔥 Envia o ID da reserva
-      }),
-    });
+    // 🔥 2. PEGAR DEVICE ID DO MERCADO PAGO
+const deviceId = window.MP_DEVICE_SESSION_ID;
+
+console.log("DEVICE ID ANTES DO PAGAMENTO:", deviceId);
+
+// 🔥 3. CRIAR PAGAMENTO COM O ID DA RESERVA
+const response = await fetch("/api/pagamento", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    total,
+    espacoId: espaco.id,
+    nomeEspaco: espaco.nome,
+    dataInicio: formatarData(startReserva),
+    dataFim: endReserva
+      ? formatarData(endReserva)
+      : formatarData(startReserva),
+    diasReserva,
+    qtdPessoas,
+    reservaId: reservaData.id,
+    deviceId,
+  }),
+});
 
     if (!response.ok) {
       const text = await response.text();
