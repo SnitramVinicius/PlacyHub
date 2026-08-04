@@ -191,9 +191,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
     
-    const payment = await response.json();
-   
-    const reservaId = payment.external_reference;
+const payment = await response.json();
+
+console.log("========== PAGAMENTO MERCADO PAGO ==========");
+console.log("ID:", payment.id);
+console.log("STATUS:", payment.status);
+console.log("STATUS DETAIL:", payment.status_detail);
+console.log("STATUS DETAIL MESSAGE:", payment.status_detail?.message);
+console.log("PAYMENT TYPE:", payment.payment_type_id);
+console.log("PAYMENT METHOD:", payment.payment_method_id);
+console.log("TRANSACTION AMOUNT:", payment.transaction_amount);
+console.log("EXTERNAL REFERENCE:", payment.external_reference);
+console.log("============================================");
+
+const reservaId = payment.external_reference;
     
     if (!reservaId) {
       console.error("❌ Reservation ID não encontrado");
