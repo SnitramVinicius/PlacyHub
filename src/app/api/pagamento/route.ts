@@ -45,35 +45,45 @@ export const POST = async (req: NextRequest) => {
         ? `${dataInicio} até ${dataFim}`
         : null);
 
-    const body = {
-      items: [
-        {
-          id: espacoId || "reserva_espaco",
-          title: nomeEspaco ? `Reserva - ${nomeEspaco}` : "Reserva de Espaço",
-          quantity: 1,
-          unit_price: Number(total),
-        },
-      ],
-      metadata: {
-        espacoId,
-        dataReserva: dataFinalReserva,
-        plano,
-        qtdPessoas,
-        pacote,
-        convidados,
-        valor: Number(total),
-        reservaId, // 🔥 ADICIONAR reservaId no metadata
-      },
-      // 🔥 ADICIONAR external_reference (obrigatório para o webhook)
-      external_reference: reservaId,
-      back_urls: {
-  success: `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
-  failure: `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
-  pending: `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
-},
-      notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`,
-       auto_return: "approved",
-    };
+   const body = {
+  items: [
+    {
+      id: espacoId || "reserva_espaco",
+      title: nomeEspaco ? `Reserva - ${nomeEspaco}` : "Reserva de Espaço",
+      quantity: 1,
+      unit_price: Number(total),
+    },
+  ],
+
+  metadata: {
+    espacoId,
+    dataReserva: dataFinalReserva,
+    plano,
+    qtdPessoas,
+    pacote,
+    convidados,
+    valor: Number(total),
+    reservaId,
+  },
+
+  external_reference: reservaId,
+
+  payment_methods: {
+    excluded_payment_methods: [],
+    excluded_payment_types: [],
+  },
+
+  back_urls: {
+    success: `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
+    failure: `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
+    pending: `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
+  },
+
+  notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`,
+
+  auto_return: "approved",
+};
+
 console.log("Body enviado ao Mercado Pago:");
 console.log(body);
 
