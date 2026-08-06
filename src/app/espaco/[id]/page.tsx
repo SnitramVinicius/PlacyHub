@@ -470,6 +470,7 @@ useEffect(() => {
   };
 
 const handleConfirmarReserva = async () => {
+ 
   if (!startReserva) {
     toast.error("Selecione a data do evento!");
     return;
@@ -566,6 +567,12 @@ const deviceId = window.MP_DEVICE_SESSION_ID;
 console.log("DEVICE ID ANTES DO PAGAMENTO:", deviceId);
 
 // 🔥 3. CRIAR PAGAMENTO COM O ID DA RESERVA
+
+// separa nome e sobrenome (o Mercado Pago pede os dois campos)
+const nomeCompleto = (user?.name || "").trim().split(" ");
+const primeiroNome = nomeCompleto[0] || undefined;
+const sobrenome = nomeCompleto.slice(1).join(" ") || undefined;
+
 const response = await fetch("/api/pagamento", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -581,6 +588,13 @@ const response = await fetch("/api/pagamento", {
     qtdPessoas,
     reservaId: reservaData.id,
     deviceId,
+
+    // 🔥 dados do comprador para o antifraude do Mercado Pago
+    clienteNome: primeiroNome,
+    clienteSobrenome: sobrenome,
+    clienteEmail: user?.email,
+    clienteTelefone: user?.telefone,
+    clienteCpf: user?.cpf,
   }),
 });
 
