@@ -160,7 +160,7 @@ const handleLoginFacebook = async () => {
               </Link>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={handleLoginGoogle}
@@ -182,7 +182,7 @@ const handleLoginFacebook = async () => {
               >
                 <FaFacebook size={20} color="#1877F2" /> Facebook
               </button>
-            </div>
+            </div> */}
 
             {/* Botão Voltar para Home */}
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">

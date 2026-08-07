@@ -385,6 +385,16 @@ const getDayClassName = (date: Date) => {
     }
   };
 
+  const perfilCompleto = () => {
+    if (!user) return false;
+
+    const nomeValido = (user.name?.trim().split(" ").filter(Boolean).length ?? 0) >= 2;
+    const cpfValido = (user.cpf?.replace(/\D/g, "").length ?? 0) === 11;
+    const telefoneValido = (user.telefone?.replace(/\D/g, "").length ?? 0) >= 10;
+
+    return nomeValido && cpfValido && telefoneValido;
+  };
+
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
 const [isMobile,setIsMobile] = useState(false);
@@ -437,9 +447,15 @@ useEffect(() => {
   }
 }, [modalReservaAberto]);
 
-  const handleAbrirModalReserva = () => {
+ const handleAbrirModalReserva = () => {
     if (!isLogged) {
       toast.error("Você precisa estar logado para reservar este espaço!");
+      return;
+    }
+
+      if (!perfilCompleto()) {
+      toast.error("Complete seu perfil (nome completo, CPF e telefone) antes de reservar.");
+      router.push("/locatario/perfil");
       return;
     }
 
