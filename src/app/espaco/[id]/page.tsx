@@ -447,6 +447,31 @@ useEffect(() => {
   }
 }, [modalReservaAberto]);
 
+useEffect(() => {
+  const script = document.createElement("script");
+
+  script.src = "https://www.mercadopago.com/v2/security.js";
+  script.async = true;
+
+  script.onload = () => {
+    console.log("✅ Mercado Pago Security.js carregado");
+
+    const deviceId = (window as any).MP_DEVICE_SESSION_ID;
+
+    console.log("📱 MP_DEVICE_SESSION_ID:", deviceId);
+  };
+
+  script.onerror = () => {
+    console.error("❌ Erro ao carregar Security.js do Mercado Pago");
+  };
+
+  document.body.appendChild(script);
+
+  return () => {
+    document.body.removeChild(script);
+  };
+}, []);
+
  const handleAbrirModalReserva = () => {
     if (!isLogged) {
       toast.error("Você precisa estar logado para reservar este espaço!");

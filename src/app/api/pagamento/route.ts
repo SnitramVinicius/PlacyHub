@@ -550,9 +550,9 @@ export const POST = async (req: NextRequest) => {
     // 1. RECEBER SOMENTE O ID DA RESERVA
     // ============================================
 
-    const body = await req.json();
+  const body = await req.json();
 
-    const { reservaId } = body;
+const { reservaId, deviceId } = body;
 
     if (!reservaId) {
       return NextResponse.json(
@@ -633,15 +633,25 @@ export const POST = async (req: NextRequest) => {
     }
 
     const { data: cliente, error: clienteError } =
-      await supabaseAdmin
-        .from("users")
-        .select(`
-          id,
-          name,
-          email
-        `)
-        .eq("id", reserva.user_id)
-        .single();
+  await supabaseAdmin
+    .from("users")
+    .select(`
+      id,
+      name,
+      email,
+      telefone,
+      cpf,
+      cep,
+      rua,
+      numero,
+      bairro,
+      cidade,
+      estado,
+      data_nascimento,
+      created_at
+    `)
+    .eq("id", reserva.user_id)
+    .single();
 
     if (clienteError || !cliente) {
       console.error(
@@ -705,26 +715,81 @@ export const POST = async (req: NextRequest) => {
     // 8. MONTAR PAYER COM DADOS DO BANCO
     // ============================================
 
-    const payer: any = {};
+  const payer: any = {};
 
-    if (cliente.name) {
-      const partesNome = cliente.name.trim().split(/\s+/);
+// ============================================
+// NOME
+// ============================================
 
-      payer.name = partesNome[0];
+if (cliente.name) {
+  const partesNome = cliente.name.trim().split(/\s+/);
 
-      if (partesNome.length > 1) {
-        payer.surname = partesNome
-          .slice(1)
-          .join(" ");
-      }
-    }
+  payer.name = partesNome[0];
 
-    if (cliente.email) {
-      payer.email = cliente.email
-        .trim()
-        .toLowerCase();
-    }
+  if (partesNome.length > 1) {
+    payer.surname = partesNome.slice(1).join(" ");
+  }
+}
 
+// ============================================
+// E-MAIL
+// ============================================
+
+if (cliente.email) {
+  payer.email = cliente.email.trim().toLowerCase();
+}
+
+// ============================================
+// TELEFONE
+// ============================================
+
+if (cliente.telefone) {
+  const telefoneLimpo = String(cliente.telefone).replace(/\D/g, "");
+
+  if (telefoneLimpo.length >= 10) {
+    payer.phone = {
+      area_code: telefoneLimpo.substring(0, 2),
+      number: Number(telefoneLimpo.substring(2)),
+    };
+  }
+}
+
+// ============================================
+// CPF
+// ============================================
+
+if (cliente.cpf) {
+  const cpfLimpo = String(cliente.cpf).replace(/\D/g, "");
+
+  if (cpfLimpo.length === 11) {
+    payer.identification = {
+      type: "CPF",
+      number: cpfLimpo,
+    };
+  }
+}
+
+// ============================================
+// ENDEREÇO
+// ============================================
+
+if (
+  cliente.cep ||
+  cliente.rua ||
+  cliente.numero
+) {
+  payer.address = {
+    zip_code: cliente.cep
+      ? String(cliente.cep).replace(/\D/g, "")
+      : undefined,
+
+    street_name: cliente.rua || undefined,
+
+    street_number: cliente.numero
+      ? Number(cliente.numero)
+      : undefined,
+  };
+}
     
 
     const preferenceBody: any = {
@@ -839,8 +904,13 @@ export const POST = async (req: NextRequest) => {
     const preference = new Preference(client);
 
     const result = await preference.create({
-      body: preferenceBody,
-    });
+  body: preferenceBody,
+  requestOptions: deviceId
+    ? {
+        meliSessionId: deviceId,
+      }
+    : undefined,
+});
 
     console.log(
       "✅ Preferência criada:",
