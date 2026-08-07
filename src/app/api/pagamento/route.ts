@@ -897,6 +897,18 @@ if (
       "=========================================="
     );
 
+console.log("========== DEVICE ID NO BACKEND ==========");
+console.log("reservaId:", reserva.id);
+console.log(
+  "deviceId:",
+  deviceId ? `${deviceId.substring(0, 25)}...` : "NÃO RECEBIDO"
+);
+console.log(
+  "meliSessionId será enviado:",
+  !!deviceId
+);
+console.log("===========================================");
+
     // ============================================
     // 13. CRIAR PREFERÊNCIA
     // ============================================
