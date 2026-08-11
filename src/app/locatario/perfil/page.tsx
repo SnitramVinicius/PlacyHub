@@ -227,10 +227,18 @@ updateUser({ fotoUrl });
 };
 
 const handleSalvar = async () => {
+  const nome = usuario.nome.trim();
+
+  if (!nome) {
+    toast.error("Informe seu nome para salvar o perfil.");
+    return;
+  }
+
   // Atualizar no Supabase
   const { error } = await supabase
     .from("users")
     .update({
+      name: nome,
       telefone: usuario.telefone,
       cpf: usuario.cpf,
       data_nascimento: usuario.dataNascimento,
@@ -294,6 +302,7 @@ if (erroRecebimento) {
   return;
 }
 console.log("Recebimento salvo:", usuario.dadosRecebimento);
+updateUser({ name: nome });
 await refreshUser();
 
 setEditando(false);
