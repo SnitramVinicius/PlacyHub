@@ -27,9 +27,14 @@ interface User {
   is_admin?: boolean;
 
   telefone?: string;
+  dataNascimento?: string;
   cidade?: string;
   estado?: string;
   cpf?: string;
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
   fotoUrl?: string;
 }
 
@@ -101,9 +106,14 @@ console.log("AUTH ID:", authUser?.id);
     email,
     name,
     telefone,
+    data_nascimento,
     cidade,
     estado,
     cpf,
+    cep,
+    rua,
+    numero,
+    bairro,
     foto_url,
     roles,
     is_admin
@@ -124,9 +134,14 @@ if (error || !data) {
     roles: data.roles ?? ["LOCATARIO"],
     is_admin: data.is_admin,
     telefone: data.telefone,
+    dataNascimento: data.data_nascimento,
     cidade: data.cidade,
     estado: data.estado,
     cpf: data.cpf,
+    cep: data.cep,
+    rua: data.rua,
+    numero: data.numero,
+    bairro: data.bairro,
     fotoUrl: data.foto_url,
   };
 
@@ -220,9 +235,14 @@ const { data, error } = await supabase
     email,
     name,
     telefone,
+    data_nascimento,
     cidade,
     estado,
     cpf,
+    cep,
+    rua,
+    numero,
+    bairro,
     foto_url,
     roles,
     is_admin
@@ -249,9 +269,14 @@ if (error || !data) {
   is_admin: data.is_admin,
 
   telefone: data.telefone,
+  dataNascimento: data.data_nascimento,
   cidade: data.cidade,
   estado: data.estado,
   cpf: data.cpf,
+  cep: data.cep,
+  rua: data.rua,
+  numero: data.numero,
+  bairro: data.bairro,
   fotoUrl: data.foto_url,
 };
       setUser(userData);

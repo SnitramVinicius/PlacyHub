@@ -69,7 +69,7 @@ interface DadosRecebimento {
 
 export default function PerfilUsuario() {
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [editando, setEditando] = useState(false);
   const [confirmarLogout, setConfirmarLogout] = useState(false);
@@ -294,7 +294,7 @@ if (erroRecebimento) {
   return;
 }
 console.log("Recebimento salvo:", usuario.dadosRecebimento);
-updateUser(usuario);
+await refreshUser();
 
 setEditando(false);
 toast.success("Dados salvos com sucesso!");

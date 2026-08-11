@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter,useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock, MessageCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -385,14 +385,83 @@ const getDayClassName = (date: Date) => {
     }
   };
 
+  const cpfValido = (cpf?: string) => {
+    const numeros = cpf?.replace(/\D/g, "") ?? "";
+
+    if (!/^\d{11}$/.test(numeros) || /^(\d)\1{10}$/.test(numeros)) {
+      return false;
+    }
+
+    const calcularDigito = (base: string, pesoInicial: number) => {
+      const soma = base.split("").reduce(
+        (total, digito, indice) => total + Number(digito) * (pesoInicial - indice),
+        0
+      );
+      const resto = (soma * 10) % 11;
+      return resto === 10 ? 0 : resto;
+    };
+
+    const primeiroDigito = calcularDigito(numeros.slice(0, 9), 10);
+    const segundoDigito = calcularDigito(numeros.slice(0, 10), 11);
+
+    return (
+      primeiroDigito === Number(numeros[9]) &&
+      segundoDigito === Number(numeros[10])
+    );
+  };
+
+  const handleCompartilharWhatsApp = () => {
+    if (!espaco) return;
+
+    const urlAtual = new URL(window.location.href);
+    const basePublica = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
+    const linkDoEspaco = basePublica
+      ? `${basePublica}${urlAtual.pathname}${urlAtual.search}${urlAtual.hash}`
+      : window.location.href;
+    const localizacao = [espaco.cidade, espaco.estado]
+      .filter(Boolean)
+      .join(" - ");
+    const mensagem = [
+      `Olha este espaço que encontrei na PlacyHub: ${espaco.nome_espaco}.`,
+      localizacao ? `Localização: ${localizacao}.` : "",
+      linkDoEspaco,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(mensagem)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
   const perfilCompleto = () => {
     if (!user) return false;
 
     const nomeValido = (user.name?.trim().split(" ").filter(Boolean).length ?? 0) >= 2;
-    const cpfValido = (user.cpf?.replace(/\D/g, "").length ?? 0) === 11;
+    const emailValido = /^\S+@\S+\.\S+$/.test(user.email?.trim() ?? "");
+    const documentoValido = cpfValido(user.cpf);
     const telefoneValido = (user.telefone?.replace(/\D/g, "").length ?? 0) >= 10;
+    const nascimentoValido = Boolean(user.dataNascimento);
+    const cepValido = (user.cep?.replace(/\D/g, "").length ?? 0) === 8;
+    const enderecoValido = Boolean(
+      user.rua?.trim() &&
+        user.numero?.trim() &&
+        user.bairro?.trim() &&
+        user.cidade?.trim() &&
+        /^[A-Z]{2}$/i.test(user.estado?.trim() ?? "")
+    );
 
-    return nomeValido && cpfValido && telefoneValido;
+    return (
+      nomeValido &&
+      emailValido &&
+      documentoValido &&
+      telefoneValido &&
+      nascimentoValido &&
+      cepValido &&
+      enderecoValido
+    );
   };
 
   const [qtdPessoas, setQtdPessoas] = useState(1);
@@ -479,7 +548,9 @@ useEffect(() => {
     }
 
       if (!perfilCompleto()) {
-      toast.error("Complete seu perfil (nome completo, CPF e telefone) antes de reservar.");
+      toast.error(
+        "Complete seus dados pessoais e endereço antes de seguir para o pagamento."
+      );
       router.push("/locatario/perfil");
       return;
     }
@@ -1948,6 +2019,18 @@ Reservar Agora
 </div>
   </div>
 )}
+
+      <section className="mt-12 border-t border-gray-200 pt-8 dark:border-slate-700">
+        <button
+          type="button"
+          onClick={handleCompartilharWhatsApp}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-green-600 px-4 py-3 font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-950/30"
+          aria-label="Compartilhar este espaço pelo WhatsApp"
+        >
+          <MessageCircle size={20} aria-hidden="true" />
+          Compartilhar este espaço pelo WhatsApp
+        </button>
+      </section>
 
     </main>
   );
