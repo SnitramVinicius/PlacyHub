@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import { FavoritosProvider } from "@/context/FavoritosContext";
 import { TemaProvider } from "@/context/TemaContext";
 import HelpButton from "@/components/HelpButton";
+import InstagramInviteModal from "@/components/InstagramInviteModal";
 import { Suspense } from "react";
 import ReactQueryProvider from "@/providers/ReactQueryProvider";
 
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </ReactQueryProvider>
               <Toaster />
               <HelpButton />
+              <InstagramInviteModal />
             </FavoritosProvider>
           </TemaProvider>
         </AuthProvider>
