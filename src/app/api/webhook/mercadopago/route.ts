@@ -198,6 +198,11 @@ export async function POST(request: Request) {
     }
 
     if (!assinaturaWebhookValida(request, dataIdAssinatura)) {
+      console.error("Webhook do Mercado Pago recusado: assinatura inválida.", {
+        possuiDataId: Boolean(dataIdAssinatura),
+        possuiAssinatura: Boolean(request.headers.get("x-signature")),
+        possuiRequestId: Boolean(request.headers.get("x-request-id")),
+      });
       return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
     }
     // Verificar se é um pagamento
@@ -229,12 +234,10 @@ export async function POST(request: Request) {
     response.status
   );
 
+  // Não confirmar recebimento: o 503 faz o Mercado Pago tentar novamente.
   return NextResponse.json(
-    {
-      success: true,
-      message: "Notificação recebida, mas pagamento não encontrado."
-    },
-    { status: 200 }
+    { error: "Pagamento temporariamente não encontrado." },
+    { status: 503 }
   );
 }
     
