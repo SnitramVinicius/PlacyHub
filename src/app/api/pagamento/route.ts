@@ -544,7 +544,7 @@ const client = new MercadoPagoConfig({
   accessToken,
 });
 
-const TEMPO_RESERVA_MS = 15 * 60 * 1000;
+const TEMPO_RESERVA_MS = 30 * 60 * 1000;
 
 const somenteNumeros = (valor: unknown) => String(valor ?? "").replace(/\D/g, "");
 
@@ -1007,6 +1007,8 @@ if (
       expires: true,
       expiration_date_from: agora.toISOString(),
       expiration_date_to: new Date(agora.getTime() + TEMPO_RESERVA_MS).toISOString(),
+      // Controla especificamente o vencimento de Pix e meios offline.
+      date_of_expiration: new Date(agora.getTime() + TEMPO_RESERVA_MS).toISOString(),
 
       additional_info: `
         Reserva de espaço para evento.

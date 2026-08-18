@@ -641,6 +641,15 @@ const handleConfirmarReserva = async () => {
     return;
   }
 
+  // O Checkout Pro não garante retorno automático para pagamentos Pix.
+  // Mantemos a PlacyHub aberta e exibimos o checkout em uma aba separada.
+  const checkoutWindow = window.open("", "placyhub-mercado-pago");
+  if (checkoutWindow) {
+    checkoutWindow.document.title = "Abrindo pagamento...";
+    checkoutWindow.document.body.innerHTML =
+      '<p style="font-family:Arial,sans-serif;padding:24px">Abrindo o pagamento seguro...</p>';
+  }
+
   setReservando(true);
 const diasReserva =
 startReserva && endReserva
@@ -732,6 +741,7 @@ const response = await fetch("/api/pagamento", {
 });
 
     if (!response.ok) {
+      checkoutWindow?.close();
       const text = await response.text();
       console.error("Erro API:", text);
       toast.error("Erro ao criar pagamento. Tente novamente.");
@@ -741,13 +751,20 @@ const response = await fetch("/api/pagamento", {
     const result = await response.json();
 
     if (result.url) {
-  setModalReservaAberto(false);
-  window.location.href = result.url;
-}
+      setModalReservaAberto(false);
+      if (checkoutWindow) {
+        checkoutWindow.location.href = result.url;
+        router.push("/locatario/reservas?pagamento=aguardando");
+      } else {
+        window.location.href = result.url;
+      }
+    }
     else {
+      checkoutWindow?.close();
       toast.error("Erro ao criar pagamento. Tente novamente.");
     }
   } catch (err) {
+    checkoutWindow?.close();
     console.error(err);
     toast.error("Erro ao criar reserva. Tente novamente.");
   } finally {

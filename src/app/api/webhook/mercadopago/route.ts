@@ -302,9 +302,16 @@ const reservaId = payment.external_reference;
       process.env.MP_APPLICATION_ID ?? token?.match(/^(?:APP_USR|TEST)-(\d+)-/)?.[1];
     const applicationConfere =
       !applicationIdEsperado || String(payment.application_id) === applicationIdEsperado;
+    const statusSubstituivel = [
+      null,
+      "preference_created",
+      "pending",
+      "in_process",
+      "expired",
+    ].includes(reservaCompleta.pagamento_status ?? null);
     const pagamentoJaAssociado =
       reservaCompleta.pagamento_id &&
-      reservaCompleta.pagamento_status !== "preference_created" &&
+      !statusSubstituivel &&
       String(reservaCompleta.pagamento_id) !== String(payment.id);
 
     if (
@@ -344,16 +351,22 @@ const reservaId = payment.external_reference;
     }
     
     // Atualizar reserva no Supabase
+    const atualizacaoReserva: Record<string, unknown> = {
+      status: statusReserva,
+      pagamento_id: payment.id,
+      pagamento_status: payment.status,
+      pagamento_atualizado_em: new Date().toISOString(),
+    };
+
+    if (payment.status === "approved") {
+      atualizacaoReserva.motivo_cancelamento = null;
+      atualizacaoReserva.cancelado_em = null;
+    }
+
    const { data, error: updateError } = await supabaseAdmin
   .from("reservas")
-  .update({
-    status: statusReserva,
-    pagamento_id: payment.id,
-    pagamento_status: payment.status,
-    pagamento_atualizado_em: new Date().toISOString(),
-  })
+  .update(atualizacaoReserva)
   .eq("id", reservaId)
-  .or(`pagamento_id.is.null,pagamento_id.eq.${payment.id},pagamento_status.eq.preference_created`)
   .select();    
     if (updateError) {
       console.error("❌ Erro ao atualizar reserva:", updateError);
