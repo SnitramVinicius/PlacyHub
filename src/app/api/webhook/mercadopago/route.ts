@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Resend } from "resend";
 import {
@@ -9,6 +10,29 @@ import {
 } from "@/config/taxa";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function assinaturaWebhookValida(request: Request, dataId: string) {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  const xSignature = request.headers.get("x-signature");
+  const xRequestId = request.headers.get("x-request-id");
+
+  if (!secret || !xSignature || !xRequestId || !dataId) return false;
+
+  const partes = Object.fromEntries(
+    xSignature.split(",").map((parte) => {
+      const [chave, ...valor] = parte.trim().split("=");
+      return [chave, valor.join("=")];
+    })
+  );
+  if (!partes.ts || !partes.v1) return false;
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${partes.ts};`;
+  const assinaturaEsperada = createHmac("sha256", secret).update(manifest).digest("hex");
+  const recebida = Buffer.from(partes.v1, "utf8");
+  const esperada = Buffer.from(assinaturaEsperada, "utf8");
+
+  return recebida.length === esperada.length && timingSafeEqual(recebida, esperada);
+}
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -164,7 +188,18 @@ R$ ${valorLiquidoAnfitriao.toFixed(2)}
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();    
+    const body = await request.json();
+    const url = new URL(request.url);
+    const dataIdAssinatura = url.searchParams.get("data.id") ?? String(body.data?.id ?? "");
+
+    if (!process.env.MP_WEBHOOK_SECRET) {
+      console.error("MP_WEBHOOK_SECRET não configurado.");
+      return NextResponse.json({ error: "Webhook não configurado." }, { status: 503 });
+    }
+
+    if (!assinaturaWebhookValida(request, dataIdAssinatura)) {
+      return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
+    }
     // Verificar se é um pagamento
     if (body.type !== "payment") {
       return NextResponse.json({ message: "Ignorado" }, { status: 200 });
@@ -205,6 +240,14 @@ export async function POST(request: Request) {
     
 const payment = await response.json();
 
+const collectorResponse = await fetch("https://api.mercadopago.com/users/me", {
+  headers: { Authorization: `Bearer ${token}` },
+});
+if (!collectorResponse.ok) {
+  return NextResponse.json({ error: "Não foi possível validar a conta recebedora." }, { status: 503 });
+}
+const collector = await collectorResponse.json();
+
 console.log("========== PAGAMENTO MERCADO PAGO ==========");
 console.log("ID:", payment.id);
 console.log("STATUS:", payment.status);
@@ -241,6 +284,57 @@ const reservaId = payment.external_reference;
       console.error("❌ Erro ao buscar reserva completa:", reservaCompletaError);
     }
 
+    if (!reservaCompleta) {
+      return NextResponse.json({ error: "Reserva não encontrada." }, { status: 404 });
+    }
+
+    const valorEsperado = Number(reservaCompleta.valor_total);
+    const valorRecebido = Number(payment.transaction_amount);
+    const valorConfere =
+      Number.isFinite(valorEsperado) &&
+      Number.isFinite(valorRecebido) &&
+      Math.round(valorEsperado * 100) === Math.round(valorRecebido * 100);
+    const moedaConfere = payment.currency_id === "BRL";
+    const metadataConfere =
+      !payment.metadata?.reserva_id || payment.metadata.reserva_id === reservaId;
+    const collectorConfere = String(payment.collector_id) === String(collector.id);
+    const applicationIdEsperado =
+      process.env.MP_APPLICATION_ID ?? token?.match(/^(?:APP_USR|TEST)-(\d+)-/)?.[1];
+    const applicationConfere =
+      !applicationIdEsperado || String(payment.application_id) === applicationIdEsperado;
+    const pagamentoJaAssociado =
+      reservaCompleta.pagamento_id &&
+      reservaCompleta.pagamento_status !== "preference_created" &&
+      String(reservaCompleta.pagamento_id) !== String(payment.id);
+
+    if (
+      !valorConfere ||
+      !moedaConfere ||
+      !metadataConfere ||
+      !collectorConfere ||
+      !applicationConfere ||
+      pagamentoJaAssociado
+    ) {
+      console.error("Pagamento incompatível com a reserva", {
+        reservaId,
+        paymentId: payment.id,
+        valorEsperado,
+        valorRecebido,
+        currencyId: payment.currency_id,
+        collectorConfere,
+        applicationConfere,
+      });
+      return NextResponse.json({ error: "Pagamento incompatível com a reserva." }, { status: 409 });
+    }
+
+    const notificacaoJaProcessada =
+      String(reservaCompleta.pagamento_id) === String(payment.id) &&
+      reservaCompleta.pagamento_status === payment.status;
+
+    if (notificacaoJaProcessada) {
+      return NextResponse.json({ success: true, message: "Notificação já processada." });
+    }
+
     // Definir status da reserva
     let statusReserva = "pendente";
     if (payment.status === "approved") {
@@ -259,6 +353,7 @@ const reservaId = payment.external_reference;
     pagamento_atualizado_em: new Date().toISOString(),
   })
   .eq("id", reservaId)
+  .or(`pagamento_id.is.null,pagamento_id.eq.${payment.id},pagamento_status.eq.preference_created`)
   .select();    
     if (updateError) {
       console.error("❌ Erro ao atualizar reserva:", updateError);

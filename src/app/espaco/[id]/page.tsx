@@ -521,6 +521,7 @@ useEffect(() => {
 
   script.src = "https://www.mercadopago.com/v2/security.js";
   script.async = true;
+  script.setAttribute("view", "checkout");
 
   script.onload = () => {
     console.log("✅ Mercado Pago Security.js carregado");
@@ -624,6 +625,22 @@ const handleConfirmarReserva = async () => {
   }
   }
 
+  const deviceId = window.MP_DEVICE_SESSION_ID;
+  if (!deviceId) {
+    toast.error("A verificação de segurança ainda está carregando. Aguarde alguns segundos e tente novamente.");
+    return;
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    toast.error("Sua sessão expirou. Entre novamente para continuar.");
+    router.push("/login");
+    return;
+  }
+
   setReservando(true);
 const diasReserva =
 startReserva && endReserva
@@ -644,69 +661,73 @@ const {
 } = resumoPreco;
 
 
-    // 🔥 1. SALVAR RESERVA NO SUPABASE
-    const { data: reservaData, error: reservaError } = await supabase
+    const dataInicioReserva = formatarData(startReserva);
+    const dataFimReserva = endReserva
+      ? formatarData(endReserva)
+      : dataInicioReserva;
+    const limiteReservaPendente = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+    const { data: reservaPendente, error: reservaPendenteError } = await supabase
       .from("reservas")
-      .insert({
+      .select("*")
+      .eq("espaco_id", espaco.id)
+      .eq("user_id", user?.id)
+      .eq("data_inicio", dataInicioReserva)
+      .eq("data_fim", dataFimReserva)
+      .eq("qtd_pessoas", qtdPessoas)
+      .eq("valor_total", total)
+      .eq("status", "pendente")
+      .gte("created_at", limiteReservaPendente)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (reservaPendenteError) throw reservaPendenteError;
+
+    let reservaData = reservaPendente;
+    if (!reservaData) {
+      const { data: novaReserva, error: reservaError } = await supabase
+        .from("reservas")
+        .insert({
         espaco_id: espaco.id,
         user_id: user?.id,
-       data_inicio: formatarData(startReserva),
-        data_fim: endReserva ? endReserva.toISOString().split("T")[0] : startReserva.toISOString().split("T")[0],
+        data_inicio: dataInicioReserva,
+        data_fim: dataFimReserva,
         status: "pendente",
         qtd_pessoas: qtdPessoas,
-       valor_base: valorBase,
-taxa_placyhub: taxaCliente,
-comissao_placyhub: comissaoPlacyHub,
-repasse_anfitriao: repasseAnfitriao,
-valor_total: total,
+        valor_base: valorBase,
+        taxa_placyhub: taxaCliente,
+        comissao_placyhub: comissaoPlacyHub,
+        repasse_anfitriao: repasseAnfitriao,
+        valor_total: total,
         created_at: new Date().toISOString(),
         pacote_nome: pacoteSelecionado?.nome || null,
- convidados_pacote: valorSelecionado?.convidados || null
+        convidados_pacote: valorSelecionado?.convidados || null,
       })
-      .select()
-      .single();
+        .select()
+        .single();
 
-   if (reservaError) {
-  console.error("ERRO COMPLETO:", JSON.stringify(reservaError, null, 2));
-  alert(JSON.stringify(reservaError, null, 2));
-  return;
-}
+      if (reservaError) throw reservaError;
+      reservaData = novaReserva;
+    }
+
+    if (!reservaData) throw new Error("Não foi possível criar ou recuperar a reserva.");
 
 
     // 🔥 2. PEGAR DEVICE ID DO MERCADO PAGO
-const deviceId = window.MP_DEVICE_SESSION_ID;
-
 console.log("DEVICE ID ANTES DO PAGAMENTO:", deviceId);
 
 // 🔥 3. CRIAR PAGAMENTO COM O ID DA RESERVA
 
-// separa nome e sobrenome (o Mercado Pago pede os dois campos)
-const nomeCompleto = (user?.name || "").trim().split(" ");
-const primeiroNome = nomeCompleto[0] || undefined;
-const sobrenome = nomeCompleto.slice(1).join(" ") || undefined;
-
 const response = await fetch("/api/pagamento", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  },
   body: JSON.stringify({
-    total,
-    espacoId: espaco.id,
-    nomeEspaco: espaco.nome,
-    dataInicio: formatarData(startReserva),
-    dataFim: endReserva
-      ? formatarData(endReserva)
-      : formatarData(startReserva),
-    diasReserva,
-    qtdPessoas,
     reservaId: reservaData.id,
     deviceId,
-
-    // 🔥 dados do comprador para o antifraude do Mercado Pago
-    clienteNome: primeiroNome,
-    clienteSobrenome: sobrenome,
-    clienteEmail: user?.email,
-    clienteTelefone: user?.telefone,
-    clienteCpf: user?.cpf,
   }),
 });
 

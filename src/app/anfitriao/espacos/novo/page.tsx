@@ -1,10 +1,61 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import EspacoForm, { EspacoFormData } from "@/components/EspacoForm";
 import { supabase } from "@/lib/supabase";
+import { obterPendenciasPerfil } from "@/lib/validarPerfilCompleto";
+import { toast } from "sonner";
 
 export default function NovoEspaco() {
   const router = useRouter();
+  const [verificandoPerfil, setVerificandoPerfil] = useState(true);
+
+  const validarPerfil = async (userId: string, redirecionar = true) => {
+    const { data: perfil, error } = await supabase
+      .from("users")
+      .select("name, email, telefone, cpf, cep, rua, numero, bairro, cidade, estado, data_nascimento")
+      .eq("id", userId)
+      .single();
+
+    if (error || !perfil) {
+      toast.error("Não foi possível validar seus dados pessoais.");
+      return false;
+    }
+
+    const pendencias = obterPendenciasPerfil(perfil);
+    if (pendencias.length > 0) {
+      toast.error(`Complete seu perfil antes de cadastrar um espaço: ${pendencias.join(", ")}.`);
+      if (redirecionar) router.replace("/locatario/perfil");
+      return false;
+    }
+
+    return true;
+  };
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function verificarAcesso() {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        toast.error("Faça login para cadastrar um espaço.");
+        router.replace("/login");
+        return;
+      }
+
+      const perfilCompleto = await validarPerfil(user.id);
+      if (ativo && perfilCompleto) setVerificandoPerfil(false);
+    }
+
+    verificarAcesso();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
 const handleSubmit = async (dados: EspacoFormData, fotosNovas: File[]) => {
 
@@ -19,6 +70,7 @@ if (authError || !user) {
   alert("Usuário não autenticado. Faça login novamente.");
   return;
 }
+if (!(await validarPerfil(user.id))) return;
     const urls: string[] = [];
 
     // 1. Upload das fotos
@@ -203,6 +255,17 @@ if (dados.temPlanos && dados.categoriasFesta && dados.categoriasFesta.length > 0
     alert("Espaço cadastrado com sucesso!");
     router.push("/anfitriao/espacos");
   };
+
+  if (verificandoPerfil) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="h-10 w-10 mx-auto mb-3 rounded-full border-4 border-sky-500 border-t-transparent animate-spin" />
+          <p className="text-sm text-gray-600 dark:text-gray-300">Verificando seus dados pessoais...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <EspacoForm

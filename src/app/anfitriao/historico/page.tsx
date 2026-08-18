@@ -171,7 +171,8 @@ export default function HistoricoReservas() {
         .from("reservas")
         .select("*")
         .in("espaco_id", espacosIds)
-        .in("status", ["confirmada", "finalizada", "cancelada", "pendente", "reagendamento_proposto"])
+        .in("status", ["confirmada", "finalizada", "cancelada"])
+        .eq("pagamento_status", "approved")
         .order("created_at", { ascending: false });
 
       if (reservasError) {

@@ -544,11 +544,61 @@ const client = new MercadoPagoConfig({
   accessToken,
 });
 
+const TEMPO_RESERVA_MS = 15 * 60 * 1000;
+
+const somenteNumeros = (valor: unknown) => String(valor ?? "").replace(/\D/g, "");
+
+const cpfValido = (valor: unknown) => {
+  const cpf = somenteNumeros(valor);
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+
+  const calcularDigito = (base: string, pesoInicial: number) => {
+    const soma = base.split("").reduce(
+      (total, digito, indice) => total + Number(digito) * (pesoInicial - indice),
+      0
+    );
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+
+  return (
+    calcularDigito(cpf.slice(0, 9), 10) === Number(cpf[9]) &&
+    calcularDigito(cpf.slice(0, 10), 11) === Number(cpf[10])
+  );
+};
+
+const dataNascimentoValida = (valor: unknown) => {
+  if (!valor) return false;
+  const nascimento = new Date(`${String(valor)}T12:00:00`);
+  if (Number.isNaN(nascimento.getTime())) return false;
+
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  if (
+    hoje.getMonth() < nascimento.getMonth() ||
+    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate())
+  ) {
+    idade--;
+  }
+  return idade >= 18 && idade <= 120;
+};
+
 export const POST = async (req: NextRequest) => {
   try {
     // ============================================
     // 1. RECEBER SOMENTE O ID DA RESERVA
     // ============================================
+
+  const authHeader = req.headers.get("authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabaseAdmin.auth.getUser(token);
+
+  if (authError || !authUser) {
+    return NextResponse.json({ error: "Usuário não autenticado." }, { status: 401 });
+  }
 
   const body = await req.json();
 
@@ -562,6 +612,29 @@ const { reservaId, deviceId } = body;
         { status: 400 }
       );
     }
+
+    if (typeof deviceId !== "string" || deviceId.trim().length < 10) {
+      return NextResponse.json(
+        { error: "Identificador de segurança do dispositivo não recebido." },
+        { status: 400 }
+      );
+    }
+
+    const agora = new Date();
+    const limiteExpiracao = new Date(agora.getTime() - TEMPO_RESERVA_MS).toISOString();
+    await supabaseAdmin
+      .from("reservas")
+      .update({
+        status: "cancelada",
+        pagamento_status: "expired",
+        pagamento_atualizado_em: agora.toISOString(),
+        motivo_cancelamento: "Prazo de pagamento expirado",
+        cancelado_em: agora.toISOString(),
+      })
+      .eq("user_id", authUser.id)
+      .eq("status", "pendente")
+      .lt("created_at", limiteExpiracao)
+      .neq("pagamento_status", "approved");
 
     // ============================================
     // 2. BUSCAR A RESERVA NO BANCO
@@ -594,6 +667,13 @@ const { reservaId, deviceId } = body;
           error: "Reserva não encontrada.",
         },
         { status: 404 }
+      );
+    }
+
+    if (reserva.user_id !== authUser.id) {
+      return NextResponse.json(
+        { error: "Você não tem permissão para pagar esta reserva." },
+        { status: 403 }
       );
     }
 
@@ -666,6 +746,64 @@ const { reservaId, deviceId } = body;
         { status: 404 }
       );
     }
+
+    if (
+      reserva.pagamento_status === "preference_created" &&
+      reserva.pagamento_id &&
+      reserva.pagamento_atualizado_em &&
+      Date.now() - new Date(reserva.pagamento_atualizado_em).getTime() < TEMPO_RESERVA_MS
+    ) {
+      const preferenceResponse = await fetch(
+        `https://api.mercadopago.com/checkout/preferences/${encodeURIComponent(String(reserva.pagamento_id))}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (preferenceResponse.ok) {
+        const preferenceExistente = await preferenceResponse.json();
+        if (
+          preferenceExistente.external_reference === String(reserva.id) &&
+          preferenceExistente.init_point
+        ) {
+          return NextResponse.json({
+            success: true,
+            url: preferenceExistente.init_point,
+            preferenceId: preferenceExistente.id,
+            reused: true,
+          });
+        }
+      }
+    }
+
+    const telefoneLimpo = somenteNumeros(cliente.telefone);
+    const perfilAntifraudeValido =
+      (cliente.name?.trim().split(/\s+/).length ?? 0) >= 2 &&
+      /^\S+@\S+\.\S+$/.test(cliente.email?.trim() ?? "") &&
+      cpfValido(cliente.cpf) &&
+      [10, 11].includes(telefoneLimpo.length) &&
+      somenteNumeros(cliente.cep).length === 8 &&
+      Boolean(cliente.rua?.trim()) &&
+      Boolean(cliente.numero?.trim()) &&
+      Boolean(cliente.bairro?.trim()) &&
+      Boolean(cliente.cidade?.trim()) &&
+      /^[A-Z]{2}$/i.test(cliente.estado?.trim() ?? "") &&
+      dataNascimentoValida(cliente.data_nascimento);
+
+    if (!perfilAntifraudeValido) {
+      return NextResponse.json(
+        { error: "Complete e valide seus dados pessoais antes do pagamento." },
+        { status: 422 }
+      );
+    }
+
+    const { data: ultimaCompra } = await supabaseAdmin
+      .from("reservas")
+      .select("pagamento_atualizado_em")
+      .eq("user_id", authUser.id)
+      .eq("status", "confirmada")
+      .neq("id", reserva.id)
+      .order("pagamento_atualizado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     // ============================================
     // 5. VALIDAR ESPAÇO
@@ -744,9 +882,7 @@ if (cliente.email) {
 // ============================================
 
 if (cliente.telefone) {
-  const telefoneLimpo = String(cliente.telefone).replace(/\D/g, "");
-
-  if (telefoneLimpo.length >= 10) {
+  if ([10, 11].includes(telefoneLimpo.length)) {
     payer.phone = {
       area_code: telefoneLimpo.substring(0, 2),
       number: Number(telefoneLimpo.substring(2)),
@@ -790,6 +926,13 @@ if (
       : undefined,
   };
 }
+
+  payer.date_created = cliente.created_at;
+  payer.authentication_type = "Web Nativa";
+  payer.is_first_purchase_online = !ultimaCompra;
+  if (ultimaCompra?.pagamento_atualizado_em) {
+    payer.last_purchase = ultimaCompra.pagamento_atualizado_em;
+  }
     
 
     const preferenceBody: any = {
@@ -848,6 +991,10 @@ if (
         `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`,
 
       auto_return: "approved",
+
+      expires: true,
+      expiration_date_from: agora.toISOString(),
+      expiration_date_to: new Date(agora.getTime() + TEMPO_RESERVA_MS).toISOString(),
 
       additional_info: `
         Reserva de espaço para evento.
@@ -943,6 +1090,25 @@ console.log("===========================================");
           error:
             "Mercado Pago não retornou a URL de pagamento.",
         },
+        { status: 500 }
+      );
+    }
+
+    const { error: preferenceUpdateError } = await supabaseAdmin
+      .from("reservas")
+      .update({
+        pagamento_id: result.id,
+        pagamento_status: "preference_created",
+        pagamento_atualizado_em: agora.toISOString(),
+      })
+      .eq("id", reserva.id)
+      .eq("user_id", authUser.id)
+      .eq("status", "pendente");
+
+    if (preferenceUpdateError) {
+      console.error("Erro ao vincular preferência à reserva:", preferenceUpdateError);
+      return NextResponse.json(
+        { error: "Não foi possível vincular o pagamento à reserva." },
         { status: 500 }
       );
     }

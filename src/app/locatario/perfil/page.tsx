@@ -65,6 +65,23 @@ interface DadosRecebimento {
   cpfTitular?: string;
 }
 
+function formatarTelefoneBrasileiro(valor: string) {
+  let numeros = valor.replace(/\D/g, "");
+
+  if ((numeros.length === 12 || numeros.length === 13) && numeros.startsWith("55")) {
+    numeros = numeros.slice(2);
+  }
+
+  numeros = numeros.slice(0, 11);
+  if (numeros.length <= 2) return numeros ? `(${numeros}` : "";
+  if (numeros.length <= 6) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+  if (numeros.length <= 10) {
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`;
+  }
+
+  return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
+}
+
 /* ===================== COMPONENTE ===================== */
 
 export default function PerfilUsuario() {
@@ -90,6 +107,8 @@ const { data: userData, error } = await supabase
   .eq("id", userId)
   .single();
 
+const { data: authData } = await supabase.auth.getUser();
+
 const { data: dadosRecebimento } = await supabase
   .from("dados_recebimento")
   .select("*")
@@ -102,13 +121,51 @@ if (error) {
   return;
 }
 
+const dataNascimento = String(
+  userData.data_nascimento ||
+  authData.user?.user_metadata?.data_nascimento ||
+  ""
+).slice(0, 10);
+const telefoneAuth = String(authData.user?.user_metadata?.telefone || "");
+const numerosTelefoneAuth = telefoneAuth.replace(/\D/g, "");
+const telefoneOrigem =
+  (numerosTelefoneAuth.length === 12 || numerosTelefoneAuth.length === 13) &&
+  numerosTelefoneAuth.startsWith("55")
+    ? telefoneAuth
+    : userData.telefone || telefoneAuth;
+const telefoneFormatado = formatarTelefoneBrasileiro(telefoneOrigem);
+
+// Cadastros antigos podem ter a data apenas nos metadados do Auth.
+// Nesse caso, recupera o valor e corrige a coluna do perfil automaticamente.
+if (!userData.data_nascimento && dataNascimento) {
+  const { error: erroSincronizacao } = await supabase
+    .from("users")
+    .update({ data_nascimento: dataNascimento })
+    .eq("id", userId);
+
+  if (erroSincronizacao) {
+    console.error("Erro ao sincronizar data de nascimento:", erroSincronizacao);
+  }
+}
+
+if (userData.telefone && userData.telefone !== telefoneFormatado) {
+  const { error: erroTelefone } = await supabase
+    .from("users")
+    .update({ telefone: telefoneFormatado })
+    .eq("id", userId);
+
+  if (erroTelefone) {
+    console.error("Erro ao normalizar telefone:", erroTelefone);
+  }
+}
+
 const usuarioCompleto: Usuario = {
   id: userData.id,
   nome: userData.name,
   email: userData.email,
-  telefone: userData.telefone || "",
+  telefone: telefoneFormatado,
   cpf: userData.cpf || "",
-  dataNascimento: userData.data_nascimento || "",
+  dataNascimento,
   fotoUrl: userData.foto_url || "",
   dadosRecebimento: dadosRecebimento
   ? {
@@ -814,7 +871,7 @@ function Input({ label, value, onChange, disabled, type = "text", mask }: any) {
       return val.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
     }
     if (mask === "phone") {
-      return val.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+      return formatarTelefoneBrasileiro(val);
     }
     if (mask === "cep") {
       return val.replace(/(\d{5})(\d{3})/, "$1-$2");

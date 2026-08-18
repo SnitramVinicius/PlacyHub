@@ -158,7 +158,7 @@ function CardEspacoHome({
               </>
             ) : (
               <>
-                R$ {espaco.preco} • {espaco.duracao || 4} horas
+                R$ {espaco.preco}
               </>
             )}
 

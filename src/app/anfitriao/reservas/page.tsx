@@ -361,9 +361,9 @@ const buscarReservasReais = async () => {
     remarcacao_status
   `)
   .in("espaco_id", espacosIds)
+  .eq("pagamento_status", "approved")
   .in("status", [
     "confirmada",
-    "pendente",
     "finalizada",
     "reagendamento_proposto",
     "cancelada"

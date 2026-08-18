@@ -561,7 +561,7 @@ const categoriasFormatadas = categoriasFesta.map((categoria) => ({
                 </div>
               </section>
 
-              {/* Capacidade, Área e Valor */}
+              {/* Capacidade e Área */}
               <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -594,6 +594,7 @@ const categoriasFormatadas = categoriasFesta.map((categoria) => ({
                     className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900 outline-none transition"
                   />
                 </div>
+
               </div>
 
               {/* Localização */}
@@ -1225,7 +1226,7 @@ Ex:
               </section>
 
               {/* Disponibilidade */}
-              <div className="space-y-1">
+              {/* <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Disponibilidade *
                 </label>
@@ -1237,10 +1238,10 @@ Ex:
                   <option value="true">Publicar no site (disponível para aluguel)</option>
                   <option value="false">Manter como rascunho (indisponível)</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Serviços Adicionais */}
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
+              {/* <div className="rounded-2xl border border-gray-200 bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
                 <h3 className="text-base font-semibold text-gray-800 mb-2 dark:text-gray-100">
                   Serviços adicionais (opcional)
                 </h3>
@@ -1298,7 +1299,7 @@ Ex:
                     </button>
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {/* Regras do local */}
               <div className="rounded-2xl border border-gray-200 bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
@@ -1353,7 +1354,7 @@ Ex:
                     <div key={i} className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
-                        placeholder="Ex: Wi-Fi, Ar-condicionado, Estacionamento"
+                        placeholder="Ex: Wi-Fi"
                         value={f}
                         onChange={(e) => atualizarFacilidade(i, e.target.value)}
                         className="flex-1 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 sm:px-4 py-2.5 text-sm"

@@ -25,6 +25,31 @@ interface Step1Data {
  */
 const STORAGE_KEY = "placyhub_anfitriao_step1";
 
+function formatarTelefoneBrasileiro(valor: string) {
+  let numeros = valor.replace(/\D/g, "");
+
+  if ((numeros.length === 12 || numeros.length === 13) && numeros.startsWith("55")) {
+    numeros = numeros.slice(2);
+  }
+
+  numeros = numeros.slice(0, 11);
+  if (numeros.length <= 2) return numeros ? `(${numeros}` : "";
+  if (numeros.length <= 6) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+  if (numeros.length <= 10) {
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`;
+  }
+
+  return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
+}
+
+function formatarCpf(valor: string) {
+  const numeros = valor.replace(/\D/g, "").slice(0, 11);
+  return numeros
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
 export default function VirarAnfitriao() {
   const router = useRouter();
   const { user, virarAnfitriao, isAnfitriao } = useAuth();
@@ -35,6 +60,9 @@ export default function VirarAnfitriao() {
 
   const [estados, setEstados] = useState<Estado[]>([]);
   const [loadingEstados, setLoadingEstados] = useState(true);
+  const [estadoSelecionado, setEstadoSelecionado] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
 
   const [draft, setDraft] = useState<Step1Data | null>(null);
 
@@ -57,6 +85,14 @@ export default function VirarAnfitriao() {
       setDraft(parsed);
     }
   }, []);
+
+  useEffect(() => {
+    setTelefone(formatarTelefoneBrasileiro(draft?.telefone || user?.telefone || ""));
+  }, [draft?.telefone, user?.telefone]);
+
+  useEffect(() => {
+    setCpf(formatarCpf(user?.cpf || ""));
+  }, [user?.cpf]);
 
   /* ========================== ESTADOS (IBGE) =========================== */
   useEffect(() => {
@@ -81,6 +117,19 @@ export default function VirarAnfitriao() {
 
     fetchEstados();
   }, []);
+
+  useEffect(() => {
+    const estadoSalvo = String(draft?.estado || user?.estado || "").trim();
+    if (!estadoSalvo) return;
+
+    const estadoCorrespondente = estados.find(
+      (estado) =>
+        estado.sigla.toLocaleLowerCase("pt-BR") === estadoSalvo.toLocaleLowerCase("pt-BR") ||
+        estado.nome.toLocaleLowerCase("pt-BR") === estadoSalvo.toLocaleLowerCase("pt-BR")
+    );
+
+    setEstadoSelecionado(estadoCorrespondente?.sigla || estadoSalvo.toUpperCase());
+  }, [draft?.estado, user?.estado, estados]);
 
   /* ========================== SUBMIT =========================== */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -114,10 +163,11 @@ export default function VirarAnfitriao() {
 
     /* ---------- STEP 2 ---------- */
     if (step === 2) {
-      const cpf = String(formData.get("cpf") || "");
+      const cpfInformado = String(formData.get("cpf") || "");
+      const cpfNumeros = cpfInformado.replace(/\D/g, "");
 
-      if (!cpf) {
-        toast.error("Informe o CPF");
+      if (cpfNumeros.length !== 11) {
+        toast.error("Informe um CPF completo");
         return;
       }
 
@@ -140,7 +190,7 @@ export default function VirarAnfitriao() {
         "placyhub_perfil_anfitriao",
         JSON.stringify({
           ...step1,
-          cpf,
+          cpf: cpfInformado,
           criadoEm: new Date().toISOString(),
         })
       );
@@ -148,7 +198,7 @@ export default function VirarAnfitriao() {
       try {
         setIsSubmitting(true); // Marca como submetendo antes da requisição
         
-        await virarAnfitriao(cpf);
+        await virarAnfitriao(cpfInformado);
 
         localStorage.removeItem(STORAGE_KEY);
 
@@ -209,8 +259,11 @@ export default function VirarAnfitriao() {
 
                 <input
                   name="telefone"
-                  defaultValue={draft?.telefone || user.telefone || ""}
+                  type="tel"
+                  value={telefone}
+                  onChange={(event) => setTelefone(formatarTelefoneBrasileiro(event.target.value))}
                   placeholder="Telefone"
+                  autoComplete="tel-national"
                   className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-gray-400"
                 />
 
@@ -223,7 +276,8 @@ export default function VirarAnfitriao() {
 
                 <select
                   name="estado"
-                  defaultValue={draft?.estado || user.estado || ""}
+                  value={estadoSelecionado}
+                  onChange={(event) => setEstadoSelecionado(event.target.value)}
                   disabled={loadingEstados}
                   className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                 >
@@ -245,7 +299,12 @@ export default function VirarAnfitriao() {
               <>
                 <input
                   name="cpf"
+                  value={cpf}
+                  onChange={(event) => setCpf(formatarCpf(event.target.value))}
                   placeholder="CPF"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={14}
                   className="input dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-gray-400"
                 />
 

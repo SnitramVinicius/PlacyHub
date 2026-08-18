@@ -49,6 +49,17 @@ export default function FinanceiroPage() {
 
  function calcularReembolso(reserva: any): number {
 
+  const percentualSalvo = Number(reserva.percentual_reembolso);
+  if (
+    reserva.percentual_reembolso !== null &&
+    reserva.percentual_reembolso !== undefined &&
+    Number.isFinite(percentualSalvo) &&
+    percentualSalvo >= 0 &&
+    percentualSalvo <= 1
+  ) {
+    return percentualSalvo;
+  }
+
   if (!reserva.cancelado_em) return 0;
 
   const criacao = new Date(reserva.created_at);
@@ -122,6 +133,7 @@ async function buscarDadosFinanceiros() {
       .from("reservas")
       .select("*")
       .in("espaco_id", espacosIds)
+      .eq("pagamento_status", "approved")
       .order("created_at", { ascending: false });
 
 
@@ -207,7 +219,7 @@ const valorLiquidoCancelamento =
 
 if(percentualMantido > 0){
 
- dados[mesKey].totalRecebido += valorReserva;
+ dados[mesKey].totalRecebido += valorAnfitriaoBruto;
 
   dados[mesKey].receitaCancelamentos += valorAnfitriaoBruto;
 
@@ -259,10 +271,6 @@ if (reserva.pagamento_status === "approved") {
   } else {
     dados[mesKey].aReceber += reserva.repasse_anfitriao || 0;
   }
-} {
-
-  dados[mesKey].aReceber += valorLiquido;
-
 }
 const dataLiberacao = reserva.repasse_realizado_em
   ? new Date(reserva.repasse_realizado_em)
@@ -288,75 +296,6 @@ const dataLiberacao = reserva.repasse_realizado_em
     : "Aguardando",
       });
     }
-
-// Calcula valores que já foram transferidos ao anfitrião
-
-for (const reserva of reservas) {
-
-  if (
-    !reserva.repasse_realizado ||
-    reserva.pagamento_status !== "approved"
-  ) {
-    continue;
-  }
-
-  const dataReserva = new Date(reserva.created_at);
-
-  const mesNome = dataReserva
-    .toLocaleString("pt-BR", { month: "long" })
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ç/g, "c");
-
-  const mesKey = `${mesNome} ${dataReserva.getFullYear()}`;
-
-  let valorTransferido = 0;
-
-  if (reserva.status === "cancelada") {
-
-    const percentualReembolso = calcularReembolso(reserva);
-
-    if (percentualReembolso === 1) {
-
-      valorTransferido = 0;
-
-    } else {
-
-      const valorBase = reserva.valor_base || 0;
-
-      const taxaOriginal =
-        reserva.comissao_placyhub || 0;
-
-      const percentualMantido =
-        1 - percentualReembolso;
-
-      const taxa =
-        taxaOriginal * percentualMantido;
-
-      valorTransferido =
-        (valorBase * percentualMantido) - taxa;
-    }
-
-  } else {
-
-    valorTransferido =
-      reserva.repasse_anfitriao || 0;
-
-  }
-
-  if (dados[mesKey]) {
-
-    dados[mesKey].saldoTransferido += valorTransferido;
-
-    // remove do "A Receber"
-    dados[mesKey].aReceber -= valorTransferido;
-
-    if (dados[mesKey].aReceber < 0) {
-      dados[mesKey].aReceber = 0;
-    }
-  }
-}
 
     setDadosPorMes(dados);
 
