@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import {
   TAXAS,
-  calcularTaxaAnfitriao,
+  arredondarMoeda,
 } from "@/config/taxa";
 
 // Tipos
@@ -35,6 +35,16 @@ interface DadosFinanceirosMes {
   estornos: number;
   saldoTransferido: number;
   transacoes: Transacao[];
+}
+
+function formatarDataEvento(data?: string | null) {
+  if (!data) return "-";
+
+  const dataCivil = data.slice(0, 10);
+  const [ano, mes, dia] = dataCivil.split("-");
+  if (!ano || !mes || !dia) return "-";
+
+  return `${dia}/${mes}/${ano}`;
 }
 
 export default function FinanceiroPage() {
@@ -171,11 +181,11 @@ async function buscarDadosFinanceiros() {
   };
 }
 
-const valorReserva = reserva.valor_base || 0;
+const valorReserva = arredondarMoeda(Number(reserva.valor_base) || 0);
 
-const taxa = reserva.comissao_placyhub || 0;
+const taxa = arredondarMoeda(Number(reserva.comissao_placyhub) || 0);
 
-const valorLiquido = reserva.repasse_anfitriao || 0;
+const valorLiquido = arredondarMoeda(valorReserva - taxa);
 
 let statusTransacao: "Confirmado" | "Pendente" | "Cancelado" = "Pendente";
 
@@ -202,16 +212,18 @@ const valorAnfitriaoBruto =
 const taxaOriginal =
   reserva.comissao_placyhub || 0;
 
-const taxaPlacy =
+const taxaPlacy = arredondarMoeda(
   percentualReembolso === 1
     ? 0
-    : taxaOriginal * percentualMantido;
+    : taxaOriginal * percentualMantido
+);
 
 // Valor que ficará para o anfitrião
-const valorLiquidoCancelamento =
+const valorLiquidoCancelamento = arredondarMoeda(
   percentualReembolso === 1
     ? 0
-    : valorAnfitriaoBruto - taxaPlacy;
+    : valorAnfitriaoBruto - taxaPlacy
+);
 
         const descricao = getDescricaoReembolso(percentualReembolso);
         
@@ -240,7 +252,7 @@ const dataLiberacao = reserva.repasse_realizado_em
           espaco: espacosMap.get(reserva.espaco_id) || "Espaço",
           espaco_id: reserva.espaco_id,
           data: new Date(reserva.created_at).toLocaleDateString("pt-BR"),
-          dataEvento: new Date(reserva.data_inicio).toLocaleDateString("pt-BR"),
+          dataEvento: formatarDataEvento(reserva.data_inicio),
           status: "Cancelado",
           tipo: "Estorno",
           metodo: "Reembolso",
@@ -267,9 +279,9 @@ taxa: taxaPlacy,
 
 if (reserva.pagamento_status === "approved") {
   if (reserva.repasse_realizado) {
-    dados[mesKey].saldoTransferido += reserva.repasse_anfitriao || 0;
+    dados[mesKey].saldoTransferido += valorLiquido;
   } else {
-    dados[mesKey].aReceber += reserva.repasse_anfitriao || 0;
+    dados[mesKey].aReceber += valorLiquido;
   }
 }
 const dataLiberacao = reserva.repasse_realizado_em
@@ -281,7 +293,7 @@ const dataLiberacao = reserva.repasse_realizado_em
         espaco: espacosMap.get(reserva.espaco_id) || "Espaço",
         espaco_id: reserva.espaco_id,
         data: new Date(reserva.created_at).toLocaleDateString("pt-BR"),
-        dataEvento: new Date(reserva.data_inicio).toLocaleDateString("pt-BR"),
+        dataEvento: formatarDataEvento(reserva.data_inicio),
         status: statusTransacao,
         tipo: "Reserva",
         metodo: reserva.pagamento_status === "approved" ? "Cartão/Pix" : "Aguardando",

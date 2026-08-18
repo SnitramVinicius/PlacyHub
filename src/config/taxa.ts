@@ -3,17 +3,20 @@ export const TAXAS = {
   anfitriao: 0.05,
 };
 
+export function arredondarMoeda(valor: number) {
+  return Math.round((valor + Number.EPSILON) * 100) / 100;
+}
 
 export function calcularValorBase(valorPago:number){
 
-  return valorPago / (1 + TAXAS.locatario);
+  return arredondarMoeda(valorPago / (1 + TAXAS.locatario));
 
 }
 
 
 export function calcularTaxaAnfitriao(valorBase:number){
 
-  return valorBase * TAXAS.anfitriao;
+  return arredondarMoeda(valorBase * TAXAS.anfitriao);
 
 }
 
@@ -24,6 +27,6 @@ export function calcularLiquidoAnfitriao(valorPago:number){
 
   const taxa = calcularTaxaAnfitriao(base);
 
-  return base - taxa;
+  return arredondarMoeda(base - taxa);
 
 }

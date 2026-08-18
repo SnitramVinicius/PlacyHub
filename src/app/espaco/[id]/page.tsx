@@ -13,7 +13,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import { obterValorParaData } from "@/utils/precificacao";
 import { calcularValorPeriodo } from "@/utils/precificacao";
-import { TAXAS } from "@/config/taxa";
+import { TAXAS, arredondarMoeda } from "@/config/taxa";
 import ImageGallery from "@/components/Espaco/ImageGallery";
 registerLocale("pt-BR", ptBR);
 // const Mapa = dynamic(() => import("@/components/Mapa"), { ssr: false });
@@ -812,12 +812,13 @@ const resumoPreco = useMemo(() => {
       ? calcularValorPeriodo(startReserva, endReserva, espaco)
       : 0;
 
-  const taxaCliente = valorBase * TAXAS.locatario;
+  const valorBaseArredondado = arredondarMoeda(valorBase);
+  const taxaCliente = arredondarMoeda(valorBaseArredondado * TAXAS.locatario);
 
   return {
-    valorBase,
+    valorBase: valorBaseArredondado,
     taxaCliente,
-    total: valorBase + taxaCliente,
+    total: arredondarMoeda(valorBaseArredondado + taxaCliente),
   };
 
 }, [
@@ -837,12 +838,12 @@ const {
 
 
 const comissaoPlacyHub = useMemo(() => {
- return valorBase * TAXAS.anfitriao;
+ return arredondarMoeda(valorBase * TAXAS.anfitriao);
 }, [valorBase]);
 
 
 const repasseAnfitriao = useMemo(() => {
- return valorBase - comissaoPlacyHub;
+ return arredondarMoeda(valorBase - comissaoPlacyHub);
 }, [valorBase, comissaoPlacyHub]);
 
 
