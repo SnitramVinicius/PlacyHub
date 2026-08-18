@@ -301,8 +301,9 @@ const reservaId = payment.external_reference;
     const metadataConfere =
       !payment.metadata?.reserva_id || payment.metadata.reserva_id === reservaId;
     const collectorConfere = String(payment.collector_id) === String(collector.id);
-    const applicationIdEsperado =
-      process.env.MP_APPLICATION_ID ?? token?.match(/^(?:APP_USR|TEST)-(\d+)-/)?.[1];
+    // O Access Token não possui um formato público confiável para extrair o
+    // application_id. Valide-o apenas quando informado explicitamente.
+    const applicationIdEsperado = process.env.MP_APPLICATION_ID;
     const applicationConfere =
       !applicationIdEsperado || String(payment.application_id) === applicationIdEsperado;
     const statusSubstituivel = [
