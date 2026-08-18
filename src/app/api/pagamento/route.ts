@@ -589,6 +589,15 @@ export const POST = async (req: NextRequest) => {
     // 1. RECEBER SOMENTE O ID DA RESERVA
     // ============================================
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  if (!baseUrl || !baseUrl.startsWith("https://")) {
+    console.error("NEXT_PUBLIC_BASE_URL ausente ou sem HTTPS; pagamento não iniciado.");
+    return NextResponse.json(
+      { error: "A confirmação automática do pagamento não está configurada." },
+      { status: 503 }
+    );
+  }
+
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
   const {
@@ -965,6 +974,9 @@ if (
       // a reserva depois que o pagamento acontecer.
       external_reference: String(reserva.id),
 
+      // Nome exibido na fatura do cartão, quando suportado pela bandeira.
+      statement_descriptor: "PLACYHUB",
+
       metadata: {
         reservaId: String(reserva.id),
         espacoId: String(reserva.espaco_id),
@@ -978,17 +990,17 @@ if (
 
       back_urls: {
         success:
-          `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
+          `${baseUrl}/locatario/reservas`,
 
         failure:
-          `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
+          `${baseUrl}/locatario/reservas`,
 
         pending:
-          `${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas`,
+          `${baseUrl}/locatario/reservas`,
       },
 
       notification_url:
-        `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhook/mercadopago`,
+        `${baseUrl}/api/webhook/mercadopago`,
 
       auto_return: "approved",
 
