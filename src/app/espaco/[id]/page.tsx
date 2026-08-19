@@ -1274,6 +1274,9 @@ Total:
             <p className="text-gray-600 dark:text-gray-300 mt-2 ">
               {espaco.cidade} — {espaco.bairro}
             </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Por segurança, o endereço completo e o contato do anfitrião são liberados após a confirmação do pagamento.
+            </p>
           </section>
           
 
