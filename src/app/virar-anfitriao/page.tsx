@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { LegalContent } from "@/components/legal/LegalContent";
 
 interface Estado {
   sigla: string;
@@ -352,19 +353,8 @@ export default function VirarAnfitriao() {
               Termos de Uso
             </h3>
 
-            <div className="max-h-80 overflow-y-auto text-sm text-gray-600 dark:text-gray-400 space-y-3">
-              <p>
-                Ao se tornar anfitrião no PlacyHub, você concorda em fornecer
-                informações verdadeiras sobre seus espaços.
-              </p>
-              <p>
-                O PlacyHub atua apenas como intermediador entre locatários e
-                anfitriões.
-              </p>
-              <p>
-                O anfitrião é responsável pelos valores, regras e informações do
-                espaço anunciado.
-              </p>
+            <div className="max-h-[65vh] overflow-y-auto pr-2 text-sm">
+              <LegalContent type="termos" compact />
             </div>
 
             <button

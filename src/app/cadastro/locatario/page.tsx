@@ -8,6 +8,7 @@ import { ArrowLeft, Eye, EyeOff, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { LegalContent, type LegalDocumentType } from "@/components/legal/LegalContent";
 
 interface EstadoIBGE {
   id: number;
@@ -314,7 +315,7 @@ export default function CadastroLocatario() {
         </div>
       </main>
 
-      {modalAberto && <Modal titulo={modalAberto === "termos" ? "Termos de Uso" : "Política de Privacidade"} onClose={() => setModalAberto(null)} />}
+      {modalAberto && <Modal type={modalAberto} onClose={() => setModalAberto(null)} />}
     </div>
   );
 }
@@ -379,15 +380,15 @@ function FieldError({ id, children }: { id: string; children: React.ReactNode })
   return <p id={id} role="alert" className="text-xs text-red-600 dark:text-red-400 mt-1">{children}</p>;
 }
 
-function Modal({ titulo, onClose }: { titulo: string; onClose: () => void }) {
+function Modal({ type, onClose }: { type: LegalDocumentType; onClose: () => void }) {
+  const titulo = type === "termos" ? "Termos de Uso" : "Política de Privacidade";
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full p-6 relative">
+      <div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-3xl w-full p-6 relative">
         <button type="button" onClick={onClose} aria-label="Fechar" className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X size={18} aria-hidden="true" /></button>
         <h2 id="modal-title" className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{titulo}</h2>
-        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-3 max-h-[60vh] overflow-y-auto">
-          <p>Este é um texto exemplo. Em produção, este conteúdo deve vir do backend ou CMS, permitindo versionamento e auditoria legal.</p>
-          <p>Ao utilizar o PlacyHub, você concorda com as regras, políticas e boas práticas da plataforma.</p>
+        <div className="text-sm max-h-[65vh] overflow-y-auto pr-2">
+          <LegalContent type={type} compact />
         </div>
         <button type="button" onClick={onClose} className="mt-4 w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl font-medium transition">Fechar</button>
       </div>

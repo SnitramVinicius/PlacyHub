@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, HelpCircle, Shield, MessageCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function CentralDeAjuda() {
   return (
@@ -75,11 +76,11 @@ export default function CentralDeAjuda() {
         <div>
           <h3 className="text-xl font-semibold">Precisa resolver algo específico?</h3>
           <ul className="mt-4 space-y-3 text-blue-600 dark:text-blue-400 font-medium">
-            <li className="cursor-pointer hover:underline">→ Políticas de cancelamento</li>
-            <li className="cursor-pointer hover:underline">→ Suporte para locador</li>
+            <li><Link className="hover:underline" href="/footer/cancelamentos">→ Políticas de cancelamento</Link></li>
+            <li><Link className="hover:underline" href="/footer/suporte-locador">→ Suporte para locador</Link></li>
             <li className="cursor-pointer hover:underline">→ Segurança e denúncias</li>
-            <li className="cursor-pointer hover:underline">→ Termos de uso</li>
-            <li className="cursor-pointer hover:underline">→ Política de privacidade</li>
+            <li><Link className="hover:underline" href="/footer/termos">→ Termos de uso</Link></li>
+            <li><Link className="hover:underline" href="/footer/privacidade">→ Política de privacidade</Link></li>
           </ul>
         </div>
 
