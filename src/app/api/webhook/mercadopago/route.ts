@@ -69,7 +69,7 @@ async function getDadosUsuario(usuarioId: string) {
   try {
     const { data, error } = await supabaseAdmin
       .from("users")
-      .select("email, name")
+      .select("email, name, telefone")
       .eq("id", usuarioId)
       .single();
 
@@ -85,8 +85,16 @@ async function getDadosUsuario(usuarioId: string) {
   }
 }
 
-async function enviarEmailReservaConfirmada(destinatario: string, nome: string, reserva: any, tipo: "cliente" | "anfitriao") {
-  const dataFormatada = new Date(reserva.data_inicio).toLocaleDateString("pt-BR");
+async function enviarEmailReservaConfirmada(
+  destinatario: string,
+  nome: string,
+  reserva: any,
+  tipo: "cliente" | "anfitriao",
+  contatoAnfitriao?: { name?: string | null; telefone?: string | null } | null,
+  contatoCliente?: { name?: string | null; telefone?: string | null } | null
+) {
+  const [ano, mes, dia] = String(reserva.data_inicio).slice(0, 10).split("-");
+  const dataFormatada = dia && mes && ano ? `${dia}/${mes}/${ano}` : "Data não informada";
 const valorPago = reserva.valor_total;
 
 const valorBase = calcularValorBase(valorPago);
@@ -96,6 +104,29 @@ const taxaCliente = valorPago - valorBase;
 const taxaAnfitriao = calcularTaxaAnfitriao(valorBase);
 
 const valorLiquidoAnfitriao = calcularLiquidoAnfitriao(valorPago);
+const moeda = (valor: number) => valor.toLocaleString("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+const enderecoCompleto = [
+  reserva.spaces.endereco,
+  reserva.spaces.bairro,
+  [reserva.spaces.cidade, reserva.spaces.estado].filter(Boolean).join(" - "),
+].filter(Boolean).join(", ");
+const telefoneAnfitriao = contatoAnfitriao?.telefone || "";
+const telefoneWhatsApp = telefoneAnfitriao.replace(/\D/g, "");
+const numeroWhatsApp = telefoneWhatsApp.startsWith("55")
+  ? telefoneWhatsApp
+  : telefoneWhatsApp
+    ? `55${telefoneWhatsApp}`
+    : "";
+const telefoneCliente = contatoCliente?.telefone || "";
+const telefoneClienteNumeros = telefoneCliente.replace(/\D/g, "");
+const whatsappCliente = telefoneClienteNumeros.startsWith("55")
+  ? telefoneClienteNumeros
+  : telefoneClienteNumeros
+    ? `55${telefoneClienteNumeros}`
+    : "";
   if (tipo === "cliente") {
     return await resend.emails.send({
       from: 'PlacyHub <onboarding@resend.dev>',
@@ -119,18 +150,27 @@ Espaço reservado:
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
-           <p><strong>🏠 Valor do espaço:</strong> R$ ${valorBase.toFixed(2)}</p>
+           <p><strong>🏠 Valor do espaço:</strong> ${moeda(valorBase)}</p>
 <p>
 <strong>💳 Taxa de serviço (${TAXAS.locatario * 100}%):</strong>
-R$ ${taxaCliente.toFixed(2)}
+${moeda(taxaCliente)}
 </p>
 
 <hr style="margin:12px 0;">
 
 <p style="font-size:18px;">
 <strong>💰 Total pago:</strong>
-R$ ${valorPago.toFixed(2)}
+${moeda(valorPago)}
 </p>
+          ${enderecoCompleto ? `
+          <div style="background:#eef8fc;padding:15px;border-radius:8px;margin:15px 0;">
+            <p style="margin-top:0;"><strong>📍 Endereço completo do espaço</strong></p>
+            <p>${enderecoCompleto}</p>
+            <p><strong>🔑 Entrada no local:</strong> combine com o anfitrião a entrega das chaves e as orientações de acesso.</p>
+            ${contatoAnfitriao?.name ? `<p><strong>👤 Anfitrião:</strong> ${contatoAnfitriao.name}</p>` : ""}
+            ${telefoneAnfitriao ? `<p><strong>📱 Telefone/WhatsApp:</strong> ${telefoneAnfitriao}</p>` : ""}
+            ${numeroWhatsApp ? `<p><a href="https://wa.me/${numeroWhatsApp}" style="color:#087f5b;font-weight:bold;">Conversar com o anfitrião pelo WhatsApp</a></p>` : ""}
+          </div>` : ""}
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver minhas reservas</a></p>
           <hr>
           <p style="color:#666;font-size:12px;">PlacyHub - Aluguel de espaços para eventos</p>
@@ -161,17 +201,24 @@ Espaço:
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
             <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
-           <p><strong>🏠 Valor da reserva:</strong> R$ ${valorBase.toFixed(2)}</p>
+           <p><strong>🏠 Valor da reserva:</strong> ${moeda(valorBase)}</p>
 
 <p><strong>💳 Comissão PlacyHub (${TAXAS.anfitriao * 100}%):</strong>
-R$ ${taxaAnfitriao.toFixed(2)}</p>
+${moeda(taxaAnfitriao)}</p>
 
 <hr style="margin:12px 0;">
 
 <p style="font-size:18px;">
 <strong>💵 Valor líquido do repasse:</strong>
-R$ ${valorLiquidoAnfitriao.toFixed(2)}
+${moeda(valorLiquidoAnfitriao)}
 </p>
+          <div style="background:#eef8fc;padding:15px;border-radius:8px;margin:15px 0;">
+            <p style="margin-top:0;"><strong>🔑 Combine a entrega das chaves</strong></p>
+            <p>Entre em contato com o cliente para confirmar o horário de entrada, a entrega das chaves e todas as orientações de acesso ao espaço.</p>
+            ${contatoCliente?.name ? `<p><strong>👤 Cliente:</strong> ${contatoCliente.name}</p>` : ""}
+            ${telefoneCliente ? `<p><strong>📱 Telefone/WhatsApp:</strong> ${telefoneCliente}</p>` : ""}
+            ${whatsappCliente ? `<p><a href="https://wa.me/${whatsappCliente}" style="color:#087f5b;font-weight:bold;">Conversar com o cliente pelo WhatsApp</a></p>` : ""}
+          </div>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/anfitriao/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver reservas</a></p>
           <hr>
           <p style="color:#666;font-size:12px;">PlacyHub - Aluguel de espaços para eventos</p>
@@ -277,7 +324,11 @@ const reservaId = payment.external_reference;
   spaces:espaco_id (
     nome_espaco,
     user_id,
-    imagem
+    imagem,
+    endereco,
+    bairro,
+    cidade,
+    estado
   )
 `)
       .eq("id", reservaId)
@@ -390,7 +441,11 @@ const reservaId = payment.external_reference;
   spaces:espaco_id (
     nome_espaco,
     user_id,
-    imagem
+    imagem,
+    endereco,
+    bairro,
+    cidade,
+    estado
   )
 `)
             .eq("id", reservaId)
@@ -460,20 +515,23 @@ const reservaId = payment.external_reference;
         // ============================================
         // 2. ENVIO DE EMAIL
         // ============================================
+        const [cliente, anfitriao] = await Promise.all([
+          getDadosUsuario(reserva.user_id),
+          getDadosUsuario(reserva.spaces.user_id),
+        ]);
         
         // 🔥 Email para o CLIENTE
         const podeEmailCliente = await podeEnviarEmail(reserva.user_id, "pagamentos");
         
         if (podeEmailCliente) {
-          const cliente = await getDadosUsuario(reserva.user_id);
-
 if (cliente?.email) {
   try {
     const result = await enviarEmailReservaConfirmada(
       cliente.email,
       cliente.name || "Cliente",
       reserva,
-      "cliente"
+      "cliente",
+      anfitriao
     );
 
     if (result.error) {
@@ -495,15 +553,15 @@ if (cliente?.email) {
         const podeEmailAnfitriao = await podeEnviarEmail(reserva.spaces.user_id, "reservas");
         
         if (podeEmailAnfitriao) {
-          const anfitriao = await getDadosUsuario(reserva.spaces.user_id);
-
 if (anfitriao?.email) {
   try {
     const result = await enviarEmailReservaConfirmada(
       anfitriao.email,
       anfitriao.name || "Anfitrião",
       reserva,
-      "anfitriao"
+      "anfitriao",
+      null,
+      cliente
     );
 
     if (result.error) {
