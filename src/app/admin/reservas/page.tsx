@@ -56,7 +56,16 @@ const [reservas, setReservas] = useState<Reserva[]>([]);
 const [loading, setLoading] = useState(true);
 
 const [processando, setProcessando] = useState<string | null>(null);
+
+function pagamentoFoiAprovado(reserva: Reserva) {
+  return reserva.pagamento_status === "approved";
+}
+
 function calcularReembolso(reserva: Reserva) {
+
+  // Uma tentativa expirada ou rejeitada nunca gerou valor a reembolsar.
+  if (!pagamentoFoiAprovado(reserva))
+    return 0;
 
   if (reserva.status !== "cancelada")
     return 0;
@@ -92,6 +101,9 @@ const evento = new Date(
 
 function getDescricaoCancelamento(reserva: Reserva) {
 
+  if (!pagamentoFoiAprovado(reserva))
+    return "Pagamento não aprovado — sem movimentação financeira";
+
   if (reserva.status !== "cancelada")
     return "Reserva confirmada";
 
@@ -108,6 +120,9 @@ function getDescricaoCancelamento(reserva: Reserva) {
 }
 
 function calcularRepasse(reserva: Reserva) {
+
+  if (!pagamentoFoiAprovado(reserva))
+    return 0;
 
   const valorBase = reserva.valor_base;
 
@@ -139,6 +154,9 @@ function calcularRepasse(reserva: Reserva) {
 
 function calcularLucroPlacy(reserva: Reserva) {
 
+  if (!pagamentoFoiAprovado(reserva))
+    return 0;
+
   const taxaServico = calcularTaxaServico(reserva);
 
   if (reserva.status !== "cancelada") {
@@ -156,6 +174,9 @@ function calcularLucroPlacy(reserva: Reserva) {
   return taxaServico + (valorRetido * 0.05);
 }
 function calcularValorReembolso(reserva: Reserva) {
+
+  if (!pagamentoFoiAprovado(reserva))
+    return 0;
 
   const percentual = calcularReembolso(reserva);
 
@@ -179,6 +200,9 @@ function calcularValorReembolso(reserva: Reserva) {
 }
 
 function calcularTaxaServico(reserva: Reserva) {
+
+  if (!pagamentoFoiAprovado(reserva))
+    return 0;
 
   return reserva.valor_total - reserva.valor_base;
 
@@ -234,11 +258,15 @@ return {
 
   ...reserva,
 
-  valorBase: reserva.valor_base,
+  valorBase: pagamentoFoiAprovado(reserva) ? reserva.valor_base : 0,
 
   taxaServico: calcularTaxaServico(reserva),
 
  taxaPlacy: (() => {
+
+  if (!pagamentoFoiAprovado(reserva)) {
+    return 0;
+  }
 
   if (reserva.status !== "cancelada") {
     return reserva.valor_base * 0.05;
@@ -317,7 +345,8 @@ const { error } = await supabase
 repasse_realizado:true,
 repasse_realizado_em: new Date().toISOString()
 })
-.eq("id",id);
+.eq("id",id)
+.eq("pagamento_status", "approved");
 
 
 
@@ -497,7 +526,7 @@ className="border-t"
 
 <td className="p-3 font-semibold">
 
-R$ {r.valor_total.toFixed(2)}
+R$ {(pagamentoFoiAprovado(r) ? r.valor_total : 0).toFixed(2)}
 
 </td>
 
@@ -564,6 +593,12 @@ r.repasse_realizado
 Pago
 </span>
 :
+!pagamentoFoiAprovado(r) || (r.repasse ?? 0) <= 0
+?
+<span className="text-gray-500 font-bold">
+Não aplicável
+</span>
+:
 <span className="text-orange-500 font-bold">
 Pendente
 </span>
@@ -582,6 +617,7 @@ Pendente
 
 {
 !r.repasse_realizado &&
+(pagamentoFoiAprovado(r)) &&
 (r.repasse ?? 0) > 0 &&
 
 <button

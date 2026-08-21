@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 // import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { refreshUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 interface Notification {
   id: string;
@@ -73,6 +74,7 @@ export default function NotificacoesPage() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, lida: true } : n))
       );
+      refreshUnreadNotifications();
     } catch (error) {
       console.error(error);
       toast.error("Erro ao marcar notificação");
@@ -84,11 +86,13 @@ export default function NotificacoesPage() {
       const { error } = await supabase
         .from("notificacoes")
         .update({ lida: true })
+        .eq("usuario_id", user!.id)
         .eq("lida", false);
 
       if (error) throw error;
 
       setNotifications((prev) => prev.map((n) => ({ ...n, lida: true })));
+      refreshUnreadNotifications();
       toast.success("Todas as notificações foram marcadas");
     } catch (error) {
       console.error(error);
@@ -105,6 +109,7 @@ export default function NotificacoesPage() {
       if (error) throw error;
 
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      refreshUnreadNotifications();
     } catch (error) {
       console.error(error);
       toast.error("Erro ao remover notificação");
