@@ -37,6 +37,7 @@ interface Usuario {
 
 export default function UsuariosAdminPage() {
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [pesquisa, setPesquisa] = useState("");
   const [usuarioSelecionado, setUsuarioSelecionado] =
@@ -52,58 +53,26 @@ export default function UsuariosAdminPage() {
 
   async function carregarUsuarios() {
     setLoading(true);
+    setErro("");
 
-const { data } = await supabase
-  .from("users")
-  .select(`
-    id,
-    name,
-    email,
-    telefone,
-    cpf,
-    cidade,
-    estado,
-    created_at,
-    foto_url,
-    roles
-  `)
-  .order("created_at", { ascending: false });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sua sessão expirou. Faça login novamente.");
 
-   const usuariosCompletos = await Promise.all(
-  (data || []).map(async (usuario: any) => {
+      const response = await fetch("/api/admin/usuarios", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "Erro ao carregar usuários.");
 
-    // Dados de recebimento
-    const { data: recebimento } = await supabase
-      .from("dados_recebimento")
-      .select("*")
-      .eq("user_id", usuario.id)
-      .maybeSingle();
-
-    // Quantidade de espaços
-    const { count: quantidadeEspacos } = await supabase
-      .from("espacos")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", usuario.id);
-
-    // Quantidade de reservas
-    const { count: quantidadeReservas } = await supabase
-      .from("reservas")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", usuario.id);
-
-
-
-    return {
-      ...usuario,
-      dadosRecebimento: recebimento,
-      quantidadeEspacos: quantidadeEspacos || 0,
-      quantidadeReservas: quantidadeReservas || 0,
-    };
-  })
-);
-
-setUsuarios(usuariosCompletos);
-    setLoading(false);
+      setUsuarios(result.usuarios ?? []);
+    } catch (error) {
+      setUsuarios([]);
+      setErro(error instanceof Error ? error.message : "Erro ao carregar usuários.");
+    } finally {
+      setLoading(false);
+    }
   }
 
  const lista = usuarios.filter((u) => {
@@ -129,6 +98,17 @@ u.roles?.includes(filtroRole)
     );
   }
 
+  if (erro) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-red-600 mb-4">{erro}</p>
+        <button onClick={carregarUsuarios} className="bg-sky-500 text-white px-4 py-2 rounded-xl">
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
 
   async function abrirUsuario(usuario: Usuario) {
   // Busca dados de recebimento
@@ -140,7 +120,7 @@ u.roles?.includes(filtroRole)
 
   // Conta espaços
   const { count: espacos } = await supabase
-    .from("espacos")
+    .from("spaces")
     .select("*", { count: "exact", head: true })
     .eq("user_id", usuario.id);
 
