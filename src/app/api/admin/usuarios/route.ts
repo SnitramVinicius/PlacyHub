@@ -6,6 +6,7 @@ const MAX_USERS_PER_PAGE = 1000;
 
 export async function GET(request: Request) {
   try {
+    const somenteResumo = new URL(request.url).searchParams.get("resumo") === "1";
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.startsWith("Bearer ")
       ? authHeader.slice("Bearer ".length)
@@ -56,6 +57,29 @@ export async function GET(request: Request) {
     if (profilesError) throw profilesError;
 
     const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+    const usuariosBasicos = authUsers
+      .map((authUser) => {
+        const profile = profileById.get(authUser.id);
+        const metadata = authUser.user_metadata ?? {};
+        return {
+          id: authUser.id,
+          name: profile?.name || metadata.name || authUser.email?.split("@")[0] || "Usuário",
+          email: profile?.email || authUser.email || "",
+          telefone: profile?.telefone || metadata.telefone || null,
+          cpf: profile?.cpf || null,
+          cidade: profile?.cidade || metadata.cidade || null,
+          estado: profile?.estado || metadata.estado || null,
+          created_at: profile?.created_at || authUser.created_at,
+          foto_url: profile?.foto_url || null,
+          roles: profile?.roles ?? ["LOCATARIO"],
+        };
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    if (somenteResumo) {
+      return NextResponse.json({ usuarios: usuariosBasicos });
+    }
+
     const profileIds = (profiles ?? []).map((profile) => profile.id);
 
     const [recebimentosResult, espacosResult, reservasResult] = await Promise.all([
@@ -79,27 +103,14 @@ export async function GET(request: Request) {
     const espacosByUser = contarPorUsuario(espacosResult.data ?? []);
     const reservasByUser = contarPorUsuario(reservasResult.data ?? []);
 
-    const usuarios = authUsers
-      .map((authUser) => {
-        const profile = profileById.get(authUser.id);
-        const metadata = authUser.user_metadata ?? {};
+    const usuarios = usuariosBasicos.map((usuario) => {
         return {
-          id: authUser.id,
-          name: profile?.name || metadata.name || authUser.email?.split("@")[0] || "Usuário",
-          email: profile?.email || authUser.email || "",
-          telefone: profile?.telefone || metadata.telefone || null,
-          cpf: profile?.cpf || null,
-          cidade: profile?.cidade || metadata.cidade || null,
-          estado: profile?.estado || metadata.estado || null,
-          created_at: profile?.created_at || authUser.created_at,
-          foto_url: profile?.foto_url || null,
-          roles: profile?.roles ?? ["LOCATARIO"],
-          dadosRecebimento: recebimentoByUser.get(authUser.id) ?? null,
-          quantidadeEspacos: espacosByUser.get(authUser.id) ?? 0,
-          quantidadeReservas: reservasByUser.get(authUser.id) ?? 0,
+          ...usuario,
+          dadosRecebimento: recebimentoByUser.get(usuario.id) ?? null,
+          quantidadeEspacos: espacosByUser.get(usuario.id) ?? 0,
+          quantidadeReservas: reservasByUser.get(usuario.id) ?? 0,
         };
-      })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      });
 
     return NextResponse.json({ usuarios });
   } catch (error) {

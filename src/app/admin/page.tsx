@@ -18,9 +18,30 @@ const [anfitrioes,setAnfitrioes] = useState(0);
 const [locatarios,setLocatarios] = useState(0);
 
 
-useEffect(()=>{
- carregar();
-},[]);
+useEffect(() => {
+  carregar();
+
+  // Alterações nas tabelas atualizam imediatamente. O polling também cobre
+  // novos cadastros que ainda existem apenas no Supabase Auth.
+  const channel = supabase
+    .channel("admin-dashboard")
+    .on("postgres_changes", { event: "*", schema: "public", table: "users" }, carregar)
+    .on("postgres_changes", { event: "*", schema: "public", table: "spaces" }, carregar)
+    .on("postgres_changes", { event: "*", schema: "public", table: "reservas" }, carregar)
+    .subscribe();
+
+  const interval = window.setInterval(carregar, 30_000);
+  const atualizarAoVoltar = () => {
+    if (document.visibilityState === "visible") carregar();
+  };
+  document.addEventListener("visibilitychange", atualizarAoVoltar);
+
+  return () => {
+    window.clearInterval(interval);
+    document.removeEventListener("visibilitychange", atualizarAoVoltar);
+    supabase.removeChannel(channel);
+  };
+}, []);
 
 function calcularReembolso(reserva: any): number {
   if (!reserva.cancelado_em) return 0;
@@ -49,9 +70,19 @@ async function carregar(){
 try {
 
 
-const { data: usuariosLista } = await supabase
-  .from("users")
-  .select("roles");
+const { data: sessionData } = await supabase.auth.getSession();
+const token = sessionData.session?.access_token;
+if (!token) throw new Error("Sessão expirada.");
+
+const usuariosResponse = await fetch("/api/admin/usuarios?resumo=1", {
+  headers: { Authorization: `Bearer ${token}` },
+  cache: "no-store",
+});
+const usuariosResult = await usuariosResponse.json();
+if (!usuariosResponse.ok) {
+  throw new Error(usuariosResult.message || "Erro ao carregar usuários.");
+}
+const usuariosLista: { roles?: string[] }[] = usuariosResult.usuarios ?? [];
 
   const totalUsuarios = usuariosLista?.length || 0;
 

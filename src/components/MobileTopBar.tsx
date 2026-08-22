@@ -84,6 +84,13 @@ const [showBenefitsModal, setShowBenefitsModal] = useState(false);
     };
   }, [menuAberto]);
 
+  // A barra mobile permanece montada entre navegações. Fecha qualquer camada
+  // aberta para que ela não cubra o conteúdo da página de destino.
+  useEffect(() => {
+    setMenuAberto(false);
+    setShowBenefitsModal(false);
+  }, [pathname]);
+
   if (!mounted) return null;
 
   const hideOnPages = ["/login", "/cadastro", "/esqueci-senha"];
@@ -483,6 +490,7 @@ if (isAnfitriao) {
       <button
         onClick={() => {
           setShowBenefitsModal(false);
+          setMenuAberto(false);
           if (!user) {
             router.push("/login?redirect=/virar-anfitriao");
           } else {
