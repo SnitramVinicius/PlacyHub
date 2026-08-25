@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFavoritos } from "@/context/FavoritosContext";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ptBR } from "date-fns/locale";
-import { obterValorParaData } from "@/utils/precificacao";
+import { obterNomeFaixaParaData, obterValorParaData } from "@/utils/precificacao";
 import { calcularValorPeriodo } from "@/utils/precificacao";
 import { TAXAS, arredondarMoeda } from "@/config/taxa";
 import ImageGallery from "@/components/Espaco/ImageGallery";
@@ -466,6 +466,7 @@ const getDayClassName = (date: Date) => {
 
   const [qtdPessoas, setQtdPessoas] = useState(1);
   const [reservando, setReservando] = useState(false);
+  const [limpezaSelecionada, setLimpezaSelecionada] = useState(false);
 const [isMobile,setIsMobile] = useState(false);
 
 useEffect(() => {
@@ -685,6 +686,7 @@ const {
       .eq("data_fim", dataFimReserva)
       .eq("qtd_pessoas", qtdPessoas)
       .eq("valor_total", total)
+      .eq("limpeza_selecionada", limpezaSelecionada)
       .eq("status", "pendente")
       .gte("created_at", limiteReservaPendente)
       .order("created_at", { ascending: false })
@@ -705,6 +707,8 @@ const {
         status: "pendente",
         qtd_pessoas: qtdPessoas,
         valor_base: valorBase,
+        taxa_limpeza: taxaLimpeza,
+        limpeza_selecionada: limpezaSelecionada,
         taxa_placyhub: taxaCliente,
         comissao_placyhub: comissaoPlacyHub,
         repasse_anfitriao: repasseAnfitriao,
@@ -785,6 +789,21 @@ const precoBaseDinamico = useMemo(() => {
     : (espaco.preco ?? 0) / 100;
 }, [startReserva, espaco]);
 
+const taxaLimpezaDisponivel = useMemo(
+  () => !isBuffet ? Number(espaco?.taxa_limpeza_valor || 0) / 100 : 0,
+  [espaco, isBuffet]
+);
+
+useEffect(() => {
+  if (taxaLimpezaDisponivel <= 0) setLimpezaSelecionada(false);
+  else if (espaco?.taxa_limpeza_opcional === false) setLimpezaSelecionada(true);
+}, [taxaLimpezaDisponivel, espaco?.taxa_limpeza_opcional]);
+
+const faixaSelecionada = useMemo(
+  () => startReserva && !isBuffet ? obterNomeFaixaParaData(startReserva, espaco) : null,
+  [startReserva, espaco, isBuffet]
+);
+
 const precoSelecionado = useMemo(() => {
   return isBuffet
     ? valorSelecionado?.preco ?? getMenorPrecoBuffet(espaco)
@@ -800,22 +819,27 @@ const resumoPreco = useMemo(() => {
 
   if (!espaco) {
     return {
+      valorLocacao: 0,
+      taxaLimpeza: 0,
       valorBase: 0,
       taxaCliente: 0,
       total: 0,
     };
   }
 
-  const valorBase = isBuffet
+  const valorLocacao = isBuffet
     ? valorSelecionado?.preco ?? 0
     : startReserva && endReserva
       ? calcularValorPeriodo(startReserva, endReserva, espaco)
       : 0;
 
-  const valorBaseArredondado = arredondarMoeda(valorBase);
+  const taxaLimpeza = limpezaSelecionada ? taxaLimpezaDisponivel : 0;
+  const valorBaseArredondado = arredondarMoeda(valorLocacao + taxaLimpeza);
   const taxaCliente = arredondarMoeda(valorBaseArredondado * TAXAS.locatario);
 
   return {
+    valorLocacao: arredondarMoeda(valorLocacao),
+    taxaLimpeza: arredondarMoeda(taxaLimpeza),
     valorBase: valorBaseArredondado,
     taxaCliente,
     total: arredondarMoeda(valorBaseArredondado + taxaCliente),
@@ -827,10 +851,14 @@ const resumoPreco = useMemo(() => {
  startReserva,
  endReserva,
  espaco,
+ limpezaSelecionada,
+ taxaLimpezaDisponivel,
 ]);
 
 
 const {
+ valorLocacao,
+ taxaLimpeza,
  valorBase,
  taxaCliente,
  total: totalCalculado,
@@ -1026,8 +1054,13 @@ const handleVoltar = () => {
   inline
   locale="pt-BR"
   minDate={new Date()}
-   dayClassName={getDayClassName}
+  dayClassName={getDayClassName}
 />
+                      {startReserva && faixaSelecionada && (
+                        <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-100">
+                          Esta data usa o valor de <strong>{precoBaseDinamico.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong> para {faixaSelecionada}.
+                        </div>
+                      )}
                     </div>
 
                     {/* Hora e quantidade de pessoas */}
@@ -1102,78 +1135,60 @@ const handleVoltar = () => {
       {notaMedia.toFixed(1)} de 5 na avaliação
     </p>
 
+    {!isBuffet && taxaLimpezaDisponivel > 0 && (
+      <label className={`my-5 flex items-start gap-3 rounded-2xl border-2 p-4 transition ${limpezaSelecionada ? "border-sky-500 bg-sky-50 shadow-sm dark:bg-sky-950" : "border-gray-200 bg-white hover:border-sky-300 dark:border-slate-700 dark:bg-slate-800"} ${espaco.taxa_limpeza_opcional === false ? "cursor-default" : "cursor-pointer"}`}>
+        <input
+          type="checkbox"
+          checked={limpezaSelecionada}
+          disabled={espaco.taxa_limpeza_opcional === false}
+          onChange={(e) => setLimpezaSelecionada(e.target.checked)}
+          className="mt-1 h-5 w-5 shrink-0 accent-sky-500"
+        />
+        <span>
+          <span className="block font-semibold text-gray-900 dark:text-white">
+            {espaco.taxa_limpeza_opcional === false ? "Limpeza obrigatória" : "Adicionar serviço de limpeza"}
+          </span>
+          <span className="mt-0.5 block text-sm font-medium text-sky-700 dark:text-sky-300">
+            {taxaLimpezaDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </span>
+          <span className="mt-2 block text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+            {espaco.taxa_limpeza_opcional === false
+              ? "Obrigatória e já incluída no total."
+              : limpezaSelecionada
+                ? "A limpeza foi incluída na sua reserva."
+                : "Sem este serviço, o espaço deverá ser entregue limpo e organizado ao final da locação."}
+          </span>
+        </span>
+      </label>
+    )}
+
     {/* Preços — automático baseado no período + plano */}
-{isBuffet ? (
-<>
-<p className="text-gray-500 text-sm">
-Valor do pacote
-</p>
-
-<p className="text-xl font-bold">
-{valorBase.toLocaleString("pt-BR",{
- style:"currency",
- currency:"BRL"
-})}
-</p>
-
-<p className="text-gray-700">
-Taxa PlacyHub:
-{" "}
-{taxaCliente.toLocaleString("pt-BR",{
- style:"currency",
- currency:"BRL"
-})}
-</p>
-
-<p className="text-2xl font-bold">
-Total:
-{" "}
-{totalCalculado.toLocaleString("pt-BR",{
- style:"currency",
- currency:"BRL"
-})}
-</p>
-</>
-) : (
-  <>
-<p className="text-gray-700 dark:text-gray-200 font-medium">
-  Total para {diasReserva} {diasReserva === 1 ? "dia" : "dias"}
-</p>
-
-<p className="text-gray-800 dark:text-gray-100 font-bold text-xl">
-  {totalCalculado.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</p>
-<p className="text-gray-700 dark:text-gray-300">
-  Valor do espaço:
-  {" "}
-  {valorBase.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</p>
-
-<p className="text-gray-700 dark:text-gray-300">
-  Taxa de serviço PlacyHub:
-  {" "}
- {taxaCliente.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</p>
-
-<p className="text-gray-900 dark:text-white font-bold text-xl">
-  Total:
-  {" "}
-  {totalCalculado.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  })}
-</p>
-  </>
-)}
+<div className="mt-5 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-900">
+  <div className="border-b border-gray-200 px-4 py-3 dark:border-slate-700">
+    <p className="font-semibold text-gray-900 dark:text-white">Resumo do pagamento</p>
+    {!isBuffet && <p className="text-xs text-gray-500">{diasReserva} {diasReserva === 1 ? "diária" : "diárias"}</p>}
+  </div>
+  <div className="space-y-3 px-4 py-4 text-sm">
+    <div className="flex justify-between gap-4">
+      <span>{isBuffet ? "Valor do pacote" : "Valor do espaço"}</span>
+      <span className="font-medium">{valorLocacao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+    </div>
+    {taxaLimpeza > 0 && (
+      <div className="flex justify-between gap-4 text-sky-700 dark:text-sky-300">
+        <span>Serviço de limpeza</span>
+        <span className="font-medium">{taxaLimpeza.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+      </div>
+    )}
+    <div className="flex justify-between gap-4">
+      <span>Taxa de serviço PlacyHub</span>
+      <span className="font-medium">{taxaCliente.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+    </div>
+  </div>
+  <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-800">
+    <span className="font-semibold text-gray-900 dark:text-white">Total</span>
+    <span className="text-2xl font-bold text-gray-900 dark:text-white">{totalCalculado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+  </div>
+</div>
 </div>
   {/* Imagem */}
   <div className="flex-shrink-0 w-full md:w-48 h-32 md:h-36 rounded-xl overflow-hidden shadow-sm">
@@ -1903,6 +1918,12 @@ Reservar Agora
     />
   )}
 
+  {startReserva && faixaSelecionada && (
+    <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-100">
+      Valor para a data selecionada: <strong>{precoBaseDinamico.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
+    </div>
+  )}
+
   <div className="flex items-center gap-2 mt-4">
 
     <input
@@ -1974,6 +1995,43 @@ Reservar Agora
       Capacidade máxima: {espaco?.capacidade || 1000} pessoas
     </p>
 
+  </div>
+)}
+
+{!isBuffet && taxaLimpezaDisponivel > 0 && (
+  <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <p className="mb-3 text-sm text-gray-500">Limpeza do espaço</p>
+    <label className={`flex items-start gap-3 rounded-xl border-2 p-4 transition ${limpezaSelecionada ? "border-sky-500 bg-sky-50 dark:bg-sky-950" : "border-gray-200 dark:border-slate-600"} ${espaco.taxa_limpeza_opcional === false ? "cursor-default" : "cursor-pointer"}`}>
+      <input
+        type="checkbox"
+        checked={limpezaSelecionada}
+        disabled={espaco.taxa_limpeza_opcional === false}
+        onChange={(e) => setLimpezaSelecionada(e.target.checked)}
+        className="mt-1 h-5 w-5 shrink-0 accent-sky-500"
+      />
+      <span className="min-w-0">
+        <span className="block font-semibold text-gray-900 dark:text-white">
+          {espaco.taxa_limpeza_opcional === false ? "Limpeza obrigatória" : "Adicionar serviço de limpeza"}
+        </span>
+        <span className="mt-0.5 block font-medium text-sky-700 dark:text-sky-300">
+          {taxaLimpezaDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+        </span>
+        <span className="mt-2 block text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+          {espaco.taxa_limpeza_opcional === false
+            ? "Obrigatória e incluída automaticamente no total."
+            : limpezaSelecionada
+              ? "A limpeza será incluída na sua reserva."
+              : "Sem contratar a limpeza, o espaço deverá ser entregue limpo e organizado."}
+        </span>
+      </span>
+    </label>
+
+    <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4 text-sm dark:border-slate-700">
+      <span className="font-medium text-gray-600 dark:text-gray-300">Total atualizado</span>
+      <span className="text-lg font-bold text-gray-900 dark:text-white">
+        {totalCalculado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+      </span>
+    </div>
   </div>
 )}
 
@@ -2061,7 +2119,6 @@ Reservar Agora
 </div>
   </div>
 )}
-
       <section className="mt-12 border-t border-gray-200 pt-8 dark:border-slate-700">
         <button
           type="button"

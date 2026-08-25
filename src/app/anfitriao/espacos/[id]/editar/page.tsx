@@ -160,8 +160,10 @@ if (data) {
     modoBuffet: !!buffetData,
     temPlanos: categoriasFesta.length > 0,
     categoriasFesta: categoriasFesta,
-    gruposDiasSemana: data.gruposDiasSemana || [],
+    gruposDiasSemana: (data.grupos_dias_semana || []).map((grupo: any) => ({ ...grupo, valor: Number(grupo.valor || 0) / 100 })),
     datasEspeciais: data.datasEspeciais || [],
+    taxaLimpezaValor: Number(data.taxa_limpeza_valor || 0) / 100 || null,
+    taxaLimpezaOpcional: data.taxa_limpeza_opcional ?? true,
   });
 }
   setDados({
@@ -181,8 +183,10 @@ if (data) {
     modoBuffet: !!buffetData,
     temPlanos: categoriasFesta.length > 0,
     categoriasFesta: categoriasFesta,
-    gruposDiasSemana: data.gruposDiasSemana || [],
+    gruposDiasSemana: (data.grupos_dias_semana || []).map((grupo: any) => ({ ...grupo, valor: Number(grupo.valor || 0) / 100 })),
     datasEspeciais: data.datasEspeciais || [],
+    taxaLimpezaValor: Number(data.taxa_limpeza_valor || 0) / 100 || null,
+    taxaLimpezaOpcional: data.taxa_limpeza_opcional ?? true,
   });
 }
     };
@@ -255,6 +259,12 @@ const todasUrls = [...(fotosExistentesNoBanco || []), ...(novasUrls || [])];
         endereco: dadosAtualizados.endereco,
         descricao: dadosAtualizados.descricao,
         preco: (dadosAtualizados.valor ?? 0) * 100,
+        grupos_dias_semana: (dadosAtualizados.gruposDiasSemana || []).map((grupo) => ({
+          ...grupo,
+          valor: Math.round((grupo.valor || 0) * 100),
+        })),
+        taxa_limpeza_valor: Math.round((dadosAtualizados.taxaLimpezaValor || 0) * 100),
+        taxa_limpeza_opcional: dadosAtualizados.taxaLimpezaOpcional,
         temPlanos: dadosAtualizados.temPlanos,
         imagens: todasUrls,
         // Se quiser guardar outros campos simples no futuro, adicione aqui

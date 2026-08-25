@@ -112,6 +112,12 @@ if (!(await validarPerfil(user.id))) return;
           endereco: dados.endereco,
           descricao: dados.descricao,
           preco: (dados.valor || 0) * 100,
+          grupos_dias_semana: (dados.gruposDiasSemana || []).map((grupo) => ({
+            ...grupo,
+            valor: Math.round((grupo.valor || 0) * 100),
+          })),
+          taxa_limpeza_valor: Math.round((dados.taxaLimpezaValor || 0) * 100),
+          taxa_limpeza_opcional: dados.taxaLimpezaOpcional,
           temPlanos: dados.temPlanos,  
           imagens: urls.filter(url => url && url.startsWith('http')),
         },
@@ -119,8 +125,13 @@ if (!(await validarPerfil(user.id))) return;
       .select(); // 🔥 ESSENCIAL
 
     if (insertError) {
-      console.error(insertError);
-      alert("Erro ao salvar o espaço no banco de dados");
+      console.error("Erro ao inserir espaço:", JSON.stringify(insertError, null, 2));
+      const colunaNaoEncontrada = insertError.code === "PGRST204" || /column|schema cache/i.test(insertError.message || "");
+      toast.error(
+        colunaNaoEncontrada
+          ? "O banco ainda não recebeu a atualização de preços por dia e taxa de limpeza. Aplique a migração 20260825 no Supabase."
+          : `Erro ao salvar o espaço: ${insertError.message || "erro desconhecido"}`
+      );
       return;
     }
 
@@ -252,8 +263,9 @@ if (dados.temPlanos && dados.categoriasFesta && dados.categoriasFesta.length > 0
   }
 }
 
-    alert("Espaço cadastrado com sucesso!");
-    router.push("/anfitriao/espacos");
+    toast.success("Espaço cadastrado com sucesso!");
+    router.replace("/anfitriao/espacos");
+    router.refresh();
   };
 
   if (verificandoPerfil) {

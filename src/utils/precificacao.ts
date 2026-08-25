@@ -1,20 +1,26 @@
 // utils/precificacao.ts
 
 // Função auxiliar para converter centavos para reais
-function converterParaReais(valorEmCentavos: number): number {
-  return valorEmCentavos / 100;
+function converterParaReais(valorEmCentavos: unknown): number {
+  const valor = Number(valorEmCentavos ?? 0);
+  return Number.isFinite(valor) ? valor / 100 : 0;
+}
+
+export interface GrupoPrecoDia {
+  id: string;
+  dias: number[];
+  valor: number | null;
 }
 
 export function obterValorParaData(data: Date, espaco: any): number {
-  const dataString = data.toISOString().split("T")[0];
   const diaSemana = data.getDay(); // 0 = domingo
 
-  const grupos = espaco.gruposDias || [];
-  const datasEspecificas = espaco.datasEspecificas || [];
+  const grupos: GrupoPrecoDia[] = espaco.grupos_dias_semana || espaco.gruposDiasSemana || [];
+  const datasEspecificas = espaco.datas_especiais || espaco.datasEspeciais || [];
 
   // 1️⃣ Verifica se existe DATA ESPECÍFICA para esse dia
   const dataEspecial = datasEspecificas.find(
-    (d: any) => d.data === dataString
+    (d: any) => d.data === `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`
   );
 
   if (dataEspecial) {
@@ -24,7 +30,7 @@ export function obterValorParaData(data: Date, espaco: any): number {
 
   // 2️⃣ Se não tiver data específica, verifica GRUPO RECORRENTE
   const grupoEncontrado = grupos.find((grupo: any) =>
-    grupo.diasSemana.includes(diaSemana)
+    (grupo.dias || []).includes(diaSemana)
   );
 
   if (grupoEncontrado) {
@@ -54,4 +60,12 @@ export function calcularValorPeriodo(
   }
 
   return total;
+}
+
+export function obterNomeFaixaParaData(data: Date, espaco: any): string | null {
+  const grupos: GrupoPrecoDia[] = espaco?.grupos_dias_semana || espaco?.gruposDiasSemana || [];
+  const grupo = grupos.find((item) => (item.dias || []).includes(data.getDay()));
+  if (!grupo) return null;
+  const nomes = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  return grupo.dias.map((dia) => nomes[dia]).join(", ");
 }

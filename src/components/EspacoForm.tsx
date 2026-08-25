@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from '@supabase/supabase-js';
 
@@ -62,6 +62,8 @@ export interface EspacoFormData {
   modoBuffet: boolean;
   temPlanos: boolean;
   valor: number | null;
+  taxaLimpezaValor: number | null;
+  taxaLimpezaOpcional: boolean;
   gruposDiasSemana?: GrupoDiasSemana[];
   datasEspeciais?: {
     tipo: "recorrente" | "especifica";
@@ -88,7 +90,7 @@ interface GrupoDiasSemana {
 interface EspacoFormProps {
   modo: "criar" | "editar";
   dadosIniciais?: EspacoFormData | null;
-  onSubmit: (dados: EspacoFormData, fotosNovas: File[]) => void;
+  onSubmit: (dados: EspacoFormData, fotosNovas: File[]) => void | Promise<void>;
 }
 
 /* =========================
@@ -115,6 +117,8 @@ export default function EspacoForm({
   const [modoBuffet, setModoBuffet] = useState(false);
   const [temPlanos, setTemPlanos] = useState(false);
   const [valor, setValor] = useState<number | null>(null);
+  const [taxaLimpezaValor, setTaxaLimpezaValor] = useState<number | null>(null);
+  const [taxaLimpezaOpcional, setTaxaLimpezaOpcional] = useState(true);
 
   const [estado, setEstado] = useState("");
   const [cidade, setCidade] = useState("");
@@ -148,6 +152,7 @@ export default function EspacoForm({
   const [fotosExistentes, setFotosExistentes] = useState<string[]>([]);
   const [fotosNovas, setFotosNovas] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const envioEmAndamentoRef = useRef(false);
   const [message, setMessage] = useState("");
 
   const [usarGruposDias, setUsarGruposDias] = useState(false);
@@ -193,6 +198,8 @@ export default function EspacoForm({
   setModoBuffet(dadosIniciais.modoBuffet || false);
   setTemPlanos(dadosIniciais.temPlanos ?? false);
   setValor(dadosIniciais.valor);
+  setTaxaLimpezaValor(dadosIniciais.taxaLimpezaValor ?? null);
+  setTaxaLimpezaOpcional(dadosIniciais.taxaLimpezaOpcional ?? true);
 
     if (dadosIniciais.buffet) {
       setBuffet(dadosIniciais.buffet);
@@ -254,6 +261,8 @@ export default function EspacoForm({
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
 
+    if (envioEmAndamentoRef.current) return;
+
 
     if (!nomeEspaco.trim()) {
       toast.error("Informe o nome do espaço");
@@ -306,6 +315,30 @@ if (modoBuffet && !temPlanos) {
   if (!pacote.duracao || pacote.duracao.trim() === "") {
     toast.error(`O pacote "${pacote.nome}" precisa ter uma duração definida`);
     return;
+  }
+
+  if (!temPlanos && (!valor || valor <= 0)) {
+    toast.error("Informe o valor padrão do espaço.");
+    return;
+  }
+
+  if (usarGruposDias) {
+    if (gruposDiasSemana.length === 0) {
+      toast.error("Adicione pelo menos uma faixa de dias ou desative os valores diferentes.");
+      return;
+    }
+    const diasUsados = new Set<number>();
+    for (const grupo of gruposDiasSemana) {
+      if (!grupo.dias.length || !grupo.valor || grupo.valor <= 0) {
+        toast.error("Preencha os dias e o valor de cada faixa de preço.");
+        return;
+      }
+      if (grupo.dias.some((dia) => diasUsados.has(dia))) {
+        toast.error("Um mesmo dia da semana não pode estar em duas faixas de preço.");
+        return;
+      }
+      grupo.dias.forEach((dia) => diasUsados.add(dia));
+    }
   }
         if (!pacote.descricao || pacote.descricao.trim() === "") {
           toast.error(`O pacote "${pacote.nome}" deve ter uma descrição.`);
@@ -367,6 +400,8 @@ const categoriasFormatadas = categoriasFesta.map((categoria) => ({
       modoBuffet,
       temPlanos,
       valor: temPlanos || valor === null ? null : valor, 
+      taxaLimpezaValor: taxaLimpezaValor && taxaLimpezaValor > 0 ? taxaLimpezaValor : null,
+      taxaLimpezaOpcional,
       gruposDiasSemana: usarGruposDias ? gruposDiasSemana : [],
       datasEspeciais: usarDatasEspeciais ? datasEspeciais : [],
       buffet: modoBuffet
@@ -382,7 +417,14 @@ const categoriasFormatadas = categoriasFesta.map((categoria) => ({
       fotos: fotosExistentes,
     };
 
-    onSubmit(dados, fotosNovas);
+    envioEmAndamentoRef.current = true;
+    setLoading(true);
+    try {
+      await onSubmit(dados, fotosNovas);
+    } finally {
+      envioEmAndamentoRef.current = false;
+      setLoading(false);
+    }
   };
 
   const adicionarServico = () => {
@@ -831,9 +873,10 @@ const categoriasFormatadas = categoriasFesta.map((categoria) => ({
                 </div>
 
                 {!temPlanos && (
-                  <div className="space-y-1">
+                  <div className="space-y-5">
+                    <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Valor do espaço (R$) *
+                      Valor padrão do espaço (R$) *
                     </label>
                     <input
                       type="number"
@@ -846,6 +889,56 @@ const categoriasFormatadas = categoriasFesta.map((categoria) => ({
                       placeholder="Ex: 4.500,00"
                       className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-900 outline-none transition"
                     />
+                    <p className="text-xs text-gray-500">Usado nos dias que não tiverem um preço diferente.</p>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-4">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" checked={usarGruposDias} onChange={(e) => setUsarGruposDias(e.target.checked)} className="mt-1 accent-sky-500" />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">Cobrar valores diferentes conforme o dia</span>
+                          <span className="block text-xs text-gray-500">Ex.: segunda a quinta R$ 300 e fim de semana R$ 400.</span>
+                        </span>
+                      </label>
+
+                      {usarGruposDias && (
+                        <div className="space-y-4">
+                          {gruposDiasSemana.map((grupo) => (
+                            <div key={grupo.id} className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                              <div className="flex flex-wrap gap-2">
+                                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((nome, dia) => (
+                                  <label key={dia} className={`px-3 py-2 rounded-lg border text-sm cursor-pointer ${grupo.dias.includes(dia) ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950" : "border-gray-200 dark:border-gray-600"}`}>
+                                    <input type="checkbox" className="sr-only" checked={grupo.dias.includes(dia)} onChange={() => atualizarGrupoDias(grupo.id, "dias", grupo.dias.includes(dia) ? grupo.dias.filter((d) => d !== dia) : [...grupo.dias, dia])} />
+                                    {nome}
+                                  </label>
+                                ))}
+                              </div>
+                              <div className="flex gap-3 items-end">
+                                <div className="flex-1">
+                                  <label className="block text-xs font-medium mb-1">Valor nesses dias (R$)</label>
+                                  <input type="number" min="0" step="0.01" value={grupo.valor ?? ""} onChange={(e) => atualizarGrupoDias(grupo.id, "valor", e.target.value === "" ? null : Number(e.target.value))} className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5" />
+                                </div>
+                                <button type="button" onClick={() => removerGrupoDias(grupo.id)} className="px-3 py-2.5 text-red-600">Remover</button>
+                              </div>
+                            </div>
+                          ))}
+                          <button type="button" onClick={adicionarGrupoDias} className="text-sm font-medium text-sky-600">+ Adicionar faixa de dias</button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100">Taxa de limpeza (R$)</label>
+                        <input type="number" min="0" step="0.01" value={taxaLimpezaValor ?? ""} onChange={(e) => setTaxaLimpezaValor(e.target.value === "" ? null : Number(e.target.value))} placeholder="Ex.: 80,00" className="mt-1 w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5" />
+                      </div>
+                      {!!taxaLimpezaValor && taxaLimpezaValor > 0 && (
+                        <label className="flex items-center gap-3 text-sm cursor-pointer">
+                          <input type="checkbox" checked={taxaLimpezaOpcional} onChange={(e) => setTaxaLimpezaOpcional(e.target.checked)} className="accent-sky-500" />
+                          Permitir que o cliente escolha se deseja contratar a limpeza
+                        </label>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1478,9 +1571,13 @@ Ex:
 
               <button
                 type="submit"
-                className="w-full bg-sky-500 text-white py-3 rounded-xl font-semibold text-sm sm:text-base hover:bg-sky-600 transition"
+                disabled={loading}
+                aria-busy={loading}
+                className="w-full bg-sky-500 text-white py-3 rounded-xl font-semibold text-sm sm:text-base hover:bg-sky-600 transition disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {modo === "criar" ? "Cadastrar espaço" : "Salvar alterações"}
+                {loading
+                  ? (modo === "criar" ? "Cadastrando espaço..." : "Salvando alterações...")
+                  : (modo === "criar" ? "Cadastrar espaço" : "Salvar alterações")}
               </button>
             </form>
           </div>
