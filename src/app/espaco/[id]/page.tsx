@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter,useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock, MessageCircle, Ruler, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -1282,6 +1282,40 @@ const handleVoltar = () => {
       {/* GRID PRINCIPAL */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-6">
         <div className="md:col-span-2 space-y-10">
+          {(Number(espaco.capacidade) > 0 || Number(espaco.area) > 0) && (
+            <section>
+              <h2 className="mb-4 text-2xl font-semibold">Informações do espaço</h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {Number(espaco.capacidade) > 0 && (
+                  <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
+                      <Users size={22} aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Capacidade máxima</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Até {Number(espaco.capacidade).toLocaleString("pt-BR")} pessoas
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {Number(espaco.area) > 0 && (
+                  <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
+                      <Ruler size={22} aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Área total</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {Number(espaco.area).toLocaleString("pt-BR")} m²
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* DESCRIÇÃO */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">Descrição</h2>
