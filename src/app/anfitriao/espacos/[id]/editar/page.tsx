@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import EspacoForm, { EspacoFormData } from "@/components/EspacoForm";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function EditarEspaco() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [dados, setDados] = useState<EspacoFormData | null>(null);
@@ -412,7 +414,9 @@ if (dadosAtualizados.temPlanos && dadosAtualizados.categoriasFesta && dadosAtual
 }
 
 
-    alert("Espaço atualizado com sucesso!");
+    toast.success("Espaço atualizado com sucesso!");
+    router.replace("/anfitriao/espacos");
+    router.refresh();
   };
 
   if (!dados) return <p>Carregando...</p>;
