@@ -80,7 +80,13 @@ export default function AnfitriaoLayout({
       {!isMobile && (
         <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-md p-4 flex flex-col justify-between fixed h-screen">
           <div>
-            <img src="/placyhub.png" alt="Logo" className="w-30 h-9 mb-5" />
+            <Link
+              href="/"
+              aria-label="Ir para a página inicial da PlacyHub"
+              className="mb-5 inline-block rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+            >
+              <img src="/placyhub.png" alt="PlacyHub" className="w-30 h-9" />
+            </Link>
 
             <nav className="space-y-1">
               {links.map((link) => {
