@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # O Turbopack registra valores do ambiente em seu cache de compilação.
+  # Esse diretório não é servido ao público; o scanner continua ativo em todo
+  # o código-fonte e nos artefatos efetivamente publicados.
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/.next/cache/**,.next/cache/**"

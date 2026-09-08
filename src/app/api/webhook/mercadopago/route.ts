@@ -278,7 +278,11 @@ export async function POST(request: Request) {
     }
     
     // Buscar token
-    const token = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_TOKEN;
+    const token = process.env.MP_ACCESS_TOKEN;
+    if (!token) {
+      console.error("MP_ACCESS_TOKEN não configurado.");
+      return NextResponse.json({ error: "Pagamento não configurado." }, { status: 503 });
+    }
         
     // Buscar pagamento no Mercado Pago
     const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {

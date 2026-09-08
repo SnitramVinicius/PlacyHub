@@ -9,8 +9,9 @@
       `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
       `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_APPLICATION_ID`,
       `RESEND_API_KEY` e `NEXT_PUBLIC_BASE_URL` com HTTPS.
-- [ ] Remover do ambiente publicado as variáveis legadas `JWT_SECRET` e
-      `DATABASE_URL` se nenhum outro serviço externo depender delas.
+- [ ] Remover do ambiente publicado as variáveis legadas `JWT_SECRET`,
+      `DATABASE_URL` e `MERCADOPAGO_TOKEN` se nenhum outro serviço externo
+      depender delas. O token utilizado atualmente é `MP_ACCESS_TOKEN`.
 - [ ] No Mercado Pago, cadastrar exatamente
       `https://DOMINIO/api/webhook/mercadopago` e conferir o segredo da assinatura.
 - [ ] Trocar o remetente de teste `onboarding@resend.dev` por um domínio verificado.
