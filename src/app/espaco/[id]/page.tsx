@@ -704,9 +704,8 @@ const response = await fetch("/api/pagamento", {
 
     if (!response.ok) {
       checkoutWindow?.close();
-      const text = await response.text();
-      console.error("Erro API:", text);
-      toast.error("Erro ao criar pagamento. Tente novamente.");
+      const erroPagamento = await response.json().catch(() => null);
+      toast.error(erroPagamento?.error || "Erro ao criar pagamento. Tente novamente.");
       return;
     }
 
@@ -728,7 +727,7 @@ const response = await fetch("/api/pagamento", {
   } catch (err) {
     checkoutWindow?.close();
     console.error(err);
-    toast.error("Erro ao criar reserva. Tente novamente.");
+    toast.error(err instanceof Error ? err.message : "Erro ao criar reserva. Tente novamente.");
   } finally {
   setReservando(false);
 }

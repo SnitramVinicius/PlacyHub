@@ -39,10 +39,14 @@ export async function POST(request: Request) {
 
     const { data: espaco, error: espacoError } = await supabaseAdmin
       .from("spaces")
-      .select("id, user_id, capacidade, preco, disponivel, grupos_dias_semana, datas_especiais, taxa_limpeza_valor, taxa_limpeza_opcional, temPlanos")
+      .select("*")
       .eq("id", espacoId)
       .single();
-    if (espacoError || !espaco || espaco.disponivel === false) {
+    if (espacoError) {
+      console.error("Erro ao consultar espaço para reserva:", espacoError);
+      return NextResponse.json({ error: "Não foi possível consultar o espaço." }, { status: 500 });
+    }
+    if (!espaco || espaco.disponivel === false) {
       return NextResponse.json({ error: "Espaço indisponível." }, { status: 404 });
     }
     if (espaco.user_id === authData.user.id) {
