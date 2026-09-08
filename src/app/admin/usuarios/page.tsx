@@ -110,33 +110,12 @@ u.roles?.includes(filtroRole)
   }
 
 
-  async function abrirUsuario(usuario: Usuario) {
-  // Busca dados de recebimento
-  const { data: recebimento } = await supabase
-    .from("dados_recebimento")
-    .select("*")
-    .eq("user_id", usuario.id)
-    .maybeSingle();
-
-  // Conta espaços
-  const { count: espacos } = await supabase
-    .from("spaces")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", usuario.id);
-
-  // Conta reservas
-  const { count: reservas } = await supabase
-    .from("reservas")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", usuario.id);
-
-  setUsuarioSelecionado({
-    ...usuario,
-    dadosRecebimento: recebimento || undefined,
-    quantidadeEspacos: espacos || 0,
-    quantidadeReservas: reservas || 0,
-  });
-}
+  function abrirUsuario(usuario: Usuario) {
+    // A rota administrativa já retorna os dados de recebimento e as contagens
+    // usando o cliente de servidor. Evitamos refazer essas consultas no navegador,
+    // onde as políticas de acesso do banco podem ocultar os dados de outro usuário.
+    setUsuarioSelecionado(usuario);
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6">

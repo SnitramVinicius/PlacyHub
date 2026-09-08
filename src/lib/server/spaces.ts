@@ -103,13 +103,6 @@ export async function getSpacesHome() {
 
   ]);
 
-console.log("INDICADOS:", indicadosQuery);
-console.log("DESTAQUE:", destaqueQuery);
-console.log("FDS:", fimSemanaQuery);
-console.log("PROXIMOS:", proximosQuery);
-console.log("RECOMENDADOS:", recomendadosQuery);
-
-
   return {
 
     indicados: mapSpaces(indicadosQuery.data ?? []),

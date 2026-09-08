@@ -219,8 +219,6 @@ export default function CadastroLocatario() {
           cidade: usuario.cidade,
           estado: usuario.estado,
           data_nascimento: usuario.dataNascimento || null,
-          is_anfitriao: false,
-          roles: ["LOCATARIO"],
         })
         .eq("id", authData.user.id);
 

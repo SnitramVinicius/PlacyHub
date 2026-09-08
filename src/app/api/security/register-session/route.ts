@@ -3,33 +3,18 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(request: Request) {
   try {
-    const { sessionToken, userAgent, ipAddress, userId } = await request.json();   
-    let usuarioId = userId;
-    
-    if (!usuarioId && sessionToken && !sessionToken.startsWith("manual_")) {
-      const { data: { user }, error } = await supabaseAdmin.auth.getUser(sessionToken);
-      if (!error && user) {
-        usuarioId = user.id;
-      }
-    }
-    
-    if (!usuarioId) {
-      console.error("❌ User ID não fornecido");
-      return NextResponse.json({ error: "User ID não fornecido" }, { status: 400 });
-    }
+    const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+    if (!token) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    const { userAgent } = await request.json();
+    const usuarioId = user.id;
    
     // Detectar informações do dispositivo
     const deviceInfo = getDeviceInfo(userAgent || "");   
     // Capturar IP real
-    let clientIp = ipAddress || "";
-    if (!clientIp) {
-      const forwarded = request.headers.get("x-forwarded-for");
-      if (forwarded) clientIp = forwarded.split(",")[0];
-      if (!clientIp) {
-        const realIp = request.headers.get("x-real-ip");
-        if (realIp) clientIp = realIp || "";
-      }
-    }    
+    const forwarded = request.headers.get("x-forwarded-for");
+    let clientIp = forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "";
     // Buscar localização
     let locationText = "";
     if (clientIp && clientIp !== "::1" && clientIp !== "127.0.0.1" && clientIp !== "localhost") {
@@ -57,7 +42,8 @@ export async function POST(request: Request) {
       .from("user_sessions")
       .insert({
         user_id: usuarioId,
-        session_token: sessionToken || `manual_${Date.now()}`,
+        // Nunca armazene o access token do Supabase no banco.
+        session_token: crypto.randomUUID(),
         device_name: deviceInfo.deviceName,
         device_type: deviceInfo.deviceType,
         browser: deviceInfo.browser,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,6 +21,28 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false); // 🔥 Estado de loading
+
+  useEffect(() => {
+    const code = searchParams.get("oauth_code");
+    if (!code) return;
+    let ativo = true;
+    setLoading(true);
+    supabase.auth.exchangeCodeForSession(code).then(async ({ data, error }) => {
+      if (!ativo) return;
+      if (error || !data.user) {
+        toast.error("Não foi possível concluir o login social.");
+        setLoading(false);
+        return;
+      }
+      await supabase.from("users").upsert({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata.full_name || data.user.email?.split("@")[0] || "Usuário",
+      }, { onConflict: "id", ignoreDuplicates: true });
+      window.location.replace(redirectTo);
+    });
+    return () => { ativo = false; };
+  }, [redirectTo, searchParams]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

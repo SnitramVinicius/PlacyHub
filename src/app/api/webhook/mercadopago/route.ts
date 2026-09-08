@@ -10,6 +10,12 @@ import {
 } from "@/config/taxa";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const escaparHtml = (valor: unknown) => String(valor ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#039;");
 
 function assinaturaWebhookValida(request: Request, dataId: string) {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -127,6 +133,14 @@ const whatsappCliente = telefoneClienteNumeros.startsWith("55")
   : telefoneClienteNumeros
     ? `55${telefoneClienteNumeros}`
     : "";
+const nomeSeguro = escaparHtml(nome);
+const espacoSeguro = escaparHtml(reserva.spaces.nome_espaco);
+const enderecoSeguro = escaparHtml(enderecoCompleto);
+const quantidadeSegura = escaparHtml(reserva.qtd_pessoas);
+const anfitriaoSeguro = escaparHtml(contatoAnfitriao?.name);
+const clienteSeguro = escaparHtml(contatoCliente?.name);
+const telefoneAnfitriaoSeguro = escaparHtml(telefoneAnfitriao);
+const telefoneClienteSeguro = escaparHtml(telefoneCliente);
   if (tipo === "cliente") {
     return await resend.emails.send({
       from: 'PlacyHub <onboarding@resend.dev>',
@@ -138,18 +152,18 @@ const whatsappCliente = telefoneClienteNumeros.startsWith("55")
         <head><meta charset="utf-8"><title>Pagamento confirmado</title></head>
         <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h1 style="color:#02b0f0;">✅ Pagamento Confirmado!</h1>
-          <p>Olá <strong>${nome}</strong>!</p>
+          <p>Olá <strong>${nomeSeguro}</strong>!</p>
           <p>
 Seu pagamento foi confirmado com sucesso e sua reserva está garantida.
 </p>
 
 <p>
 Espaço reservado:
-<strong>${reserva.spaces.nome_espaco}</strong>
+<strong>${espacoSeguro}</strong>
 </p>
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
-            <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
+            <p><strong>👥 Quantidade de pessoas:</strong> ${quantidadeSegura}</p>
            <p><strong>🏠 Valor do espaço:</strong> ${moeda(valorBase)}</p>
 <p>
 <strong>💳 Taxa de serviço (${TAXAS.locatario * 100}%):</strong>
@@ -165,10 +179,10 @@ ${moeda(valorPago)}
           ${enderecoCompleto ? `
           <div style="background:#eef8fc;padding:15px;border-radius:8px;margin:15px 0;">
             <p style="margin-top:0;"><strong>📍 Endereço completo do espaço</strong></p>
-            <p>${enderecoCompleto}</p>
+            <p>${enderecoSeguro}</p>
             <p><strong>🔑 Entrada no local:</strong> combine com o anfitrião a entrega das chaves e as orientações de acesso.</p>
-            ${contatoAnfitriao?.name ? `<p><strong>👤 Anfitrião:</strong> ${contatoAnfitriao.name}</p>` : ""}
-            ${telefoneAnfitriao ? `<p><strong>📱 Telefone/WhatsApp:</strong> ${telefoneAnfitriao}</p>` : ""}
+            ${contatoAnfitriao?.name ? `<p><strong>👤 Anfitrião:</strong> ${anfitriaoSeguro}</p>` : ""}
+            ${telefoneAnfitriao ? `<p><strong>📱 Telefone/WhatsApp:</strong> ${telefoneAnfitriaoSeguro}</p>` : ""}
             ${numeroWhatsApp ? `<p><a href="https://wa.me/${numeroWhatsApp}" style="color:#087f5b;font-weight:bold;">Conversar com o anfitrião pelo WhatsApp</a></p>` : ""}
           </div>` : ""}
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/locatario/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver minhas reservas</a></p>
@@ -189,18 +203,18 @@ ${moeda(valorPago)}
         <head><meta charset="utf-8"><title>Nova reserva</title></head>
         <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h1 style="color:#02b0f0;">🎉 Nova Reserva Confirmada!</h1>
-          <p>Olá <strong>${nome}</strong>!</p>
+          <p>Olá <strong>${nomeSeguro}</strong>!</p>
          <p>
 Parabéns! Você recebeu uma nova reserva confirmada.
 </p>
 
 <p>
 Espaço:
-<strong>${reserva.spaces.nome_espaco}</strong>
+<strong>${espacoSeguro}</strong>
 </p>
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
             <p><strong>📅 Data do evento:</strong> ${dataFormatada}</p>
-            <p><strong>👥 Quantidade de pessoas:</strong> ${reserva.qtd_pessoas}</p>
+            <p><strong>👥 Quantidade de pessoas:</strong> ${quantidadeSegura}</p>
            <p><strong>🏠 Valor da reserva:</strong> ${moeda(valorBase)}</p>
 
 <p><strong>💳 Comissão PlacyHub (${TAXAS.anfitriao * 100}%):</strong>
@@ -215,8 +229,8 @@ ${moeda(valorLiquidoAnfitriao)}
           <div style="background:#eef8fc;padding:15px;border-radius:8px;margin:15px 0;">
             <p style="margin-top:0;"><strong>🔑 Combine a entrega das chaves</strong></p>
             <p>Entre em contato com o cliente para confirmar o horário de entrada, a entrega das chaves e todas as orientações de acesso ao espaço.</p>
-            ${contatoCliente?.name ? `<p><strong>👤 Cliente:</strong> ${contatoCliente.name}</p>` : ""}
-            ${telefoneCliente ? `<p><strong>📱 Telefone/WhatsApp:</strong> ${telefoneCliente}</p>` : ""}
+            ${contatoCliente?.name ? `<p><strong>👤 Cliente:</strong> ${clienteSeguro}</p>` : ""}
+            ${telefoneCliente ? `<p><strong>📱 Telefone/WhatsApp:</strong> ${telefoneClienteSeguro}</p>` : ""}
             ${whatsappCliente ? `<p><a href="https://wa.me/${whatsappCliente}" style="color:#087f5b;font-weight:bold;">Conversar com o cliente pelo WhatsApp</a></p>` : ""}
           </div>
           <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/anfitriao/reservas" style="background:#02b0f0;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;">Ver reservas</a></p>
@@ -297,17 +311,6 @@ if (!collectorResponse.ok) {
   return NextResponse.json({ error: "Não foi possível validar a conta recebedora." }, { status: 503 });
 }
 const collector = await collectorResponse.json();
-
-console.log("========== PAGAMENTO MERCADO PAGO ==========");
-console.log("ID:", payment.id);
-console.log("STATUS:", payment.status);
-console.log("STATUS DETAIL:", payment.status_detail);
-console.log("STATUS DETAIL MESSAGE:", payment.status_detail?.message);
-console.log("PAYMENT TYPE:", payment.payment_type_id);
-console.log("PAYMENT METHOD:", payment.payment_method_id);
-console.log("TRANSACTION AMOUNT:", payment.transaction_amount);
-console.log("EXTERNAL REFERENCE:", payment.external_reference);
-console.log("============================================");
 
 const reservaId = payment.external_reference;
     

@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+
+async function usuarioAutenticado(request: Request) {
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  return error ? null : data.user;
+}
 
 export async function GET(request: Request) {
   try {
-    // Pegar o userId da URL (query string)
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");   
-    if (!userId) {
-      return NextResponse.json({ error: "User ID não fornecido" }, { status: 400 });
-    }
+    const user = await usuarioAutenticado(request);
+    if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     
     // Buscar dispositivos do usuário
-    const { data: devices, error } = await supabase
+    const { data: devices, error } = await supabaseAdmin
       .from("user_sessions")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .order("last_active", { ascending: false });
     
     if (error) {
@@ -40,27 +43,28 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { id, userId } = await request.json();    
-    if (!userId) {
-      return NextResponse.json({ error: "User ID não fornecido" }, { status: 400 });
-    }
+    const user = await usuarioAutenticado(request);
+    if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    const { id } = await request.json();
+    if (typeof id !== "string" || !id) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
     
     // Verificar se o dispositivo pertence ao usuário
-    const { data: device, error: findError } = await supabase
+    const { data: device, error: findError } = await supabaseAdmin
       .from("user_sessions")
       .select("user_id")
       .eq("id", id)
       .single();
     
-    if (findError || device.user_id !== userId) {
+    if (findError || device.user_id !== user.id) {
       return NextResponse.json({ error: "Dispositivo não encontrado" }, { status: 404 });
     }
     
     // Remover dispositivo
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("user_sessions")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id);
     
     if (error) throw error;
     

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter,useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock, MessageCircle, Ruler, Users } from "lucide-react";
+import { ArrowLeft, Star, X, Heart, ChevronLeft, ChevronRight, Clock, MessageCircle, Ruler, ShieldCheck, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -245,6 +245,7 @@ async function carregarEspaco() {
             ordem
           ),
           precos:espaco_precos_pacote (
+            id,
             convidados,
             valor,
             ordem
@@ -278,6 +279,7 @@ const buffetData = data.espaco_buffet && Object.keys(data.espaco_buffet).length 
         item.descricao ? `${item.titulo}: ${item.descricao}` : item.titulo
       ) || [],
       valores: pact.precos?.map((preco: any) => ({
+  id: preco.id,
   convidados: preco.convidados,
   preco: preco.valor / 100
 })) || []
@@ -525,11 +527,7 @@ useEffect(() => {
   script.setAttribute("view", "checkout");
 
   script.onload = () => {
-    console.log("✅ Mercado Pago Security.js carregado");
-
-    const deviceId = (window as any).MP_DEVICE_SESSION_ID;
-
-    console.log("📱 MP_DEVICE_SESSION_ID:", deviceId);
+    // O identificador é lido somente no momento de criar o checkout.
   };
 
   script.onerror = () => {
@@ -675,61 +673,21 @@ const {
     const dataFimReserva = endReserva
       ? formatarData(endReserva)
       : dataInicioReserva;
-    const limiteReservaPendente = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-
-    const { data: reservaPendente, error: reservaPendenteError } = await supabase
-      .from("reservas")
-      .select("*")
-      .eq("espaco_id", espaco.id)
-      .eq("user_id", user?.id)
-      .eq("data_inicio", dataInicioReserva)
-      .eq("data_fim", dataFimReserva)
-      .eq("qtd_pessoas", qtdPessoas)
-      .eq("valor_total", total)
-      .eq("limpeza_selecionada", limpezaSelecionada)
-      .eq("status", "pendente")
-      .gte("created_at", limiteReservaPendente)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (reservaPendenteError) throw reservaPendenteError;
-
-    let reservaData = reservaPendente;
-    if (!reservaData) {
-      const { data: novaReserva, error: reservaError } = await supabase
-        .from("reservas")
-        .insert({
-        espaco_id: espaco.id,
-        user_id: user?.id,
-        data_inicio: dataInicioReserva,
-        data_fim: dataFimReserva,
-        status: "pendente",
-        qtd_pessoas: qtdPessoas,
-        valor_base: valorBase,
-        taxa_limpeza: taxaLimpeza,
-        limpeza_selecionada: limpezaSelecionada,
-        taxa_placyhub: taxaCliente,
-        comissao_placyhub: comissaoPlacyHub,
-        repasse_anfitriao: repasseAnfitriao,
-        valor_total: total,
-        created_at: new Date().toISOString(),
-        pacote_nome: pacoteSelecionado?.nome || null,
-        convidados_pacote: valorSelecionado?.convidados || null,
-      })
-        .select()
-        .single();
-
-      if (reservaError) throw reservaError;
-      reservaData = novaReserva;
-    }
-
-    if (!reservaData) throw new Error("Não foi possível criar ou recuperar a reserva.");
+    const reservaResponse = await fetch("/api/reservas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        espacoId: espaco.id, dataInicio: dataInicioReserva, dataFim: dataFimReserva,
+        qtdPessoas: isBuffet ? valorSelecionado?.convidados : qtdPessoas,
+        limpezaSelecionada, precoPacoteId: valorSelecionado?.id || null,
+      }),
+    });
+    const reservaResult = await reservaResponse.json();
+    if (!reservaResponse.ok) throw new Error(reservaResult.error || "Não foi possível criar a reserva.");
+    const reservaData = reservaResult.reserva;
 
 
     // 🔥 2. PEGAR DEVICE ID DO MERCADO PAGO
-console.log("DEVICE ID ANTES DO PAGAMENTO:", deviceId);
-
 // 🔥 3. CRIAR PAGAMENTO COM O ID DA RESERVA
 
 const response = await fetch("/api/pagamento", {
@@ -1268,6 +1226,20 @@ const handleVoltar = () => {
     reparo ou reposição</strong>, conforme análise das evidências registradas.
   </p>
 </div>
+
+            {/* AVISO SOBRE A ANÁLISE DO PAGAMENTO */}
+            <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-600 dark:text-sky-300" aria-hidden="true" />
+                <div>
+                  <p className="mb-1 font-semibold">Pagamento seguro</p>
+                  <p className="leading-relaxed">
+                    Seu pagamento será processado com segurança pelo Mercado Pago.
+                    A reserva será confirmada assim que o pagamento for aprovado.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Botão confirmar */}
           <button

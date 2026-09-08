@@ -533,6 +533,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   calcularValorBase,
 } from "@/config/taxa";
+import { limitePermitido } from "@/lib/server/rateLimit";
 
 const accessToken = process.env.MP_ACCESS_TOKEN;
 
@@ -607,6 +608,9 @@ export const POST = async (req: NextRequest) => {
 
   if (authError || !authUser) {
     return NextResponse.json({ error: "Usuário não autenticado." }, { status: 401 });
+  }
+  if (!(await limitePermitido(`pagamento:${authUser.id}`, 600, 10))) {
+    return NextResponse.json({ error: "Muitas tentativas de pagamento. Aguarde alguns minutos." }, { status: 429 });
   }
 
   const body = await req.json();
@@ -1031,45 +1035,6 @@ if (
     // 12. LOG SEGURO
     // ============================================
 
-    console.log(
-      "========== CRIANDO PREFERÊNCIA =========="
-    );
-
-    console.log(
-      JSON.stringify(
-        {
-          reservaId: reserva.id,
-          clienteId: cliente.id,
-          espacoId: reserva.espaco_id,
-          valorTotal,
-          valorBase,
-          payer: {
-            name: payer.name || "***",
-            surname: payer.surname || "***",
-            email: payer.email ? "***" : undefined,
-          },
-        },
-        null,
-        2
-      )
-    );
-
-    console.log(
-      "=========================================="
-    );
-
-console.log("========== DEVICE ID NO BACKEND ==========");
-console.log("reservaId:", reserva.id);
-console.log(
-  "deviceId:",
-  deviceId ? `${deviceId.substring(0, 25)}...` : "NÃO RECEBIDO"
-);
-console.log(
-  "meliSessionId será enviado:",
-  !!deviceId
-);
-console.log("===========================================");
-
     // ============================================
     // 13. CRIAR PREFERÊNCIA
     // ============================================
@@ -1084,11 +1049,6 @@ console.log("===========================================");
       }
     : undefined,
 });
-
-    console.log(
-      "✅ Preferência criada:",
-      result.id
-    );
 
     // ============================================
     // 14. VALIDAR URL

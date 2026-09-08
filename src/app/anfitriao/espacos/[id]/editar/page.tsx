@@ -6,7 +6,12 @@ import EspacoForm, { EspacoFormData } from "@/components/EspacoForm";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-export default function EditarEspaco() {
+// TEMP-ADMIN-EDICAO-ESPACOS-20260901: exportação temporária para a rota admin.
+export function EditarEspacoForm({
+  caminhoRetorno = "/anfitriao/espacos",
+}: {
+  caminhoRetorno?: string;
+}) {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -103,7 +108,7 @@ categoriasFesta = categoriasData.map((cat: any) => ({
     })),
     precos: (pact.precos || []).map((preco: any) => ({
       convidados: preco.convidados,
-      valor: preco.valor,
+      valor: Number(preco.valor || 0) / 100,
     })),
   })),
 }));
@@ -405,7 +410,7 @@ if (dadosAtualizados.temPlanos && dadosAtualizados.categoriasFesta && dadosAtual
         await supabase.from("espaco_precos_pacote").insert({
           pacote_id: pacoteId,
           convidados: preco.convidados || 0,
-          valor: preco.valor || 0,
+          valor: Math.round((preco.valor || 0) * 100),
           ordem: prIdx,
         });
       }
@@ -415,7 +420,7 @@ if (dadosAtualizados.temPlanos && dadosAtualizados.categoriasFesta && dadosAtual
 
 
     toast.success("Espaço atualizado com sucesso!");
-    router.replace("/anfitriao/espacos");
+    router.replace(caminhoRetorno);
     router.refresh();
   };
 
@@ -428,4 +433,8 @@ if (dadosAtualizados.temPlanos && dadosAtualizados.categoriasFesta && dadosAtual
       onSubmit={handleSubmit}
     />
   );
+}
+
+export default function EditarEspaco() {
+  return <EditarEspacoForm />;
 }

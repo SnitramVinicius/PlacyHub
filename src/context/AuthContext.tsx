@@ -84,15 +84,6 @@ const {
 
 const authUser = session?.user;
 
-console.log("===== DEBUG AUTH =====");
-console.log("SESSION:", session);
-console.log("AUTH USER:", authUser);
-console.log("AUTH ID:", authUser?.id);
-console.log("======================");
-
-  console.log("AUTH USER:", authUser);
-console.log("AUTH ID:", authUser?.id);
-
   if (!authUser) {
     setUser(null);
     setLoading(false);
@@ -216,13 +207,7 @@ const { data: authData, error: authError } =
     password: senha,
   });
 
-  console.log("===== LOGIN =====");
-console.log("AUTH DATA:", authData);
-console.log("AUTH ERROR:", authError);
-console.log("=================");
-
 if (authError || !authData.user) {
-  console.log("ERRO SUPABASE LOGIN:", authError);
   toast.error(authError?.message || "Erro login");
   setLoading(false);
   return false;
@@ -249,9 +234,6 @@ const { data, error } = await supabase
   `)
   .eq("id", authData.user.id)
   .single();
-
-  console.log("AUTH ID:", authData.user.id);
-console.log("USER TABLE:", data);
 
 if (error || !data) {
   toast.error("Erro ao carregar usuário");
@@ -282,14 +264,15 @@ if (error || !data) {
       setUser(userData);
      
 try {
+  const sessionToken = authData.session?.access_token;
   const response = await fetch("/api/security/register-session", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+    },
     body: JSON.stringify({
-      sessionToken: `manual_${Date.now()}`,
       userAgent: navigator.userAgent,
-      ipAddress: "",
-      userId: userData.id,  // 🔥 Enviar o userId manualmente
     }),
   });
   const result = await response.json();
@@ -334,21 +317,16 @@ try {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from("users")
-       .update({
-    cpf,
-    roles: ["LOCATARIO", "ANFITRIAO"],
-    is_anfitriao: true // pode manter por compatibilidade
-})
-        .eq("id", user.id);
-
-      if (error) {
-        console.error("Erro ao virar anfitrião:", error);
-        toast.error("Erro ao atualizar perfil");
-        setLoading(false);
-        return;
-      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+      const response = await fetch("/api/auth/virar-anfitriao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cpf }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Erro ao atualizar perfil");
 
       const updatedUser: User = {
         ...user,

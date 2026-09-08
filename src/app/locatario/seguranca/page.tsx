@@ -4,11 +4,8 @@ import { useEffect, useState } from "react";
 import {
   Lock,
   Smartphone,
-  ShieldCheck,
   LogOut,
   ArrowLeft,
-  Check,
-  AlertCircle,
   Laptop,
   Smartphone as PhoneIcon,
   Tablet,
@@ -16,12 +13,12 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 export default function GerenciarSeguranca() {
 
   const { user } = useAuth();
 
-  const [autenticacao2FA, setAutenticacao2FA] = useState(false);
   const [devices, setDevices] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   // Detectar mobile
@@ -32,7 +29,7 @@ export default function GerenciarSeguranca() {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     async function loadDevices() {
@@ -48,7 +45,10 @@ if (!userId) {
           return;
         }
         
-        const res = await fetch(`/api/security/devices?userId=${userId}`);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/security/devices", { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         
         if (res.ok && data.devices) {
@@ -62,36 +62,15 @@ if (!userId) {
     loadDevices();
   }, []);
 
-  const handleToggle2FA = async () => {
-    try {
-      const response = await fetch("/api/security/two-factor", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        toast.error("Erro ao alterar 2FA");
-        return;
-      }
-
-      setAutenticacao2FA(!autenticacao2FA);
-      toast.success(
-        autenticacao2FA
-          ? "Autenticação em duas etapas desativada."
-          : "Autenticação em duas etapas ativada."
-      );
-    } catch {
-      toast.error("Erro de conexão");
-    }
-  };
-
   const handleEncerrarDispositivo = async (id: string) => {
     try {
-      const userId = user?.id;
-      
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
       const res = await fetch("/api/security/devices", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, userId }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id }),
       });
 
       if (!res.ok) {
@@ -169,45 +148,6 @@ if (!userId) {
             </div>
           </div>
         </Link>
-
-        {/* 2FA - Card redesenhado */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 overflow-hidden">
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-                  <ShieldCheck size={22} className="text-purple-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
-                    Autenticação em Duas Etapas
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Proteja sua conta com uma camada extra de segurança
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${autenticacao2FA ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                      {autenticacao2FA ? '✓ Protegido' : '○ Desprotegido'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleToggle2FA}
-                className={`group relative overflow-hidden px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                  autenticacao2FA
-                    ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
-                    : "bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700 shadow-md"
-                }`}
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {autenticacao2FA ? "Desativar 2FA" : "Ativar 2FA"}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* DISPOSITIVOS - Card redesenhado */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">

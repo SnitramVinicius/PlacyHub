@@ -247,14 +247,14 @@ if (dados.temPlanos && dados.categoriasFesta && dados.categoriasFesta.length > 0
       // Inserir preços do pacote
       for (let prIdx = 0; prIdx < pacote.precos.length; prIdx++) {
         const preco = pacote.precos[prIdx];
-        // preco.valor já está em reais (número)
+        // Preços são armazenados em centavos, como os demais valores do espaço.
         const valorNumerico = preco.valor !== undefined && preco.valor !== null ? preco.valor : 0;
         const { error: precoError } = await supabase
           .from("espaco_precos_pacote")
           .insert({
             pacote_id: pacoteId,
             convidados: preco.convidados || 0,
-            valor: valorNumerico,
+            valor: Math.round(valorNumerico * 100),
             ordem: prIdx,
           });
         if (precoError) console.error("Erro ao inserir preço:", precoError);
